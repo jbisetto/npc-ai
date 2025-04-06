@@ -1,0 +1,66 @@
+{
+  "type": "object",
+  "properties": {
+    "profile_id": {
+      "type": "string",
+      "description": "Unique identifier for the profile"
+    },
+    "name": {
+      "type": "string",
+      "description": "NPC's name"
+    },
+    "role": {
+      "type": "string",
+      "description": "NPC's role in the game (e.g., 'Station Attendant')"
+    },
+    "extends": {
+      "type": "array", 
+      "items": {"type": "string"},
+      "description": "IDs of base profiles this profile extends"
+    },
+    "personality_traits": {
+      "type": "object",
+      "description": "Key-value pairs of traits with values 0-1",
+      "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
+    },
+    "speech_patterns": {
+      "type": "object",
+      "properties": {
+        "formality_level": {"type": "string"},
+        "speaking_style": {"type": "string"},
+        "common_phrases": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "knowledge_areas": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Topics this NPC is knowledgeable about"
+    },
+    "backstory": {
+      "type": "string",
+      "description": "NPC's background story"
+    },
+    "visual_traits": {
+      "type": "object",
+      "additionalProperties": {"type": "string"},
+      "description": "Visual characteristics of the NPC"
+    },
+    "emotion_expressions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"type": "string"}
+      },
+      "description": "Mapping of emotions to text expressions"
+    },
+    "response_format": {
+      "type": "object",
+      "additionalProperties": {"type": "string"},
+      "description": "Intent-specific response formats"
+    }
+  },
+  "required": ["profile_id", "name", "role"]
+} 

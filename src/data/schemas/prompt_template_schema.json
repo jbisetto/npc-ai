@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "properties": {
+    "template_id": {
+      "type": "string",
+      "description": "Unique identifier for the template"
+    },
+    "intent_prompts": {
+      "type": "object",
+      "properties": {
+        "VOCABULARY_HELP": {"type": "string"},
+        "GRAMMAR_EXPLANATION": {"type": "string"},
+        "TRANSLATION_CONFIRMATION": {"type": "string"},
+        "DIRECTION_GUIDANCE": {"type": "string"},
+        "GENERAL_HINT": {"type": "string"},
+        "DEFAULT": {"type": "string"}
+      },
+      "description": "Prompt templates for each intent category"
+    },
+    "response_instructions": {
+      "type": "string",
+      "description": "General instructions for response generation"
+    },
+    "npc_specific_instructions": {
+      "type": "object",
+      "additionalProperties": {"type": "string"},
+      "description": "Profile-specific instruction overrides"
+    }
+  },
+  "required": ["template_id", "intent_prompts"]
+} 

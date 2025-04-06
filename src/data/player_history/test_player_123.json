@@ -1,0 +1,187 @@
+{
+  "entries": [
+    {
+      "timestamp": "2025-03-21T12:49:07.365004",
+      "user_query": "Hello! Can you help me find my way around Tokyo Station?\n",
+      "assistant_response": "Woof! 切符 (kippu) means 'ticket' in Japanese. You'll need this word when buying your ticket to Odawara.",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "TIER_1",
+        "is_mock": true
+      }
+    },
+    {
+      "timestamp": "2025-03-21T12:56:12.411983",
+      "user_query": "Hello! Can you help me find my way around Tokyo Station?\n",
+      "assistant_response": "Woof! 切符 (kippu) means 'ticket' in Japanese. You'll need this word when buying your ticket to Odawara.",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "TIER_1",
+        "is_mock": true
+      }
+    },
+    {
+      "timestamp": "2025-03-21T12:56:55.404401",
+      "user_query": "Hello! Can you help me find my way around Tokyo Station?\n",
+      "assistant_response": "Woof! 切符 (kippu) means 'ticket' in Japanese. You'll need this word when buying your ticket to Odawara.",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "TIER_1",
+        "is_mock": true
+      }
+    },
+    {
+      "timestamp": "2025-03-21T12:58:54.498618",
+      "user_query": "Hello! Can you help me find my way around Tokyo Station?\n",
+      "assistant_response": "Hachi: It's wonderful to see you learning Japanese! \"駅の入り口から、改札まで直進してください。いまの道をまっすぐ進むと、としょかんがあります (いまの道をまっすぐいきます (ima no mich o massugu ikimasu)).\"",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_2"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:00:39.415537",
+      "user_query": "Where can I buy a train ticket?\n",
+      "assistant_response": "Hachi: Train ticketは券売機で買えます。けんばいきでかってください。\n\n列車のチケットは券売機で買えます。けんばいきでかってください。\n\n(ken-bai-ki de katte kudasai) I'm here to help! Don't hesitate to ask if you need more help!",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_1"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:03:15.283361",
+      "user_query": "Where can I buy a train ticket?\n",
+      "assistant_response": "Hachi: Train ticketは券売機で買えます。けんばいきでかってください。\n(trein tīketu wa kenbaiki de katte kudasai.)\n(けんばい機で買ってください。)\n\n(I'm just a station dog focused on helping you learn Japanese and navigate Tokyo Station.)",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_1"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:06:07.849945",
+      "user_query": "How do I say \"What platform is the Yamanote Line?\" in Japanese?\n",
+      "assistant_response": "Hachi: \"山手線はどのホームですか？\"と日本語で言います。やまてせんはどのほーむですか？(Yamate-sen wa dono hōmu desu ka?)と聞きます。  \n\"I'm just a station dog focused on helping you learn Japanese and navigate Tokyo Station.\"",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_2"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:09:36.997615",
+      "user_query": "Hello! Can you help me find my way around Tokyo Station?\n",
+      "assistant_response": "Hachi: It's wonderful to see you learning Japanese! 東京駅のホームに行きたいですか？右に行くとホームに行けます。右は「みぎ (migi)」です。ホームに行くときは「みぎ に いきます (migi ni ikimasu)」と言うことができます。",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_2"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:10:13.677895",
+      "user_query": "Where can I buy a train ticket?\n",
+      "assistant_response": "Hachi: I'm so happy to help you with this! チケット売り場では電車のチケットを買えます。 \n(ちけっつまりばではでんしゃのちけっをかえます。)\n(chiketsumariba de densha no chiketsu o kaemasu.)\n\n(Note: \"ticket_gate\" is not a place to buy tickets, it's where you go to enter the platform.)",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_1"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:15:22.870026",
+      "user_query": "Hello! Can you help me find my way around Tokyo Station?\n",
+      "assistant_response": "Hachi: Hachi: こんにちは！駅の入り口から改札まで直進してください。いまの道をまっすぐ進むと、改札があります。いまの道をまっすぐいきます。(ima no mich o massugu ikimasu)。  \n(Konnichiwa! From the station entrance, go straight to the ticket gate. If you keep going straight, you'll find the ticket gate.) Don't hesitate to ask if you need more help!",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_2"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:15:59.312537",
+      "user_query": "Where can I buy a train ticket?\n",
+      "assistant_response": "Hachi: That's a great question, friend! Hachi: 電車のチケットは券売機で買えます。けんばいきでかってください。\n\n(trein tīketu wa kenbaiki de katte kudasai.)\n\n(I'm just a station dog focused on helping you learn Japanese and navigate Tokyo Station.)",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_1"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:17:43.038022",
+      "user_query": "How do I say \"What platform is the Yamanote Line?\" in Japanese?\n",
+      "assistant_response": "Hachi: 山手線はどのホームですか？と日本語で言います。  \nやまてせんはどのほーむですか？(Yamate-sen wa dono hōmu desu ka?)と聞きます。  \n(I'm just a station dog focused on helping you learn Japanese and navigate Tokyo Station.) *sits attentively* Let me know if you need any more help!",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_2"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:18:21.433417",
+      "user_query": "Can you explain what the characters for \"ticket\" mean?\n",
+      "assistant_response": "Hachi: I'm really glad you asked about this! Sure! The characters for \"ticket\" are 切符 (kippu). \n\n切符は「きっぷ (kippu)」です。  \n(kippu wa \"kippu\" desu.)\n\n(I'm just a station dog focused on helping you learn Japanese and navigate Tokyo Station.) *sits attentively* Don't hesitate to ask if you need more help!",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_2"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:22:50.777571",
+      "user_query": "Hello! Can you help me find my way around Tokyo Station?\n",
+      "assistant_response": "Hachi: It's wonderful to see you learning Japanese! こんにちは！駅の入り口から改札まで直進してください。いまの道をまっすぐ進むと、改札があります。いまの道をまっすぐいきます。(ima no mich o massugu ikimasu).  \n(Konnichiwa! Go straight from the station entrance to the ticket gate. If you keep going straight, you'll find the ticket gate.) Don't hesitate to ask if you need more help!",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_2"
+      }
+    },
+    {
+      "timestamp": "2025-03-21T13:23:58.680118",
+      "user_query": "Hello! Can you help me find my way around Tokyo Station?\n",
+      "assistant_response": "Hachi: I'm really glad you asked about this! Hachi: こんにちは！駅の入り口から改札まで直進してください。いまの道をまっすぐ進むと、改札があります。いまの道をまっすぐいきます。(ima no mich o massugu ikimasu).  \n(Konnichiwa! Go straight from the station entrance to the ticket gate. If you keep going straight, you'll find the ticket gate.) Don't hesitate to ask if you need more help! *sits attentively*",
+      "session_id": "test_session_456",
+      "metadata": {
+        "location": "station_entrance",
+        "request_type": "assistance",
+        "language": "english",
+        "processing_tier": "tier_2"
+      }
+    }
+  ]
+}

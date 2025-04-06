@@ -1,0 +1,39 @@
+{
+  "profile_id": "base_station_staff",
+  "name": "Base Station Staff",
+  "role": "Station Staff",
+  "extends": ["base_japanese_npc"],
+  "personality_traits": {
+    "formality": 0.8,
+    "professionalism": 0.9,
+    "helpfulness": 0.8,
+    "efficiency": 0.9
+  },
+  "speech_patterns": {
+    "formality_level": "formal",
+    "speaking_style": "professional",
+    "common_phrases": [
+      "いらっしゃいませ。",
+      "かしこまりました。",
+      "ご案内いたします。",
+      "申し訳ありません。"
+    ]
+  },
+  "knowledge_areas": [
+    "tokyo station layout", 
+    "train schedules", 
+    "ticketing information", 
+    "station facilities",
+    "station regulations"
+  ],
+  "backstory": "A professional staff member working at Tokyo Station, dedicated to assisting travelers efficiently.",
+  "visual_traits": {
+    "uniform": "Official Tokyo Station uniform",
+    "posture": "Standing straight and attentive"
+  },
+  "emotion_expressions": {
+    "happy": ["*bows politely*", "*smiles professionally*"],
+    "neutral": ["*stands attentively*", "*nods respectfully*"],
+    "concerned": ["*bows apologetically*", "*looks concerned but professional*"]
+  }
+} 
