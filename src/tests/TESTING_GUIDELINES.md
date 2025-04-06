@@ -141,4 +141,35 @@ def test_bedrock_client_call(mock_bedrock):
 - Test configuration validation
 - Test response formatting
 - Test resource cleanup
-- Test proper mock usage 
+- Test proper mock usage
+
+### 11. Version Control and Commits
+- Commit after each component's tests are passing
+- Use descriptive commit messages following this format:
+  ```
+  test(component): add tests for [component name]
+  
+  - List specific test cases added
+  - Note any mock implementations
+  - Reference related issues/tasks
+  
+  All tests passing: XX tests ✅
+  ```
+- Include test coverage stats in commit message if available
+- Keep commits focused on single components
+- Don't mix test implementations with feature code
+- Update test implementation checklist in same commit
+- Example commit:
+  ```
+  test(models): add tests for core data models
+  
+  - Add tests for ClassifiedRequest
+  - Add tests for CompanionRequest
+  - Add tests for ProcessingTier enum
+  - Add tests for GameContext
+  - Add tests for ConversationContext
+  - Implement test fixtures for common test data
+  
+  All tests passing: 14 tests ✅
+  Coverage: 92% (models.py)
+  ``` 

@@ -9,30 +9,71 @@ __version__ = "0.1.0"
 
 import logging
 from typing import Dict, Any, Optional
-from .core.models import CompanionRequest, ClassifiedRequest, ProcessingTier
-from .core.prompt_manager import PromptManager
-from .core.npc_profile import NPCProfile
-from .core.conversation_manager import ConversationManager
-from .core.storage_manager import StorageManager
-from .core.vector.tokyo_knowledge_store import TokyoKnowledgeStore
-from .local.local_processor import LocalProcessor
-from .hosted.hosted_processor import HostedProcessor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize components
-prompt_manager = PromptManager()
-storage_manager = StorageManager()
-knowledge_store = TokyoKnowledgeStore()
-conversation_manager = ConversationManager(storage_manager)
+# Export core models directly as they are fundamental
+from .core.models import CompanionRequest, ClassifiedRequest, ProcessingTier
 
-# Initialize processors
-local_processor = LocalProcessor()
-hosted_processor = HostedProcessor()
+# Initialize components lazily
+_prompt_manager = None
+_storage_manager = None
+_knowledge_store = None
+_conversation_manager = None
+_local_processor = None
+_hosted_processor = None
 
-def process_request(request: CompanionRequest, profile: Optional[NPCProfile] = None) -> Dict[str, Any]:
+def get_prompt_manager():
+    """Get or initialize the prompt manager."""
+    global _prompt_manager
+    if _prompt_manager is None:
+        from .core.prompt_manager import PromptManager
+        _prompt_manager = PromptManager()
+    return _prompt_manager
+
+def get_storage_manager():
+    """Get or initialize the storage manager."""
+    global _storage_manager
+    if _storage_manager is None:
+        from .core.storage_manager import StorageManager
+        _storage_manager = StorageManager()
+    return _storage_manager
+
+def get_knowledge_store():
+    """Get or initialize the knowledge store."""
+    global _knowledge_store
+    if _knowledge_store is None:
+        from .core.vector.tokyo_knowledge_store import TokyoKnowledgeStore
+        _knowledge_store = TokyoKnowledgeStore()
+    return _knowledge_store
+
+def get_conversation_manager():
+    """Get or initialize the conversation manager."""
+    global _conversation_manager
+    if _conversation_manager is None:
+        from .core.conversation_manager import ConversationManager
+        _conversation_manager = ConversationManager(get_storage_manager())
+    return _conversation_manager
+
+def get_local_processor():
+    """Get or initialize the local processor."""
+    global _local_processor
+    if _local_processor is None:
+        from .local.local_processor import LocalProcessor
+        _local_processor = LocalProcessor()
+    return _local_processor
+
+def get_hosted_processor():
+    """Get or initialize the hosted processor."""
+    global _hosted_processor
+    if _hosted_processor is None:
+        from .hosted.hosted_processor import HostedProcessor
+        _hosted_processor = HostedProcessor()
+    return _hosted_processor
+
+def process_request(request: CompanionRequest, profile: Optional['NPCProfile'] = None) -> Dict[str, Any]:
     """
     Process a request to the companion AI.
     
@@ -57,8 +98,8 @@ def process_request(request: CompanionRequest, profile: Optional[NPCProfile] = N
     
     # Process based on tier
     if processing_tier == ProcessingTier.LOCAL:
-        response = local_processor.process(classified_request, profile)
+        response = get_local_processor().process(classified_request, profile)
     else:
-        response = hosted_processor.process(classified_request, profile)
+        response = get_hosted_processor().process(classified_request, profile)
         
     return response 

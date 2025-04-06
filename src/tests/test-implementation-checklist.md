@@ -2,14 +2,34 @@
 
 This checklist organizes test implementation priorities based on dependency levels, starting with the most isolated components and moving towards more integrated ones.
 
+## Placeholder Components to Implement
+These components currently have minimal placeholder implementations that need to be properly implemented and tested:
+
+- [ ] `core/npc_profile.py`
+  - [ ] Implement full personality trait system
+  - [ ] Add proper response formatting logic
+  - [ ] Add emotion expression system
+  - [ ] Add proper profile loading/saving
+  - [ ] Test all implemented functionality
+
+- [ ] `core/storage_manager.py`
+  - [ ] Implement actual data persistence
+  - [ ] Add proper error handling
+  - [ ] Add data validation
+  - [ ] Add proper async file operations
+  - [ ] Test all implemented functionality
+
 ## Level 1: Core Models and Utilities
 These components have minimal or no dependencies and should be tested first.
 
-- [ ] `core/models.py`
-  - [ ] Test `ClassifiedRequest` class
-  - [ ] Test `CompanionRequest` class
-  - [ ] Test `ProcessingTier` enum
-  - [ ] Test request validation methods
+- [x] `core/models.py` ✅ (14 tests passing)
+  - [x] Test `ClassifiedRequest` class
+  - [x] Test `CompanionRequest` class
+  - [x] Test `ProcessingTier` enum
+  - [x] Test request validation methods
+  - [x] Test `GameContext` class
+  - [x] Test `CompanionResponse` class
+  - [x] Test `ConversationContext` class
 
 - [ ] `core/formatter_standalone.py`
   - [ ] Test standalone formatting functions
@@ -137,4 +157,10 @@ These components represent the highest level of integration.
    - Mock external services
    - Clear test naming
    - Comprehensive docstrings
-   - Test both success and failure cases 
+   - Test both success and failure cases
+
+4. Dependency Management:
+   - Use lazy loading for component initialization
+   - Avoid circular dependencies
+   - Keep core models isolated
+   - Use dependency injection where possible 
