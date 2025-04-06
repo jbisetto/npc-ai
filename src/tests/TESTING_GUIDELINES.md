@@ -144,7 +144,12 @@ def test_bedrock_client_call(mock_bedrock):
 - Test proper mock usage
 
 ### 11. Version Control and Commits
-When all tests are passing for a component, the assistant will provide a commit message following this format:
+Before any commit, ALL existing tests must pass. The process is:
+
+1. Implement new tests for the current component
+2. Run the new component's tests to verify them
+3. Run ALL existing tests to ensure no regressions
+4. Only if all tests pass, the assistant will provide a commit message following this format:
 
 ```
 test(component): add tests for [component name]
@@ -153,21 +158,28 @@ test(component): add tests for [component name]
 - Note any significant implementation changes
 - Reference related issues/tasks
 
-All tests passing: XX tests ✅
+Component tests passing: XX tests ✅
+Total core tests passing: YY tests ✅
 ```
 
 Example:
 ```
-test(models): add tests for core data models
+test(formatter): add tests for standalone formatter
 
-- Add tests for ClassifiedRequest, CompanionRequest, ProcessingTier
-- Add tests for GameContext, CompanionResponse, ConversationContext
-- Implement lazy loading pattern to break circular dependencies
-- Add placeholder implementations for npc_profile and storage_manager
-- Update test implementation checklist
-- Add commit guidelines to testing documentation
+- Add tests for basic text formatting
+- Add tests for whitespace handling (leading, trailing, internal)
+- Add tests for edge cases (None, empty string)
+- Add test for Japanese text handling
+- Create reusable request fixture
 
-All tests passing: 14 tests ✅
+Component tests passing: 7 tests ✅
+Total core tests passing: 21 tests ✅
 ```
 
-The user will handle the actual commit process using GitHub Desktop. 
+The user will handle the actual commit process using GitHub Desktop.
+
+If any test fails:
+1. The issue must be investigated and fixed
+2. All tests must be run again
+3. This cycle continues until all tests pass
+4. Only then can the changes be committed 
