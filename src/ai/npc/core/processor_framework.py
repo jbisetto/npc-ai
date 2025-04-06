@@ -14,7 +14,7 @@ from src.ai.npc.core.models import (
 
 logger = logging.getLogger(__name__)
 
-class ProcessorFramework:
+class Processor:
     """Base framework for processing requests."""
     
     def __init__(self):

@@ -10,7 +10,7 @@ import json
 import logging
 from typing import Dict, List, Optional, Tuple, Any
 
-from src.ai.npc.core.models import ClassifiedRequest, CompanionRequest
+from src.ai.npc.core.models import ClassifiedRequest, CompanionRequest, GameContext
 from src.ai.npc.core.npc_profile import NPCProfile
 
 # Set up logging
@@ -52,9 +52,10 @@ class PromptManager:
         Initialize the prompt manager.
         
         Args:
-            max_prompt_tokens: Maximum number of tokens to allow in a prompt
+            max_prompt_tokens: Maximum number of tokens to allow in a prompt.
+                             If <= 0, uses default value of 800.
         """
-        self.max_prompt_tokens = max_prompt_tokens
+        self.max_prompt_tokens = 800 if max_prompt_tokens <= 0 else max_prompt_tokens
         self.logger = logging.getLogger(__name__)
     
     def create_prompt(
@@ -74,38 +75,59 @@ class PromptManager:
         Returns:
             The formatted and optimized prompt string
         """
-        # Start with base system prompt
+        # For very small token limits, use minimal format
+        if self.max_prompt_tokens <= 100:
+            minimal_prompt = (
+                "You are Hachiko, a helpful bilingual dog companion.\n"
+                "RULES:\n"
+                "1. Keep responses short\n"
+                "2. Use JLPT N5 only\n"
+                "3. Include Japanese and English\n\n"
+                f"Human: {request.player_input}\nAssistant:"
+            )
+            return minimal_prompt
+
+        # Build full prompt
         prompt_parts = [BASE_SYSTEM_PROMPT]
 
         # Add NPC profile if available
         if profile:
-            profile_context = "NPC Profile:\n" + profile.get_prompt_context()
-            prompt_parts.append(profile_context)
+            try:
+                profile_context = profile.get_prompt_context()
+                if profile_context and profile_context.strip():
+                    prompt_parts.append("NPC Profile:\n" + profile_context)
+            except Exception as e:
+                self.logger.warning(f"Failed to get profile context: {e}")
 
         # Add conversation history if available
         if history:
-            history_text = "Previous conversation:\n"
+            history_entries = []
             for entry in history:
-                if 'user' in entry:
-                    history_text += f"Human: {entry['user']}\n"
-                if 'assistant' in entry:
-                    history_text += f"Assistant: {entry['assistant']}\n"
-            prompt_parts.append(history_text)
+                # Only include entries that have both user and assistant messages
+                user_msg = entry.get('user', '').strip()
+                assistant_msg = entry.get('assistant', '').strip()
+                if user_msg and assistant_msg:
+                    history_entries.append(f"Human: {user_msg}")
+                    history_entries.append(f"Assistant: {assistant_msg}")
+            
+            if history_entries:
+                prompt_parts.append("Previous conversation:\n" + "\n".join(history_entries))
 
         # Add game context if available
         if request.game_context:
             context_text = self._format_game_context(request.game_context)
-            prompt_parts.append(context_text)
+            if context_text.strip():  # Only add if not empty
+                prompt_parts.append(context_text)
 
         # Add current request
         prompt_parts.append(f"Human: {request.player_input}\nAssistant:")
 
         # Combine all parts
-        full_prompt = "\n\n".join(prompt_parts)
+        full_prompt = "\n\n".join(filter(None, prompt_parts))
 
-        # Optimize the prompt if needed
+        # Check if we need to optimize
         if self.estimate_tokens(full_prompt) > self.max_prompt_tokens:
-            return self._optimize_prompt(full_prompt, request.player_input)
+            return self._optimize_prompt(full_prompt)
 
         return full_prompt
 
@@ -121,73 +143,29 @@ class PromptManager:
         """
         return max(1, len(text) // AVG_CHARS_PER_TOKEN)
 
-    def _optimize_prompt(self, full_prompt: str, player_input: str) -> str:
+    def _optimize_prompt(self, prompt: str) -> str:
         """
         Optimize a prompt to fit within token limits while preserving critical information.
         
         Args:
-            full_prompt: The full prompt to optimize
-            player_input: The player's input to preserve
+            prompt: The prompt to optimize
             
         Returns:
             An optimized prompt
         """
-        # First try compressing the text
-        compressed = self._compress_text(full_prompt)
-        
-        # If still too long, we need to truncate while preserving critical parts
-        if self.estimate_tokens(compressed) > self.max_prompt_tokens:
-            # Reserve tokens for the player input and essential instructions
-            reserved_tokens = self.estimate_tokens(player_input) + 200  # 200 tokens for essential instructions
-            available_tokens = max(100, self.max_prompt_tokens - reserved_tokens)
-            
+        # If prompt is too long, truncate it while preserving the essential parts
+        if self.estimate_tokens(prompt) > self.max_prompt_tokens:
             # Get the essential parts (first part of system prompt and player input)
-            essential_parts = [
-                self._truncate_to_tokens(BASE_SYSTEM_PROMPT.split("\n\n")[0], available_tokens),
-                f"Human: {player_input}\nAssistant:"
-            ]
+            system_part = self._truncate_to_tokens(BASE_SYSTEM_PROMPT.split("\n\n")[0], self.max_prompt_tokens // 2)
             
-            return "\n\n".join(essential_parts)
+            # Extract the player input
+            input_start = prompt.rfind("Human: ")
+            player_input = prompt[input_start:] if input_start != -1 else ""
             
-        return compressed
-
-    def _compress_text(self, text: str) -> str:
-        """
-        Compress text by removing unnecessary words and characters.
+            # Combine the parts
+            return f"{system_part}\n\n{player_input}"
         
-        Args:
-            text: The text to compress
-            
-        Returns:
-            Compressed text
-        """
-        # Remove redundant spaces
-        compressed = re.sub(r'\s+', ' ', text).strip()
-        
-        # Remove filler words
-        filler_words = [
-            r'\bvery\b', r'\breally\b', r'\bquite\b', r'\bjust\b', 
-            r'\bsimply\b', r'\bbasically\b', r'\bactually\b'
-        ]
-        for word in filler_words:
-            compressed = re.sub(word, '', compressed)
-        
-        # Simplify common phrases
-        replacements = {
-            'in order to': 'to',
-            'due to the fact that': 'because',
-            'for the purpose of': 'for',
-            'in the event that': 'if',
-            'in the process of': 'while',
-            'a large number of': 'many',
-            'a majority of': 'most',
-            'a significant number of': 'many'
-        }
-        
-        for phrase, replacement in replacements.items():
-            compressed = compressed.replace(phrase, replacement)
-        
-        return compressed
+        return prompt
 
     def _truncate_to_tokens(self, text: str, max_tokens: int) -> str:
         """
@@ -221,16 +199,33 @@ class PromptManager:
             
         return result.strip()
 
-    def _format_game_context(self, context: Dict[str, Any]) -> str:
+    def _format_game_context(self, context: GameContext) -> str:
         """Format the game context information."""
         context_str = "Current game context:\n"
         
-        if context.get('player_location'):
-            context_str += f"- Player location: {context['player_location']}\n"
+        # Add player ID
+        context_str += f"- Player ID: {context.player_id}\n"
         
-        if context.get('language_proficiency'):
-            context_str += "- Language proficiency:\n"
-            for lang, level in context['language_proficiency'].items():
+        # Add language proficiency if available
+        if context.language_proficiency:
+            context_str += "- Language Proficiency:\n"
+            for lang, level in context.language_proficiency.items():
                 context_str += f"  - {lang}: {level}\n"
         
-        return context_str 
+        return context_str
+
+    def _build_full_prompt(self, request: ClassifiedRequest) -> str:
+        """Build the full prompt with all available context."""
+        prompt_parts = [BASE_SYSTEM_PROMPT]
+
+        # Add game context if available
+        if request.game_context:
+            context_text = self._format_game_context(request.game_context)
+            if context_text.strip():  # Only add if not empty
+                prompt_parts.append(context_text)
+
+        # Add current request
+        prompt_parts.append(f"Human: {request.player_input}\nAssistant:")
+
+        # Combine all parts
+        return "\n\n".join(filter(None, prompt_parts))

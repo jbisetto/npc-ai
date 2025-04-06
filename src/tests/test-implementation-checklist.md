@@ -167,4 +167,8 @@ These components represent the highest level of integration.
    - Use lazy loading for component initialization
    - Avoid circular dependencies
    - Keep core models isolated
-   - Use dependency injection where possible 
+   - Use dependency injection where possible
+
+5. Future Considerations:
+   - Consider renaming `GameContext` to `LanguageContext` to better reflect its current purpose (only contains language-related information)
+   - Update all references to use consistent naming (e.g., `game_context` to `language_context`) 

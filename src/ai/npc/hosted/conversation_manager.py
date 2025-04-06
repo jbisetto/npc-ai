@@ -12,7 +12,7 @@ import enum
 from typing import Optional, List, Dict, Any
 
 from src.ai.npc.core.models import ClassifiedRequest
-from src.ai.npc.hosted.context_manager import (
+from src.ai.npc.core.context_manager import (
     ConversationContext,
     ContextManager
 )
@@ -100,12 +100,14 @@ class ConversationManager:
                 logger.debug(f"Detected follow-up question: {player_input}")
                 return ConversationState.FOLLOW_UP
         
-        # Check for references to previous entities
+        # Check for references to previous responses
         for entry in context.entries:
-            for entity_name, entity_value in entry.entities.items():
-                if isinstance(entity_value, str) and entity_value.lower() in player_input:
-                    logger.debug(f"Detected reference to previous entity: {entity_value}")
-                    return ConversationState.FOLLOW_UP
+            # Split the response into words and check if any word appears in the current input
+            response_words = set(entry.response.lower().split())
+            input_words = set(player_input.split())
+            if len(response_words.intersection(input_words)) > 2:  # If more than 2 words overlap
+                logger.debug(f"Detected reference to previous response")
+                return ConversationState.FOLLOW_UP
         
         # Default to new topic
         return ConversationState.NEW_TOPIC

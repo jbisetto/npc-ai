@@ -24,10 +24,7 @@ def sample_game_context() -> Dict[str, Any]:
     """Create a sample game context dictionary."""
     return {
         "player_id": "test_player",
-        "player_location": "tokyo_station",
         "language_proficiency": {"reading": 0.5, "speaking": 0.3},
-        "current_quest": "find_platform",
-        "npc_id": "station_attendant",
         "conversation_history": []
     }
 
@@ -51,21 +48,16 @@ def test_game_context_creation(sample_game_context):
     """Test creating a GameContext with valid data."""
     context = GameContext(**sample_game_context)
     assert context.player_id == "test_player"
-    assert context.player_location == "tokyo_station"
     assert context.language_proficiency["reading"] == 0.5
-    assert context.current_quest == "find_platform"
-    assert context.npc_id == "station_attendant"
+    assert context.language_proficiency["speaking"] == 0.3
     assert context.conversation_history == []
 
 def test_game_context_optional_fields():
     """Test GameContext with only required fields."""
     minimal_context = GameContext(
         player_id="test_player",
-        player_location="tokyo_station",
         language_proficiency={"reading": 0.5}
     )
-    assert minimal_context.current_quest is None
-    assert minimal_context.npc_id is None
     assert minimal_context.conversation_history is None
 
 def test_game_context_to_dict(sample_game_context):

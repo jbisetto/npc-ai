@@ -20,20 +20,14 @@ class ProcessingTier(Enum):
 class GameContext(BaseModel):
     """Context information from the game."""
     player_id: str
-    player_location: str
     language_proficiency: Dict[str, float]
-    current_quest: Optional[str] = None
-    npc_id: Optional[str] = None
     conversation_history: Optional[List[Dict[str, Any]]] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             "player_id": self.player_id,
-            "player_location": self.player_location,
             "language_proficiency": self.language_proficiency,
-            "current_quest": self.current_quest,
-            "npc_id": self.npc_id,
             "conversation_history": self.conversation_history
         }
 
@@ -59,15 +53,18 @@ class ClassifiedRequest(CompanionRequest):
     
     Only contains:
     - processing_tier: Whether to process locally or via hosted services
+    - additional_params: Additional parameters for processing
     - (Future) npc_profile: The NPC profile to use for response generation
     """
     processing_tier: ProcessingTier
+    additional_params: Dict[str, Any] = {}
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         base_dict = super().to_dict()
         base_dict.update({
-            "processing_tier": self.processing_tier.value
+            "processing_tier": self.processing_tier.value,
+            "additional_params": self.additional_params
         })
         return base_dict
 

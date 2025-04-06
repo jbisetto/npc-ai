@@ -12,12 +12,14 @@ from datetime import datetime
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
+    CompanionRequest,
     ProcessingTier
 )
+from src.ai.npc.core.processor_framework import Processor
+from src.ai.npc.core.prompt_manager import PromptManager
 from src.ai.npc.core.context_manager import ContextManager
 from src.ai.npc.core.player_history_manager import PlayerHistoryManager
 from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
-from src.ai.npc.local.prompt_engineering import create_prompt
 from src.ai.npc.local.response_parser import ResponseParser
 from src.ai.npc.config import get_config
 

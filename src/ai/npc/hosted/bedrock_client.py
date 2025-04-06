@@ -11,13 +11,16 @@ import asyncio
 import boto3
 from typing import Dict, Any, Optional, List
 from datetime import datetime
+from botocore.config import Config
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
+    CompanionRequest,
     ProcessingTier
 )
-from src.ai.npc.hosted.prompt_optimizer import create_optimized_prompt
-from src.ai.npc.config import get_config
+from src.ai.npc.core.prompt_manager import PromptManager
+from src.ai.npc.hosted.usage_tracker import UsageTracker
+from src.ai.npc.config import get_config, CLOUD_API_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -126,19 +129,7 @@ class BedrockClient:
         Returns:
             The prompt to send to the model
         """
-        # Basic prompt template
-        prompt = f"""You are a helpful AI companion.
-        
-Player input: {request.player_input}
-
-Please provide a helpful response that:
-1. Directly addresses their question
-2. Uses simple language
-3. Is friendly and encouraging
-
-Your response:"""
-        
-        return prompt
+        return PromptManager.create_base_prompt(request)
 
     async def _invoke_model(self, model: str, request_body: Dict[str, Any]) -> Dict[str, Any]:
         """

@@ -23,7 +23,6 @@ from src.ai.npc.hosted.usage_tracker import UsageTracker, default_tracker
 from src.ai.npc.core.context_manager import ContextManager, default_context_manager
 from src.ai.npc.core.conversation_manager import ConversationManager, ConversationState
 from src.ai.npc.core.prompt_manager import PromptManager
-from src.ai.npc.hosted.prompt_optimizer import PromptOptimizer
 from src.ai.npc.hosted.conversation_manager import ConversationManager
 from src.ai.npc.utils.monitoring import ProcessorMonitor
 from src.ai.npc.config import get_config, CLOUD_API_CONFIG

@@ -1,18 +1,16 @@
 """
-Initialize the local module.
+Local processing module for NPC AI.
 
-This module contains the local processor and its dependencies.
+This module provides local processing capabilities using Ollama.
 """
 
-from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
 from src.ai.npc.local.local_processor import LocalProcessor
-from src.ai.npc.local.prompt_engineering import create_prompt
-from src.ai.npc.local.response_parser import ResponseParser
+from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
+from src.ai.npc.core.prompt_manager import PromptManager
 
 __all__ = [
+    'LocalProcessor',
     'OllamaClient',
     'OllamaError',
-    'LocalProcessor',
-    'create_prompt',
-    'ResponseParser'
+    'PromptManager'
 ] 
