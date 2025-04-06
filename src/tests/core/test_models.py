@@ -111,11 +111,9 @@ def test_classified_request_creation(sample_request_data, sample_game_context):
     request_data = sample_request_data.copy()
     request_data["game_context"] = game_context
     request_data["processing_tier"] = ProcessingTier.LOCAL
-    request_data["metadata"] = {"confidence": 0.9}
     
     request = ClassifiedRequest(**request_data)
     assert request.processing_tier == ProcessingTier.LOCAL
-    assert request.metadata["confidence"] == 0.9
 
 def test_classified_request_to_dict(sample_request_data, sample_game_context):
     """Test ClassifiedRequest to_dict method."""
@@ -123,13 +121,14 @@ def test_classified_request_to_dict(sample_request_data, sample_game_context):
     request_data = sample_request_data.copy()
     request_data["game_context"] = game_context
     request_data["processing_tier"] = ProcessingTier.LOCAL
-    request_data["metadata"] = {"confidence": 0.9}
     
     request = ClassifiedRequest(**request_data)
     request_dict = request.to_dict()
     
     assert request_dict["processing_tier"] == "local"
-    assert request_dict["metadata"]["confidence"] == 0.9
+    assert "game_context" in request_dict
+    assert request_dict["request_id"] == sample_request_data["request_id"]
+    assert request_dict["player_input"] == sample_request_data["player_input"]
 
 # CompanionResponse Tests
 def test_companion_response_creation():

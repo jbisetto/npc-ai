@@ -8,8 +8,13 @@ conversation history, detecting conversation state, and generating contextual pr
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 from datetime import datetime
+from typing import Dict, Any
 
-from src.ai.npc.core.models import ClassifiedRequest, ProcessingTier, IntentCategory, ComplexityLevel
+from src.ai.npc.core.models import (
+    ClassifiedRequest,
+    ProcessingTier,
+    GameContext
+)
 from src.ai.npc.core.conversation_manager import ConversationManager, ConversationState
 from src.ai.npc.core.storage.memory import InMemoryConversationStorage
 from src.ai.npc.hosted.hosted_processor import HostedProcessor
@@ -232,4 +237,76 @@ class TestConversationManager:
         assert len(history) == 2
         assert history[0]["type"] == "user_message"
         assert history[1]["type"] == "assistant_message"
+
+def test_create_conversation():
+    """Test creating a new conversation."""
+    manager = ConversationManager()
+    conversation = manager.create_conversation()
+    
+    assert conversation.id is not None
+    assert conversation.created_at is not None
+    assert conversation.updated_at is not None
+    assert len(conversation.messages) == 0
+
+def test_add_message():
+    """Test adding a message to a conversation."""
+    manager = ConversationManager()
+    conversation = manager.create_conversation()
+    
+    request = ClassifiedRequest(
+        request_id="test_id",
+        player_input="Hello",
+        game_context=GameContext(
+            player_id="player1",
+            current_location="Tokyo Station",
+            language_level="N5"
+        ),
+        processing_tier=ProcessingTier.HOSTED,
+        timestamp=datetime.now()
+    )
+    
+    response = "Hi there!"
+    
+    manager.add_message(conversation.id, request, response)
+    
+    assert len(conversation.messages) == 1
+    assert conversation.messages[0].request == request
+    assert conversation.messages[0].response == response
+
+def test_get_conversation():
+    """Test retrieving a conversation."""
+    manager = ConversationManager()
+    conversation = manager.create_conversation()
+    
+    retrieved = manager.get_conversation(conversation.id)
+    assert retrieved is not None
+    assert retrieved.id == conversation.id
+
+def test_get_recent_messages():
+    """Test getting recent messages from a conversation."""
+    manager = ConversationManager()
+    conversation = manager.create_conversation()
+    
+    # Add multiple messages
+    for i in range(5):
+        request = ClassifiedRequest(
+            request_id=f"test_id_{i}",
+            player_input=f"Message {i}",
+            game_context=GameContext(
+                player_id="player1",
+                current_location="Tokyo Station",
+                language_level="N5"
+            ),
+            processing_tier=ProcessingTier.HOSTED,
+            timestamp=datetime.now()
+        )
+        response = f"Response {i}"
+        manager.add_message(conversation.id, request, response)
+    
+    # Get last 3 messages
+    recent = manager.get_recent_messages(conversation.id, count=3)
+    assert len(recent) == 3
+    assert recent[0].request.player_input == "Message 2"
+    assert recent[1].request.player_input == "Message 3"
+    assert recent[2].request.player_input == "Message 4"
  

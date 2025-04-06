@@ -10,7 +10,7 @@ import random
 import logging
 from typing import Dict, List, Optional, Any
 
-from src.ai.npc.core.models import ClassifiedRequest, IntentCategory
+from src.ai.npc.core.models import ClassifiedRequest
 from src.ai.npc.personality.config import PersonalityConfig
 
 logger = logging.getLogger(__name__)
@@ -79,41 +79,6 @@ class ResponseFormatter:
     
     # Learning cues to add to responses
     LEARNING_CUES = {
-        IntentCategory.VOCABULARY_HELP: [
-            "Remember: {word} ({meaning}) is a common word you'll hear in train stations!",
-            "Tip: Try using '{word}' in a sentence to help remember it.",
-            "Practice point: Listen for '{word}' when you're at the station.",
-            "Note: '{word}' is part of JLPT N5 vocabulary.",
-            "Hint: You can find '{word}' written on signs around the station."
-        ],
-        IntentCategory.GRAMMAR_EXPLANATION: [
-            "Remember this pattern: {pattern}",
-            "Tip: This grammar point is used in many everyday situations.",
-            "Practice point: Try making your own sentence using this pattern.",
-            "Note: This is a basic grammar pattern in Japanese.",
-            "Hint: Listen for this pattern in station announcements."
-        ],
-        IntentCategory.DIRECTION_GUIDANCE: [
-            "Remember: Always check the station signs for platform numbers.",
-            "Tip: Station maps are usually available near the ticket gates.",
-            "Practice point: Try asking a station attendant in Japanese.",
-            "Note: Train lines in Tokyo are color-coded for easier navigation.",
-            "Hint: The Yamanote Line (山手線) is a loop that connects major stations."
-        ],
-        IntentCategory.TRANSLATION_CONFIRMATION: [
-            "Remember: '{original}' translates to '{translation}'",
-            "Tip: Write down new phrases you learn for later review.",
-            "Practice point: Try saying the Japanese phrase out loud.",
-            "Note: Pronunciation is key in being understood.",
-            "Hint: Context matters in translation - the meaning might change slightly depending on the situation."
-        ],
-        IntentCategory.GENERAL_HINT: [
-            "Remember: Japanese train stations often have English signage too.",
-            "Tip: Station staff can usually help if you're lost.",
-            "Practice point: Try to read the Japanese signs before looking at the English.",
-            "Note: Most ticket machines have an English language option.",
-            "Hint: The Japan Rail Pass can be a great value if you're traveling a lot."
-        ],
         "default": [
             "Remember: Practice makes perfect!",
             "Tip: Taking notes can help reinforce what you're learning.",
@@ -541,4 +506,25 @@ class ResponseFormatter:
             "This is so much fun!"
         ]
         
-        return random.choice(playful_phrases) 
+        return random.choice(playful_phrases)
+
+def format_response(response: str, request: ClassifiedRequest) -> str:
+    """
+    Format a response based on the request.
+    
+    Args:
+        response: The raw response to format
+        request: The request that generated the response
+        
+    Returns:
+        The formatted response
+    """
+    if not response:
+        return ""
+        
+    # Basic cleaning
+    formatted = response.strip()
+    
+    # Add any game-specific formatting here based on processing_tier
+    
+    return formatted 

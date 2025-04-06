@@ -54,16 +54,20 @@ class CompanionRequest(BaseModel):
 
 
 class ClassifiedRequest(CompanionRequest):
-    """A request that has been classified."""
+    """
+    A request that has been classified.
+    
+    Only contains:
+    - processing_tier: Whether to process locally or via hosted services
+    - (Future) npc_profile: The NPC profile to use for response generation
+    """
     processing_tier: ProcessingTier
-    metadata: Dict[str, Any]
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         base_dict = super().to_dict()
         base_dict.update({
-            "processing_tier": self.processing_tier.value,
-            "metadata": self.metadata
+            "processing_tier": self.processing_tier.value
         })
         return base_dict
 
