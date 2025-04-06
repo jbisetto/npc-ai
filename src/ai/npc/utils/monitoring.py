@@ -26,6 +26,19 @@ class ProcessorMonitor:
     performance, including request counts, error counts, retry counts, and
     fallback counts. It also provides methods for generating reports and
     persisting metrics to disk.
+
+    TODO(cleanup): This monitoring system is currently not being actively used.
+    While it's instantiated in HostedProcessor, none of its tracking methods
+    are called. Its intended functionality is currently being handled by:
+    - Logger (error tracking)
+    - UsageTracker (API usage)
+    - Direct logging in HostedProcessor (response times)
+    - PlayerHistoryManager (success/failure tracking)
+    
+    Need to determine if this should be:
+    1. Properly integrated to provide additional metrics
+    2. Removed as redundant functionality
+    3. Refactored to complement existing monitoring
     """
     
     _instance = None

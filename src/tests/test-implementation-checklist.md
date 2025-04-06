@@ -31,13 +31,17 @@ These components have minimal or no dependencies and should be tested first.
   - [x] Test `CompanionResponse` class
   - [x] Test `ConversationContext` class
 
-- [ ] `core/formatter_standalone.py`
-  - [ ] Test standalone formatting functions
-  - [ ] Test text cleaning utilities
+- [x] `core/formatter_standalone.py` ✅ (7 component tests passing, verified with full suite - 21 total tests ✅)
+  - [x] Test standalone formatting functions
+  - [x] Test text cleaning utilities
+  - [x] 100% line coverage achieved
+  - [x] All edge cases covered
+  - [x] Unicode/Japanese text support verified
 
 - [ ] `utils/monitoring.py`
   - [ ] Test monitoring utilities
   - [ ] Test logging functionality
+  - NOTE: This component is currently not actively used. Its functionality is handled by Logger, UsageTracker, direct logging in HostedProcessor, and PlayerHistoryManager. Need to determine whether to integrate, remove, or refactor before implementing tests.
 
 ## Level 2: Core Services
 These components depend primarily on core models.

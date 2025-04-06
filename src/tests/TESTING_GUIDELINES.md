@@ -1,5 +1,108 @@
 # Testing Guidelines
 
+## Test Implementation Process
+
+1. **Test Development**
+   - Write tests following the test strategy outlined in each test file
+   - Ensure comprehensive docstrings for all tests
+   - Group tests logically (basic functionality, edge cases, etc.)
+   - Use appropriate fixtures and mocks
+
+2. **Test Execution and Validation**
+   - First, run new component tests in isolation to verify implementation
+   - Once component tests pass, IMMEDIATELY run ALL tests in the test suite
+   - **CRITICAL**: No changes can be committed until both:
+     a) New component tests pass
+     b) ALL existing tests pass without regression
+   - If any test fails, fix and repeat both steps
+
+3. **Coverage Requirements**
+   - Line coverage: 80%+
+   - Branch coverage: 70%+
+   - Function coverage: 90%+
+   - Document any approved exceptions
+
+4. **Version Control**
+   - Only commit after BOTH new and existing tests pass
+   - Include test counts in commit messages (e.g., "7 new tests ✅, all 21 existing tests ✅")
+   - Document any test strategy changes
+
+## Test Organization
+
+1. **File Structure**
+   ```
+   src/tests/
+   ├── core/           # Core component tests
+   ├── local/          # Local processor tests
+   ├── hosted/         # Hosted service tests
+   └── utils/          # Utility tests
+   ```
+
+2. **Test File Format**
+   ```python
+   """
+   Tests for [component]
+   
+   Test Strategy:
+   -------------
+   1. Unit Tests: [list key test areas]
+   2. Coverage Goals: [specific targets]
+   3. Dependencies: [list dependencies]
+   """
+   
+   # Imports
+   
+   # Fixtures
+   
+   # Test Groups (with clear comments)
+   ```
+
+3. **Naming Conventions**
+   - Files: `test_[component].py`
+   - Functions: `test_[functionality]_[scenario]`
+   - Fixtures: Descriptive of what they provide
+
+## Best Practices
+
+1. **Test Independence**
+   - Each test should be self-contained
+   - Clean up any test data or state
+   - No dependencies between tests
+
+2. **Resource Management**
+   - Mock external services
+   - Use appropriate fixtures
+   - Clean up resources after tests
+
+3. **Documentation**
+   - Clear test strategy in module docstring
+   - Comprehensive test docstrings
+   - Document any non-obvious test decisions
+
+4. **Error Handling**
+   - Test both success and failure cases
+   - Verify error messages and types
+   - Test edge cases and boundaries
+
+## Running Tests
+
+1. **New Component Testing**
+   ```bash
+   python -m pytest path/to/test_file.py -v --cov=component_path
+   ```
+
+2. **Full Test Suite (REQUIRED)**
+   ```bash
+   python -m pytest src/tests/ -v
+   ```
+
+3. **Coverage Report**
+   ```bash
+   python -m pytest --cov=src --cov-report=term-missing
+   ```
+
+Remember: Changes are only complete when BOTH new tests AND the full test suite pass. Never skip running the full suite after adding new tests.
+
 ## Core Principles
 
 ### 1. Resource Isolation
