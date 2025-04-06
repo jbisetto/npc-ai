@@ -5,27 +5,25 @@ A flexible AI-powered NPC system that provides natural language interactions in 
 ## Features
 
 - **Dual Processing Modes**
-  - Local processing using Ollama
-  - Hosted processing using Amazon Bedrock
-  - Automatic fallback and tier-based processing
+  - Local processing using Ollama for offline capabilities
+  - Hosted processing using Amazon Bedrock for enhanced responses
 
-- **Japanese Language Support**
-  - JLPT N5 level vocabulary and grammar
-  - Bilingual responses (Japanese and English)
-  - Pronunciation guides
-  - Cultural context integration
+- **Japanese Language Support** _(Developed for ExamPro GenAI Bootcamp)_
+  - JLPT N5 level vocabulary and grammar constraints
+  - Bilingual responses with English translations
+  - Romaji pronunciation guides
+  - Basic cultural context in responses
 
-- **Context Management**
+- **Conversation Management**
   - Conversation history tracking
-  - Player state management
-  - Game context integration
-  - NPC profile system
+  - Response validation and formatting
+  - Simple prompt-based interactions
 
 - **Performance Optimization**
   - Token-aware prompt management
-  - Response validation
-  - Efficient context handling
-  - Usage tracking and limits
+  - Response validation and cleaning
+  - Usage tracking and rate limiting
+  - Efficient conversation context handling
 
 ## Architecture
 
