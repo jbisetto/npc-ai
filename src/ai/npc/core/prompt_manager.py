@@ -66,15 +66,28 @@ class PromptManager:
     ) -> str:
         """
         Create an optimized prompt for the language model.
-
+        
         Args:
             request: The classified request
             history: Optional conversation history
             profile: Optional NPC profile to use
-
+            
         Returns:
             The formatted and optimized prompt string
+            
+        Raises:
+            ValueError: If request is None or invalid
         """
+        # Validate request
+        if request is None:
+            raise ValueError("Invalid request: request cannot be None")
+        
+        if not request.player_input or not request.player_input.strip():
+            raise ValueError("Invalid request: empty player input")
+            
+        if not request.game_context:
+            raise ValueError("Invalid request: missing game context")
+
         # For very small token limits, use minimal format
         if self.max_prompt_tokens <= 100:
             minimal_prompt = (
@@ -133,15 +146,22 @@ class PromptManager:
 
     def estimate_tokens(self, text: str) -> int:
         """
-        Estimate the number of tokens in a text string.
+        Estimate the number of tokens in a text.
         
         Args:
             text: The text to estimate tokens for
             
         Returns:
-            Estimated token count
+            Estimated number of tokens
+            
+        Raises:
+            TypeError: If input is not a string
         """
-        return max(1, len(text) // AVG_CHARS_PER_TOKEN)
+        if not isinstance(text, str):
+            raise TypeError("Input must be string")
+            
+        # Simple estimation: 1 token per 4 characters
+        return max(1, len(text) // 4)
 
     def _optimize_prompt(self, prompt: str) -> str:
         """
@@ -155,15 +175,44 @@ class PromptManager:
         """
         # If prompt is too long, truncate it while preserving the essential parts
         if self.estimate_tokens(prompt) > self.max_prompt_tokens:
-            # Get the essential parts (first part of system prompt and player input)
-            system_part = self._truncate_to_tokens(BASE_SYSTEM_PROMPT.split("\n\n")[0], self.max_prompt_tokens // 2)
+            # Split prompt into sections
+            sections = prompt.split("\n\n")
             
-            # Extract the player input
-            input_start = prompt.rfind("Human: ")
-            player_input = prompt[input_start:] if input_start != -1 else ""
+            # Always keep system prompt and current request
+            system_prompt = sections[0]  # First section is system prompt
+            current_request = sections[-1]  # Last section is current request
             
-            # Combine the parts
-            return f"{system_part}\n\n{player_input}"
+            # Find history section if it exists
+            history_section = None
+            for section in sections:
+                if section.startswith("Previous conversation:"):
+                    history_section = section
+                    break
+            
+            # If we have history, keep the most recent entries that fit
+            if history_section:
+                history_entries = history_section.split("\n")[1:]  # Skip "Previous conversation:" line
+                optimized_history = []
+                total_tokens = self.estimate_tokens(system_prompt + "\n\n" + current_request)
+                
+                # Add history entries from most recent to oldest until we hit token limit
+                for i in range(len(history_entries) - 1, -1, -2):  # Step by 2 to keep pairs together
+                    if i > 0:  # Make sure we have a pair
+                        entry_pair = history_entries[i-1] + "\n" + history_entries[i]
+                        pair_tokens = self.estimate_tokens(entry_pair + "\n")
+                        
+                        if total_tokens + pair_tokens <= self.max_prompt_tokens:
+                            optimized_history.insert(0, entry_pair)
+                            total_tokens += pair_tokens
+                        else:
+                            break
+                
+                if optimized_history:
+                    history_section = "Previous conversation:\n" + "\n".join(optimized_history)
+                    return f"{system_prompt}\n\n{history_section}\n\n{current_request}"
+            
+            # If no history or couldn't fit any, return minimal prompt
+            return f"{system_prompt}\n\n{current_request}"
         
         return prompt
 

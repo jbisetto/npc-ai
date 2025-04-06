@@ -1,152 +1,101 @@
 # Testing Guidelines
 
-## Test Implementation Process
-
-1. **Test Development**
-   - Write tests following the test strategy outlined in each test file
-   - Ensure comprehensive docstrings for all tests
-   - Group tests logically (basic functionality, edge cases, etc.)
-   - Use appropriate fixtures and mocks
-
-2. **Test Execution and Validation**
-   - First, run new component tests in isolation to verify implementation
-   - Once component tests pass, IMMEDIATELY run ALL tests in the test suite
-   - **CRITICAL**: No changes can be committed until both:
-     a) New component tests pass
-     b) ALL existing tests pass without regression
-   - If any test fails, fix and repeat both steps
-
-3. **Coverage Requirements**
-   - Line coverage: 80%+
-   - Branch coverage: 70%+
-   - Function coverage: 90%+
-   - Document any approved exceptions
-
-4. **Version Control**
-   - Only commit after BOTH new and existing tests pass
-   - Include test counts in commit messages (e.g., "7 new tests ✅, all 21 existing tests ✅")
-   - Document any test strategy changes
-
-## Test Organization
-
-1. **File Structure**
-   ```
-   src/tests/
-   ├── core/           # Core component tests
-   ├── local/          # Local processor tests
-   ├── hosted/         # Hosted service tests
-   └── utils/          # Utility tests
-   ```
-
-2. **Test File Format**
-   ```python
-   """
-   Tests for [component]
-   
-   Test Strategy:
-   -------------
-   1. Unit Tests: [list key test areas]
-   2. Coverage Goals: [specific targets]
-   3. Dependencies: [list dependencies]
-   """
-   
-   # Imports
-   
-   # Fixtures
-   
-   # Test Groups (with clear comments)
-   ```
-
-3. **Naming Conventions**
-   - Files: `test_[component].py`
-   - Functions: `test_[functionality]_[scenario]`
-   - Fixtures: Descriptive of what they provide
-
-## Best Practices
-
-1. **Test Independence**
-   - Each test should be self-contained
-   - Clean up any test data or state
-   - No dependencies between tests
-
-2. **Resource Management**
-   - Mock external services
-   - Use appropriate fixtures
-   - Clean up resources after tests
-
-3. **Documentation**
-   - Clear test strategy in module docstring
-   - Comprehensive test docstrings
-   - Document any non-obvious test decisions
-
-4. **Error Handling**
-   - Test both success and failure cases
-   - Verify error messages and types
-   - Test edge cases and boundaries
-
-## Running Tests
-
-1. **New Component Testing**
-   ```bash
-   python -m pytest path/to/test_file.py -v --cov=component_path
-   ```
-
-2. **Full Test Suite (REQUIRED)**
-   ```bash
-   python -m pytest src/tests/ -v
-   ```
-
-3. **Coverage Report**
-   ```bash
-   python -m pytest --cov=src --cov-report=term-missing
-   ```
-
-Remember: Changes are only complete when BOTH new tests AND the full test suite pass. Never skip running the full suite after adding new tests.
-
 ## Core Principles
 
-### 1. Resource Isolation
-- Each test must have its own isolated resources
+### 1. Test Independence and Resource Isolation
+- Each test must be self-contained and independent
 - NO shared test files, datasets, or state between tests
-- Each test should create and clean up its own test data
+- Clean up any test data or state after each test
 - Use temporary directories/files when file operations are needed
-- Clean up all temporary resources in test teardown
+- Tests must be able to run in any order
+- Use fresh fixtures for each test
 
-### 2. Comprehensive Mocking
+### 2. Model and Data Management
 
-#### Must Mock
-- All LLM interactions
-  - Ollama API calls (avoid requiring local setup)
-  - AWS Bedrock API calls (avoid costs and external dependencies)
-- File system operations (use `tmp_path` or `tmp_path_factory` from pytest)
-- External API calls
-- Database connections
-- Time-dependent operations
+#### Model Dependency Testing
+- Test all components that depend on a model when that model changes
+- Verify required fields are present and correctly typed
+- Test model serialization/deserialization
+- Add regression tests when model fields are removed or renamed
 
-#### Mocking Guidelines
-- Use pytest fixtures for common mocks
-- Define explicit return values for mocked calls
-- Mock at the lowest possible level (usually the client/API layer)
-- Include error cases in mock scenarios
-- Document mock behavior in test docstrings
-
-### 3. Test Data Management
+#### Test Data Management
 - Create test data programmatically within each test
-- Don't rely on external files or shared datasets
+- Create comprehensive fixture factories
+- Document required fields and relationships
+- Test with both minimal and complete data
 - Use small, focused datasets specific to each test case
 - Clean up all test data after test completion
 - Use pytest fixtures for complex test data setup
 
-### 4. Test Independence
-- Tests must be able to run in any order
-- No test should depend on the state from another test
-- No shared global state between tests
-- Each test should be self-contained
-- Use fresh fixtures for each test
+### 3. Context and State Management
 
-### 5. Test Structure
+#### Context Setup
+- Explicitly set up all required context in tests
+- Document context requirements in test docstrings
+- Use fixture factories to create consistent test contexts
+- Don't assume empty/default state is sufficient for testing behavior
 
-#### Fixture Usage
+#### State Management
+- Test state transitions
+- Verify behavior in different states
+- Test edge cases and invalid states
+- Document expected state behavior
+
+Example:
+```python
+def test_conversation_state_detection():
+    """
+    Test conversation state detection with proper context setup.
+    
+    Requirements:
+    - Conversation history must be present
+    - Context must include previous responses
+    - State transitions must be verified
+    """
+    # GIVEN
+    # Explicitly set up required context
+    context = create_test_context_with_history()
+    
+    # WHEN
+    # Test specific state transition
+    state = manager.detect_conversation_state(request, context)
+    
+    # THEN
+    # Verify expected behavior
+    assert state == ConversationState.FOLLOW_UP
+    assert context.is_valid()  # State integrity check
+```
+
+### 4. Integration and Dependencies
+
+#### Integration Testing
+- Test full component chains
+- Verify cross-component communication
+- Test with realistic data flows
+- Check all related components when making significant changes
+
+#### Import and Naming
+- Verify public API consistency
+- Test correct import paths
+- Maintain consistent naming across modules
+- Add linting rules for import consistency
+
+#### Feature Coverage
+- Test both simplified and full feature paths
+- Document intentionally removed features
+- Add regression tests for simplified functionality
+- Verify core requirements are still met after simplification
+
+### 5. External Service Testing
+
+#### Comprehensive Mocking
+- Mock all LLM interactions (Ollama, AWS Bedrock)
+- Mock file system operations (use `tmp_path`)
+- Mock external API calls
+- Mock database connections
+- Mock time-dependent operations
+
+#### Mocking Guidelines
 ```python
 # Good
 @pytest.fixture
@@ -161,99 +110,203 @@ def shared_test_data():  # DON'T DO THIS
     return load_shared_test_data()
 ```
 
-#### Test Setup
-```python
-# Good
-def test_local_processor(tmp_path, mock_ollama_client):
-    # Setup isolated test data
-    test_data = {"prompt": "test"}
-    processor = LocalProcessor(tmp_path)
-    
-    # Run test with mocked client
-    result = processor.process(test_data)
-    
-    # Assert expected results
-    assert result == "Test response"
+### 6. Error Handling and Edge Cases
 
-# Bad - Don't use shared resources
-def test_with_shared_data(shared_data_file):  # DON'T DO THIS
-    # This creates test dependencies
-    pass
+#### Exception Testing
+- Test all error paths and exception handlers
+- Verify error messages and error codes
+- Test recovery procedures
+- Validate error state cleanup
+- Test error propagation through component chains
+
+Example:
+```python
+def test_error_handling():
+    """
+    Test error handling and recovery.
+    
+    Requirements:
+    - All exceptions should be caught and handled
+    - Error messages should be user-friendly
+    - System should recover to valid state
+    """
+    # GIVEN
+    processor = create_processor_with_error_state()
+    
+    # WHEN
+    with pytest.raises(ProcessingError) as exc_info:
+        processor.process(invalid_request)
+    
+    # THEN
+    assert "user-friendly error message" in str(exc_info.value)
+    assert processor.is_valid()  # System recovered
 ```
 
-### 6. Testing External Services
+### 7. Asynchronous Testing
 
-#### Local LLM (Ollama)
-- Mock all Ollama API calls
-- Test different response scenarios
-- Include error handling tests
-- Verify request formatting
-- Test rate limiting behavior
+#### Async Test Setup
+- Use pytest.mark.asyncio for async tests
+- Properly manage event loops
+- Handle async timeouts appropriately
+- Clean up async resources
 
+#### Async Fixtures
 ```python
-def test_ollama_client_call(mock_ollama):
-    client = OllamaClient()
-    response = client.generate("test prompt")
-    
-    mock_ollama.assert_called_once_with(
-        prompt="test prompt",
-        model="specified_model"
-    )
+@pytest.fixture
+async def async_client():
+    client = AsyncClient()
+    yield client
+    await client.close()  # Cleanup
+
+@pytest.mark.asyncio
+async def test_async_operation(async_client):
+    result = await async_client.process()
+    assert result.status == "success"
 ```
 
-#### Hosted LLM (Bedrock)
-- Mock all AWS Bedrock calls
-- Test token counting and limits
-- Include cost-related validations
-- Test error handling and retries
-- Verify request/response formatting
+### 8. Test Data Evolution
 
+#### Managing Test Data Changes
+- Version test fixtures with code changes
+- Document data format changes
+- Provide data migration tools
+- Test with both old and new formats during transition
+
+#### Test Data Maintenance
+- Regular review of test data relevance
+- Clean up obsolete test data
+- Update test data when models change
+- Maintain backwards compatibility tests
+
+### 9. Dependency Management
+
+#### Dependency Chain Testing
+- Map component dependencies
+- Test in dependency order
+- Identify circular dependencies
+- Test dependency chain changes
+
+Example:
 ```python
-def test_bedrock_client_call(mock_bedrock):
-    client = BedrockClient()
-    response = client.generate("test prompt")
-    
-    mock_bedrock.invoke_model.assert_called_once()
+# Component dependency map
+COMPONENT_DEPS = {
+    "conversation_manager": ["context_manager", "prompt_manager"],
+    "prompt_manager": ["bedrock_client"],
+    "context_manager": ["storage"]
+}
+
+def test_dependency_chain():
+    """Test full dependency chain."""
+    # Test in order: storage -> context -> prompt -> conversation
 ```
 
-### 7. Common Pitfalls to Avoid
-- Don't create actual files in the test directory
-- Don't make real API calls in tests
-- Don't use sleep() or time-based waits
-- Don't rely on external services being available
-- Don't use shared state between tests
-- Don't create tests that require specific environment setup
+### 10. Performance Testing
 
-### 8. Performance Considerations
-- Keep test data small and focused
-- Mock time-consuming operations
-- Use appropriate scoping for fixtures
-- Clean up resources promptly
-- Avoid unnecessary file I/O
-
-### 9. Documentation
-- Document mock behavior and test assumptions
-- Explain complex test setups
-- Document any required fixture setup
-- Include examples of expected outputs
-- Document any special cleanup requirements
-
-### 10. Test Coverage Goals
-- Aim for high coverage of core logic
-- Include error cases and edge conditions
-- Test configuration validation
-- Test response formatting
+#### Performance Baselines
+- Establish performance benchmarks
+- Test under various loads
+- Monitor memory usage
 - Test resource cleanup
-- Test proper mock usage
 
-### 11. Version Control and Commits
-Before any commit, ALL existing tests must pass. The process is:
+#### Performance Test Guidelines
+```python
+@pytest.mark.performance
+def test_response_time():
+    """
+    Test response time under load.
+    
+    Requirements:
+    - Response time < 200ms
+    - Memory usage < 100MB
+    - No resource leaks
+    """
+    start_memory = get_memory_usage()
+    
+    for _ in range(100):
+        response = processor.process(request)
+        assert response.time < 0.2  # 200ms
+    
+    assert get_memory_usage() - start_memory < 100_000_000  # 100MB
+```
 
-1. Implement new tests for the current component
-2. Run the new component's tests to verify them
-3. Run ALL existing tests to ensure no regressions
-4. Only if all tests pass, the assistant will provide a commit message following this format:
+## Test Implementation Process
 
+### 1. Test Organization
+
+#### File Structure
+```
+src/tests/
+├── core/           # Core component tests
+├── local/          # Local processor tests
+├── hosted/         # Hosted service tests
+└── utils/          # Utility tests
+```
+
+#### Test File Format
+```python
+"""
+Tests for [component]
+
+Test Strategy:
+-------------
+1. Unit Tests: [list key test areas]
+2. Coverage Goals: [specific targets]
+3. Dependencies: [list dependencies]
+4. Required Context: [list required context/state]
+"""
+
+# Imports
+
+# Fixtures
+
+# Test Groups (with clear comments)
+```
+
+#### Naming Conventions
+- Files: `test_[component].py`
+- Functions: `test_[functionality]_[scenario]`
+- Fixtures: Descriptive of what they provide
+
+### 2. Test Development and Validation
+1. Write tests following the test strategy
+2. Ensure comprehensive docstrings
+3. Group tests logically
+4. Run new component tests in isolation
+5. Run ALL tests in the test suite
+6. Fix any failures and repeat
+
+### 3. Coverage Requirements
+- Line coverage: 80%+
+- Branch coverage: 70%+
+- Function coverage: 90%+
+- Document any approved exceptions
+
+## Running Tests
+
+### Component Testing
+```bash
+python -m pytest path/to/test_file.py -v --cov=component_path
+```
+
+### Full Test Suite (REQUIRED)
+```bash
+python -m pytest src/tests/ -v
+```
+
+### Coverage Report
+```bash
+python -m pytest --cov=src --cov-report=term-missing
+```
+
+## Version Control Process
+
+1. **Pre-Commit Checklist**
+   - All new component tests pass
+   - ALL existing tests pass
+   - Coverage requirements met
+   - Documentation updated
+
+2. **Commit Message Format**
 ```
 test(component): add tests for [component name]
 
@@ -270,8 +323,8 @@ Example:
 test(formatter): add tests for standalone formatter
 
 - Add tests for basic text formatting
-- Add tests for whitespace handling (leading, trailing, internal)
-- Add tests for edge cases (None, empty string)
+- Add tests for whitespace handling
+- Add tests for edge cases
 - Add test for Japanese text handling
 - Create reusable request fixture
 
@@ -279,10 +332,28 @@ Component tests passing: 7 tests ✅
 Total core tests passing: 21 tests ✅
 ```
 
-The user will handle the actual commit process using GitHub Desktop.
+## Common Pitfalls to Avoid
+- Don't create actual files in the test directory
+- Don't make real API calls in tests
+- Don't use sleep() or time-based waits
+- Don't rely on external services
+- Don't use shared state between tests
+- Don't assume default/empty state is sufficient
+- Don't skip running the full test suite
+- Don't commit without fixing ALL test failures
+- Don't ignore performance degradation
+- Don't skip error path testing
+- Don't leave async resources uncleaned
+- Don't ignore dependency order in tests
 
-If any test fails:
-1. The issue must be investigated and fixed
-2. All tests must be run again
-3. This cycle continues until all tests pass
-4. Only then can the changes be committed 
+Remember: When in doubt:
+1. Add more explicit context
+2. Document assumptions
+3. Test edge cases
+4. Check component dependencies
+5. Run the full test suite
+6. Test all error paths
+7. Clean up async resources
+8. Check performance impact
+9. Verify dependency chain
+10. Run the full test suite 
