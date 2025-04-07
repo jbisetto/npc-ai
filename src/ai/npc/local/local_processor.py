@@ -1,81 +1,63 @@
 """
-Local processor module.
+Local Processor
 
-This module contains the LocalProcessor class, which handles processing requests
-using local language models via the Ollama client.
+This module implements the local processor using Ollama.
 """
 
 import logging
 import asyncio
-from typing import Dict, Any, Optional, List, Tuple
-from datetime import datetime
+from typing import Dict, Any, Optional
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
-    CompanionRequest,
     ProcessingTier
 )
-from src.ai.npc.core.processor_framework import Processor
-from src.ai.npc.core.prompt_manager import PromptManager
-from src.ai.npc.core.context_manager import ContextManager
-from src.ai.npc.core.player_history_manager import PlayerHistoryManager
+from src.ai.npc.core.response_parser import ResponseParser
 from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
-from src.ai.npc.local.response_parser import ResponseParser
-from src.ai.npc.config import get_config
+from src.ai.npc.core.player_history_manager import PlayerHistoryManager
+from src.ai.npc.core.prompt_manager import create_prompt
 
 logger = logging.getLogger(__name__)
 
+
 class LocalProcessor:
     """
-    Processor that uses local language models via Ollama.
-    
-    This processor handles requests that can be processed locally using
-    the Ollama client to interact with local language models.
+    Processes requests using a local Ollama instance.
     """
-
-    def __init__(self, context_manager: Optional[ContextManager] = None):
-        """Initialize the processor."""
-        # Get configuration
-        config = get_config('local', {})
-        self.enabled = config.get('enabled', True)
+    
+    def __init__(
+        self,
+        ollama_client: OllamaClient,
+        player_history_manager: Optional[PlayerHistoryManager] = None
+    ):
+        """
+        Initialize the local processor.
         
-        # Initialize components
-        self.ollama_client = OllamaClient(
-            base_url=config.get('base_url', 'http://localhost:11434'),
-            default_model=config.get('default_model', 'deepseek-r1:latest'),
-            cache_enabled=config.get('cache_enabled', True),
-            cache_dir=config.get('cache_dir', '/tmp/cache'),
-            cache_ttl=config.get('cache_ttl', 86400),
-            max_cache_entries=config.get('max_cache_entries', 1000),
-            max_cache_size_mb=config.get('max_cache_size_mb', 100)
-        )
+        Args:
+            ollama_client: Client for interacting with Ollama
+            player_history_manager: Optional manager for conversation history
+        """
+        self.ollama_client = ollama_client
+        self.player_history_manager = player_history_manager
         self.response_parser = ResponseParser()
-        self.context_manager = context_manager or ContextManager()
-        self.player_history_manager = PlayerHistoryManager()
-
+        self.logger = logging.getLogger(__name__)
+        
     async def process(self, request: ClassifiedRequest) -> Dict[str, Any]:
         """
-        Process a request using local language models.
-
+        Process a request using the local model.
+        
         Args:
-            request: The classified request to process.
-
+            request: The request to process
+            
         Returns:
-            A dictionary containing the response text and processing tier.
+            Dict containing response text and metadata
         """
-        if not self.enabled:
-            return {
-                'response_text': "I apologize, but local processing is currently disabled.",
-                'processing_tier': ProcessingTier.LOCAL
-            }
-
         try:
             # Get conversation history if available
+            history = []
             conversation_id = request.additional_params.get('conversation_id')
-            if conversation_id:
+            if conversation_id and self.player_history_manager:
                 history = await self.player_history_manager.get_history(conversation_id)
-            else:
-                history = []
 
             # Create prompt
             prompt = create_prompt(request, history)
@@ -84,23 +66,20 @@ class LocalProcessor:
             response_text = await self._generate_with_retries(prompt)
 
             # Parse response
-            parsed_response = self.response_parser.parse_response(response_text)
+            result = self.response_parser.parse_response(response_text, request)
 
             # Update conversation history if needed
-            if conversation_id:
+            if conversation_id and self.player_history_manager:
                 await self.player_history_manager.add_to_history(
                     conversation_id,
                     request.player_input,
-                    parsed_response
+                    result['response_text']
                 )
 
-            return {
-                'response_text': parsed_response,
-                'processing_tier': ProcessingTier.LOCAL
-            }
+            return result
 
         except Exception as e:
-            logger.error(f"Error processing request: {e}", exc_info=True)
+            self.logger.error(f"Error processing request: {e}", exc_info=True)
             return self._generate_fallback_response(request, e)
 
     async def _generate_with_retries(self, prompt: str) -> str:
@@ -128,7 +107,7 @@ class LocalProcessor:
                 if attempt == max_retries - 1:
                     raise
                 delay = min(base_delay * (backoff_factor ** attempt), max_delay)
-                logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay}s: {e}")
+                self.logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay}s: {e}")
                 await asyncio.sleep(delay)
 
     def _generate_fallback_response(self, request: ClassifiedRequest, error: Exception) -> Dict[str, Any]:
@@ -140,13 +119,13 @@ class LocalProcessor:
             error: The error that occurred.
 
         Returns:
-            A dictionary containing the fallback response text and processing tier.
+            A dictionary containing the fallback response and metadata.
         """
-        fallback_text = (
-            "I apologize, but I'm having trouble processing your request right now. "
-            "Could you try rephrasing your question or asking something else?"
-        )
         return {
-            'response_text': fallback_text,
-            'processing_tier': ProcessingTier.LOCAL
+            'response_text': (
+                "I apologize, but I'm having trouble processing your request right now. "
+                "Could you try rephrasing your question or asking something else?"
+            ),
+            'processing_tier': ProcessingTier.LOCAL,
+            'is_fallback': True
         } 

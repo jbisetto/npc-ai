@@ -61,9 +61,13 @@ These components depend primarily on core models.
   - [x] Test Japanese text support
   - [x] 100% line coverage achieved
 
-- [ ] `local/response_parser.py`
-  - [ ] Test response validation
-  - [ ] Test response cleaning
+- [x] `core/response_parser.py` ✅ (11 tests passing)
+  - [x] Test response cleaning
+  - [x] Test system token removal
+  - [x] Test whitespace handling
+  - [x] Test error handling
+  - [x] Test Japanese text support
+  - [x] Test edge cases
 
 - [ ] `hosted/usage_tracker.py`
   - [ ] Test usage tracking
