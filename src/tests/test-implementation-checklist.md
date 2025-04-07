@@ -34,10 +34,12 @@ These components handle core processing logic.
 
 - [x] `core/prompt_manager.py`
   - [x] Test prompt creation (17 tests)
-  - [x] Test token estimation
-  - [x] Test error handling
-  - [x] Test performance metrics
-  NOTE: Comprehensive test suite covering all major functionality.
+  - [x] Test token estimation and error handling
+  - [x] Test performance metrics and thresholds
+  - [x] Test NPC profile integration
+  - [x] Test conversation history handling
+  - [x] Test prompt optimization
+  NOTE: Comprehensive test suite with improved validation and error handling.
 
 - [x] `core/response_parser.py`
   - [x] Test response cleaning (11 tests)
@@ -93,14 +95,20 @@ These components handle request processing and routing.
   - [x] Directory structure
   NOTE: Basic test infrastructure is in place.
 
-- [ ] Test Utilities
-  - [ ] Mock objects
-  - [ ] Test data generators
-  - [ ] Assertion helpers
-  NOTE: Need to implement shared test utilities.
+- [x] Test Utilities
+  - [x] Factory functions for test data
+    - [x] Request factories
+    - [x] Game context factories
+    - [x] Response factories
+    - [x] Conversation context factories
+  - [x] Mock response generators
+  - [x] File system helpers
+  - [x] Assertion helpers
+  NOTE: Comprehensive test utilities implemented and used across test suite.
 
 ## Notes
 - All core components now have comprehensive test coverage
-- Focus on hosted components and test utilities next
+- Test utilities package now provides robust factories and helpers
+- Focus on hosted components next
 - Consider adding performance benchmarks for critical paths
 - Storage functionality is now handled by individual managers (Conversation, Context)

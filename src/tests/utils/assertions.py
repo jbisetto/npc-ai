@@ -30,7 +30,7 @@ def assert_valid_response(
         AssertionError: If validation fails
     """
     if expected_fields is None:
-        expected_fields = ["response_text", "is_error"]
+        expected_fields = ["response_text", "is_fallback"]
         
     # Check required fields
     for field in expected_fields:
@@ -42,8 +42,8 @@ def assert_valid_response(
         assert not extra_fields, f"Unexpected fields: {extra_fields}"
     
     # Basic type checks
-    if "is_error" in response:
-        assert isinstance(response["is_error"], bool)
+    if "is_fallback" in response:
+        assert isinstance(response["is_fallback"], bool)
     if "response_text" in response and response["response_text"] is not None:
         assert isinstance(response["response_text"], str)
 

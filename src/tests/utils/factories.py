@@ -5,14 +5,15 @@ This module provides factory functions for creating test data objects
 like requests, contexts, and other commonly needed test fixtures.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
     GameContext,
     ProcessingTier,
-    ConversationContext
+    ConversationContext,
+    CompanionResponse
 )
 
 
@@ -118,4 +119,48 @@ def create_test_conversation_context(
         **kwargs
     }
     
-    return ConversationContext(**context_data) 
+    return ConversationContext(**context_data)
+
+
+def create_test_response(
+    request_id: str = "test_req_001",
+    response_text: str = "The ticket gate is straight ahead.",
+    processing_tier: ProcessingTier = ProcessingTier.LOCAL,
+    suggested_actions: Optional[List[str]] = None,
+    learning_cues: Optional[Dict[str, Any]] = None,
+    emotion: str = "neutral",
+    confidence: float = 1.0,
+    debug_info: Optional[Dict[str, Any]] = None,
+    **kwargs
+) -> CompanionResponse:
+    """
+    Create a CompanionResponse instance for testing.
+    
+    Args:
+        request_id: Request identifier
+        response_text: The response text
+        processing_tier: The processing tier used
+        suggested_actions: Optional list of suggested actions
+        learning_cues: Optional dictionary of learning cues
+        emotion: Response emotion
+        confidence: Response confidence
+        debug_info: Optional debug information
+        **kwargs: Additional fields to override
+        
+    Returns:
+        A CompanionResponse instance
+    """
+    response_data = {
+        "request_id": request_id,
+        "response_text": response_text,
+        "processing_tier": processing_tier,
+        "suggested_actions": suggested_actions or [],
+        "learning_cues": learning_cues or {},
+        "emotion": emotion,
+        "confidence": confidence,
+        "debug_info": debug_info or {},
+        "timestamp": datetime.now(),
+        **kwargs
+    }
+    
+    return CompanionResponse(**response_data) 

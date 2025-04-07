@@ -7,41 +7,42 @@ without any personality or learning cue enhancements.
 
 import pytest
 from src.ai.npc.core.formatter_standalone import format_response
-from src.ai.npc.core.models import ClassifiedRequest, ProcessingTier
+from src.tests.utils.factories import create_test_request
+from src.tests.utils.mock_responses import (
+    create_mock_llm_response,
+    create_mock_japanese_response
+)
+from src.tests.utils.assertions import assert_valid_japanese
 
 
 @pytest.fixture
 def sample_request():
     """Create a sample request for testing."""
-    return ClassifiedRequest(
+    return create_test_request(
         request_id="test-123",
         player_input="hello",
-        request_type="greeting",
-        processing_tier=ProcessingTier.LOCAL,
-        confidence=1.0,
-        extracted_entities={},
-        additional_params={}
+        request_type="greeting"
     )
 
 
 def test_format_normal_text(sample_request):
     """Test formatting normal text."""
-    response = "Hello, how can I help you?"
-    formatted = format_response(response, sample_request)
+    mock_response = create_mock_llm_response("Hello, how can I help you?")
+    formatted = format_response(mock_response["response_text"], sample_request)
     assert formatted == "Hello, how can I help you?"
 
 
 def test_format_whitespace(sample_request):
     """Test formatting text with extra whitespace."""
-    response = "  Hello,   how can I   help you?  "
-    formatted = format_response(response, sample_request)
+    mock_response = create_mock_llm_response("  Hello,   how can I   help you?  ")
+    formatted = format_response(mock_response["response_text"], sample_request)
     assert formatted == "Hello,   how can I   help you?"
 
 
 def test_format_internal_whitespace(sample_request):
     """Test that internal whitespace is preserved."""
-    response = "First line\n  Indented line\nLast line"
-    formatted = format_response(response, sample_request)
+    mock_response = create_mock_llm_response("First line\n  Indented line\nLast line")
+    formatted = format_response(mock_response["response_text"], sample_request)
     assert formatted == "First line\n  Indented line\nLast line"
 
 
@@ -65,6 +66,10 @@ def test_format_only_whitespace(sample_request):
 
 def test_format_japanese_text(sample_request):
     """Test formatting Japanese text."""
-    response = "こんにちは、元気ですか？"
-    formatted = format_response(response, sample_request)
-    assert formatted == "こんにちは、元気ですか？" 
+    mock_response = create_mock_japanese_response(
+        japanese_text="こんにちは、元気ですか？",
+        english_text="Hello, how are you?"
+    )
+    formatted = format_response(mock_response["japanese"], sample_request)
+    assert formatted == "こんにちは、元気ですか？"
+    assert_valid_japanese(formatted, allow_romaji=False) 

@@ -53,9 +53,14 @@ class PromptManager:
         
         Args:
             max_prompt_tokens: Maximum number of tokens to allow in a prompt.
-                             If <= 0, uses default value of 800.
+                             Must be greater than 0.
+                             
+        Raises:
+            ValueError: If max_prompt_tokens is less than or equal to 0.
         """
-        self.max_prompt_tokens = 800 if max_prompt_tokens <= 0 else max_prompt_tokens
+        if max_prompt_tokens <= 0:
+            raise ValueError("max_prompt_tokens must be greater than 0")
+        self.max_prompt_tokens = max_prompt_tokens
         self.logger = logging.getLogger(__name__)
     
     def create_prompt(
@@ -76,7 +81,7 @@ class PromptManager:
             The formatted and optimized prompt string
             
         Raises:
-            ValueError: If request is None or invalid
+            ValueError: If request is None, has empty player input, or missing game context
         """
         # Validate request
         if request is None:
@@ -85,8 +90,8 @@ class PromptManager:
         if not request.player_input or not request.player_input.strip():
             raise ValueError("Invalid request: empty player input")
             
-        if not request.game_context:
-            raise ValueError("Invalid request: missing game context")
+        if not isinstance(request.game_context, GameContext):
+            raise ValueError("Invalid request: game_context must be a GameContext instance")
 
         # For very small token limits, use minimal format
         if self.max_prompt_tokens <= 100:
