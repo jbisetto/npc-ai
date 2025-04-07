@@ -20,7 +20,7 @@ from src.ai.npc.core.models import (
     GameContext,
     ClassifiedRequest
 )
-from src.ai.npc.core.npc_profile import NPCProfile
+from src.ai.npc.core.profile.profile import NPCProfile
 from src.ai.npc.core.prompt_manager import PromptManager, BASE_SYSTEM_PROMPT
 from src.tests.utils.factories import (
     create_test_request,
@@ -157,17 +157,39 @@ def test_prompt_with_npc_profile(prompt_manager, sample_request):
     """Test creating a prompt with an NPC profile."""
     # Create a mock NPC profile
     class MockProfile(NPCProfile):
-        def get_prompt_context(self) -> str:
-            return "I am a helpful station attendant."
-        
-        def get_response_format(self, request: ClassifiedRequest) -> str:
-            return "You are a helpful NPC. Respond naturally to: {input}"
+        def __init__(self):
+            super().__init__(
+                profile_id="station_attendant",
+                name="Yamada",
+                role="Station Information Assistant",
+                personality_traits={
+                    "helpfulness": 0.9,
+                    "patience": 0.8,
+                    "efficiency": 0.9,
+                    "politeness": 0.9
+                },
+                knowledge_areas=[
+                    "Tokyo Station layout",
+                    "Train schedules",
+                    "Ticket information",
+                    "Station facilities"
+                ],
+                backstory="A knowledgeable station staff member dedicated to helping travelers.",
+                response_format={
+                    "default": "{name}: {response}"
+                }
+            )
 
-    profile = MockProfile(profile_id="station_attendant")
+    profile = MockProfile()
     prompt = prompt_manager.create_prompt(sample_request, profile=profile)
     
-    # Check that profile context is included
-    assert "I am a helpful station attendant" in prompt
+    # Check that profile information is included
+    assert "You are Yamada, a Station Information Assistant" in prompt
+    assert "A knowledgeable station staff member dedicated to helping travelers" in prompt
+    assert "helpfulness: 0.9" in prompt
+    assert "patience: 0.8" in prompt
+    assert "Tokyo Station layout" in prompt
+    assert "Train schedules" in prompt
 
 def test_empty_history_entries(prompt_manager, sample_request):
     """Test handling of empty or invalid history entries."""

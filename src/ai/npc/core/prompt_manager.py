@@ -11,7 +11,7 @@ import logging
 from typing import Dict, List, Optional, Tuple, Any
 
 from src.ai.npc.core.models import ClassifiedRequest, CompanionRequest, GameContext
-from src.ai.npc.core.npc_profile import NPCProfile
+from src.ai.npc.core.profile.profile import NPCProfile
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -106,16 +106,20 @@ class PromptManager:
             return minimal_prompt
 
         # Build full prompt
-        prompt_parts = [BASE_SYSTEM_PROMPT]
+        prompt_parts = []
 
         # Add NPC profile if available
         if profile:
             try:
-                profile_context = profile.get_prompt_context()
-                if profile_context and profile_context.strip():
-                    prompt_parts.append("NPC Profile:\n" + profile_context)
+                profile_prompt = profile.get_system_prompt()
+                if profile_prompt and profile_prompt.strip():
+                    prompt_parts.append(profile_prompt)
             except Exception as e:
-                self.logger.warning(f"Failed to get profile context: {e}")
+                self.logger.warning(f"Failed to get profile prompt: {e}")
+
+        # Add base system prompt if no profile or profile prompt is empty
+        if not prompt_parts:
+            prompt_parts.append(BASE_SYSTEM_PROMPT)
 
         # Add conversation history if available
         if history:
@@ -198,88 +202,77 @@ class PromptManager:
             if history_section:
                 history_entries = history_section.split("\n")[1:]  # Skip "Previous conversation:" line
                 optimized_history = []
-                total_tokens = self.estimate_tokens(system_prompt + "\n\n" + current_request)
+                remaining_tokens = self.max_prompt_tokens - self.estimate_tokens(system_prompt + "\n\n" + current_request)
                 
-                # Add history entries from most recent to oldest until we hit token limit
-                for i in range(len(history_entries) - 1, -1, -2):  # Step by 2 to keep pairs together
-                    if i > 0:  # Make sure we have a pair
-                        entry_pair = history_entries[i-1] + "\n" + history_entries[i]
-                        pair_tokens = self.estimate_tokens(entry_pair + "\n")
-                        
-                        if total_tokens + pair_tokens <= self.max_prompt_tokens:
-                            optimized_history.insert(0, entry_pair)
-                            total_tokens += pair_tokens
-                        else:
-                            break
+                # Add history entries from most recent to oldest until we run out of tokens
+                for entry in reversed(history_entries):
+                    entry_tokens = self.estimate_tokens(entry)
+                    if entry_tokens <= remaining_tokens:
+                        optimized_history.insert(0, entry)
+                        remaining_tokens -= entry_tokens
+                    else:
+                        break
                 
                 if optimized_history:
                     history_section = "Previous conversation:\n" + "\n".join(optimized_history)
-                    return f"{system_prompt}\n\n{history_section}\n\n{current_request}"
+                else:
+                    history_section = None
             
-            # If no history or couldn't fit any, return minimal prompt
-            return f"{system_prompt}\n\n{current_request}"
+            # Combine sections
+            sections = [system_prompt]
+            if history_section:
+                sections.append(history_section)
+            sections.append(current_request)
+            
+            return "\n\n".join(filter(None, sections))
         
         return prompt
 
     def _truncate_to_tokens(self, text: str, max_tokens: int) -> str:
         """
-        Truncate text to fit within token limits.
+        Truncate text to fit within token limit.
         
         Args:
-            text: The text to truncate
+            text: Text to truncate
             max_tokens: Maximum number of tokens
             
         Returns:
             Truncated text
         """
-        max_chars = max_tokens * AVG_CHARS_PER_TOKEN
-        
-        if len(text) <= max_chars:
+        if self.estimate_tokens(text) <= max_tokens:
             return text
-        
-        # Try to truncate at sentence boundaries
-        sentences = re.split(r'(?<=[.!?])\s+', text)
-        result = ""
-        
-        for sentence in sentences:
-            if self.estimate_tokens(result + sentence + " ") <= max_tokens:
-                result += sentence + " "
-            else:
-                break
-        
-        # If we couldn't fit even one sentence, truncate mid-sentence
-        if not result:
-            result = text[:max_chars]
             
-        return result.strip()
+        # Binary search for the right length
+        left, right = 0, len(text)
+        while left < right:
+            mid = (left + right + 1) // 2
+            if self.estimate_tokens(text[:mid]) <= max_tokens:
+                left = mid
+            else:
+                right = mid - 1
+                
+        return text[:left]
 
     def _format_game_context(self, context: GameContext) -> str:
-        """Format the game context information."""
-        context_str = "Current game context:\n"
+        """
+        Format game context for inclusion in prompt.
         
-        # Add player ID
-        context_str += f"- Player ID: {context.player_id}\n"
+        Args:
+            context: Game context to format
+            
+        Returns:
+            Formatted context string
+        """
+        parts = []
         
-        # Add language proficiency if available
+        # Add player info
+        if context.player_id:
+            parts.append(f"Player ID: {context.player_id}")
+            
+        # Add language proficiency
         if context.language_proficiency:
-            context_str += "- Language Proficiency:\n"
-            for lang, level in context.language_proficiency.items():
-                context_str += f"  - {lang}: {level}\n"
-        
-        return context_str
-
-    def _build_full_prompt(self, request: ClassifiedRequest) -> str:
-        """Build the full prompt with all available context."""
-        prompt_parts = [BASE_SYSTEM_PROMPT]
-
-        # Add game context if available
-        if request.game_context:
-            context_text = self._format_game_context(request.game_context)
-            if context_text.strip():  # Only add if not empty
-                prompt_parts.append(context_text)
-
-        # Add current request
-        prompt_parts.append(f"Human: {request.player_input}\nAssistant:")
-
-        # Combine all parts
-        return "\n\n".join(filter(None, prompt_parts))
+            parts.append("Language Proficiency:")
+            for skill, level in context.language_proficiency.items():
+                parts.append(f"- {skill}: {level}")
+                
+        return "\n".join(parts)

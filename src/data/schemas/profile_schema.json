@@ -23,17 +23,6 @@
       "description": "Key-value pairs of traits with values 0-1",
       "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
     },
-    "speech_patterns": {
-      "type": "object",
-      "properties": {
-        "formality_level": {"type": "string"},
-        "speaking_style": {"type": "string"},
-        "common_phrases": {
-          "type": "array",
-          "items": {"type": "string"}
-        }
-      }
-    },
     "knowledge_areas": {
       "type": "array",
       "items": {"type": "string"},
@@ -42,19 +31,6 @@
     "backstory": {
       "type": "string",
       "description": "NPC's background story"
-    },
-    "visual_traits": {
-      "type": "object",
-      "additionalProperties": {"type": "string"},
-      "description": "Visual characteristics of the NPC"
-    },
-    "emotion_expressions": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "array",
-        "items": {"type": "string"}
-      },
-      "description": "Mapping of emotions to text expressions"
     },
     "response_format": {
       "type": "object",
