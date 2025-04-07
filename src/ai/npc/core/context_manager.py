@@ -76,7 +76,7 @@ class ContextEntry:
         return cls(
             player_input=data["player_input"],
             response=data["response"],
-            game_context=GameContext.from_dict(data["game_context"]),
+            game_context=GameContext(**data["game_context"]),
             timestamp=datetime.fromisoformat(data["timestamp"])
         )
 

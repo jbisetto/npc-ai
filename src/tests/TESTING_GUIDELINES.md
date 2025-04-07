@@ -229,6 +229,95 @@ def test_response_time():
     assert get_memory_usage() - start_memory < 100_000_000  # 100MB
 ```
 
+## Model Serialization Testing
+
+### Pydantic vs Custom Serialization
+When testing model serialization, be aware of the differences between Pydantic and custom serialization:
+
+1. **Pydantic Models**:
+   - Use `.model_dump()` (Pydantic v2) or `.dict()` (Pydantic v1) for serialization
+   - Automatically handles nested models and complex types
+   - Includes type validation during serialization
+   - Example:
+     ```python
+     def test_pydantic_model_serialization():
+         model = MyPydanticModel(field1="value", field2=123)
+         serialized = model.model_dump()  # or model.dict() for v1
+         deserialized = MyPydanticModel(**serialized)
+         assert deserialized == model
+     ```
+
+2. **Custom Serialization**:
+   - Uses custom `.to_dict()` and `.from_dict()` methods
+   - Requires explicit handling of nested objects
+   - Needs manual datetime ISO format conversion
+   - Example:
+     ```python
+     def test_custom_model_serialization():
+         model = MyCustomModel(field1="value", field2=123)
+         serialized = model.to_dict()
+         deserialized = MyCustomModel.from_dict(serialized)
+         assert deserialized.field1 == model.field1
+     ```
+
+### Best Practices for Serialization Testing
+
+1. **Test Round-Trip Serialization**:
+   ```python
+   def test_serialization_round_trip():
+       original = MyModel(...)
+       serialized = original.to_dict()
+       deserialized = MyModel.from_dict(serialized)
+       assert deserialized == original  # For Pydantic
+       # For custom models, compare individual fields
+       assert deserialized.field1 == original.field1
+   ```
+
+2. **Test Nested Objects**:
+   ```python
+   def test_nested_serialization():
+       nested = NestedModel(...)
+       parent = ParentModel(nested_field=nested)
+       serialized = parent.to_dict()
+       assert "nested_field" in serialized
+       assert isinstance(serialized["nested_field"], dict)
+   ```
+
+3. **Test DateTime Handling**:
+   ```python
+   def test_datetime_serialization():
+       model = MyModel(timestamp=datetime.now())
+       serialized = model.to_dict()
+       assert isinstance(serialized["timestamp"], str)
+       assert datetime.fromisoformat(serialized["timestamp"])
+   ```
+
+4. **Test Optional Fields**:
+   ```python
+   def test_optional_fields_serialization():
+       model = MyModel(required_field="value", optional_field=None)
+       serialized = model.to_dict()
+       assert "required_field" in serialized
+       assert serialized.get("optional_field") is None
+   ```
+
+### Common Pitfalls to Avoid
+
+1. **Datetime Handling**: Always use ISO format for datetime serialization
+2. **Nested Objects**: Ensure proper recursion for nested object serialization
+3. **Type Consistency**: Maintain consistent types during serialization/deserialization
+4. **None Values**: Handle None values explicitly in both directions
+5. **Validation**: Include validation in deserialization for custom models
+
+### Migration Considerations
+
+When migrating between serialization approaches:
+
+1. Create compatibility tests for both old and new formats
+2. Implement version checking in deserialization
+3. Add migration utilities for converting between formats
+4. Document breaking changes in serialization
+
 ## Test Implementation Process
 
 ### 1. Test Organization

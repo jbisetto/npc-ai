@@ -31,7 +31,7 @@ These components have minimal or no dependencies and should be tested first.
   - [x] Test `CompanionResponse` class
   - [x] Test `ConversationContext` class
 
-- [x] `core/formatter_standalone.py` ✅ (7 component tests passing, verified with full suite - 21 total tests ✅)
+- [x] `core/formatter_standalone.py` ✅ (7 component tests passing)
   - [x] Test standalone formatting functions
   - [x] Test text cleaning utilities
   - [x] 100% line coverage achieved
@@ -46,11 +46,13 @@ These components have minimal or no dependencies and should be tested first.
 ## Level 2: Core Services
 These components depend primarily on core models.
 
-- [ ] `core/prompt_manager.py`
-  - [ ] Test prompt creation
-  - [ ] Test token estimation
-  - [ ] Test prompt optimization
-  - [ ] Test game context formatting
+- [x] `core/prompt_manager.py` ✅ (17 tests passing)
+  - [x] Test prompt creation
+  - [x] Test token estimation
+  - [x] Test prompt optimization
+  - [x] Test game context formatting
+  - [x] Test error handling
+  - [x] Test performance characteristics
 
 - [ ] `core/response_formatter.py`
   - [ ] Test response formatting
@@ -74,10 +76,12 @@ These components handle state and persistence.
   - [ ] Test retrieval methods
   - [ ] Test history updates
 
-- [ ] `core/context_manager.py`
-  - [ ] Test context creation
-  - [ ] Test context updates
-  - [ ] Test context retrieval
+- [x] `core/context_manager.py` ✅ (13 tests passing)
+  - [x] Test context creation and retrieval
+  - [x] Test context updates and deletion
+  - [x] Test error handling and edge cases
+  - [x] Test state management and timestamps
+  - [x] Test serialization and deserialization
 
 - [ ] `core/conversation_manager.py`
   - [ ] Test conversation state tracking
@@ -128,15 +132,15 @@ These components represent the highest level of integration.
 
 ## Test Infrastructure
 
-- [ ] Set up test fixtures
+- [x] Set up test fixtures
+  - [x] Sample requests
+  - [x] Test configurations
   - [ ] Mock API responses
-  - [ ] Sample requests
-  - [ ] Test configurations
 
-- [ ] Configure test environment
-  - [ ] Test configuration files
-  - [ ] Environment variables
-  - [ ] Logging setup
+- [x] Configure test environment
+  - [x] Test configuration files
+  - [x] Environment variables
+  - [x] Logging setup
 
 - [ ] Create test utilities
   - [ ] Request builders
