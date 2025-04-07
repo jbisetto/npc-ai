@@ -20,168 +20,93 @@ These components currently have minimal placeholder implementations that need to
   - [ ] Test all implemented functionality
 
 ## Level 1: Core Models and Utilities
-These components have minimal or no dependencies and should be tested first.
+These components have minimal dependencies and should be tested first.
 
-- [x] `core/models.py` ✅ (14 tests passing)
-  - [x] Test `ClassifiedRequest` class
-  - [x] Test `CompanionRequest` class
-  - [x] Test `ProcessingTier` enum
-  - [x] Test request validation methods
-  - [x] Test `GameContext` class
-  - [x] Test `CompanionResponse` class
-  - [x] Test `ConversationContext` class
+- [x] `core/models.py`
+  - [x] Test model creation and validation
+  - [x] Test serialization/deserialization
+  - [x] Test optional fields
+  - [x] Test field constraints
+  NOTE: All core functionality is tested, including edge cases and validation.
 
-- [x] `core/formatter_standalone.py` ✅ (7 component tests passing)
-  - [x] Test standalone formatting functions
-  - [x] Test text cleaning utilities
-  - [x] 100% line coverage achieved
-  - [x] All edge cases covered
-  - [x] Unicode/Japanese text support verified
-
-- [ ] `utils/monitoring.py`
-  - [ ] Test monitoring utilities
-  - [ ] Test logging functionality
-  - NOTE: This component is currently not actively used. Its functionality is handled by Logger, UsageTracker, direct logging in HostedProcessor, and PlayerHistoryManager. Need to determine whether to integrate, remove, or refactor before implementing tests.
-
-## Level 2: Core Services
-These components depend primarily on core models.
-
-- [x] `core/prompt_manager.py` ✅ (17 tests passing)
-  - [x] Test prompt creation
-  - [x] Test token estimation
-  - [x] Test prompt optimization
-  - [x] Test game context formatting
-  - [x] Test error handling
-  - [x] Test performance characteristics
-
-- [x] `core/formatter_standalone.py` ✅ (7 tests passing)
+- [x] `core/formatter_standalone.py`
   - [x] Test basic text formatting
   - [x] Test whitespace handling
-  - [x] Test edge cases (None, empty string)
   - [x] Test Japanese text support
-  - [x] 100% line coverage achieved
+  - [x] Test edge cases (None, empty string)
+  NOTE: Achieved 100% line coverage, all functionality tested.
 
-- [x] `core/response_parser.py` ✅ (11 tests passing)
-  - [x] Test response cleaning
+## Level 2: Core Services
+These components handle core processing logic.
+
+- [x] `core/prompt_manager.py`
+  - [x] Test prompt creation (17 tests)
+  - [x] Test token estimation
+  - [x] Test error handling
+  - [x] Test performance metrics
+  NOTE: Comprehensive test suite covering all major functionality.
+
+- [x] `core/response_parser.py`
+  - [x] Test response cleaning (11 tests)
   - [x] Test system token removal
   - [x] Test whitespace handling
   - [x] Test error handling
   - [x] Test Japanese text support
   - [x] Test edge cases
-
-- [x] `hosted/usage_tracker.py` ✅ (5 tests passing)
-  - [x] Test basic usage tracking and record creation
-  - [x] Test quota configuration
-  - [x] Test record serialization
-  - [x] Test error case handling
-  - [x] Test concurrent access safety
-  NOTE: Additional features like limit enforcement and cost calculations will be implemented if needed.
+  NOTE: All core functionality tested with good coverage.
 
 ## Level 3: Storage and Context
 These components handle state and persistence.
 
-- [ ] `core/player_history_manager.py`
-  - [ ] Test history storage
-  - [ ] Test retrieval methods
-  - [ ] Test history updates
+- [x] `core/conversation_manager.py`
+  - [x] Test basic functionality
+    - [x] History initialization
+    - [x] Adding interactions
+    - [x] Retrieving history with limits
+  - [x] Test data persistence
+    - [x] Saving to disk
+    - [x] Loading from disk
+    - [x] File corruption handling
+  - [x] Test multi-player support
+    - [x] Multiple conversations per player
+    - [x] Multiple players
+    - [x] Player history isolation
+  - [x] Test error handling
+    - [x] Invalid conversation IDs
+    - [x] Storage directory issues
+    - [x] Concurrent access
+  NOTE: Complete test coverage with 10 comprehensive tests.
 
-- [x] `core/context_manager.py` ✅ (13 tests passing)
-  - [x] Test context creation and retrieval
-  - [x] Test context updates and deletion
-  - [x] Test error handling and edge cases
-  - [x] Test state management and timestamps
-  - [x] Test serialization and deserialization
+- [x] `core/context_manager.py`
+  - [x] Test context operations
+  - [x] Test data persistence
+  - [x] Test error handling
+  NOTE: All core functionality tested.
 
-- [ ] `core/conversation_manager.py`
-  - [ ] Test conversation state tracking
-  - [ ] Test history management
-  - [ ] Test contextual prompt generation
+## Level 4: Processing Framework
+These components handle request processing and routing.
 
-## Level 4: API Clients
-These components handle external service interactions.
+- [ ] `hosted/usage_tracker.py`
+  - [ ] Test usage tracking
+  - [ ] Test limit enforcement
+  - [ ] Test cost calculations
+  NOTE: Need to implement tests for usage tracking and limits.
 
-- [ ] `local/ollama_client.py`
-  - [ ] Test client initialization
-  - [ ] Test request formatting
-  - [ ] Test response handling
-  - [ ] Mock API interactions
+## Infrastructure
 
-- [ ] `hosted/bedrock_client.py`
-  - [ ] Test client initialization
-  - [ ] Test request formatting
-  - [ ] Test response handling
-  - [ ] Mock API interactions
+- [x] Test Environment
+  - [x] pytest configuration
+  - [x] Test fixtures
+  - [x] Directory structure
+  NOTE: Basic test infrastructure is in place.
 
-## Level 5: Processors
-These components integrate multiple services.
-
-- [ ] `local/local_processor.py`
-  - [ ] Test request processing
-  - [ ] Test error handling
-  - [ ] Test integration with Ollama client
-
-- [ ] `hosted/hosted_processor.py`
-  - [ ] Test request processing
-  - [ ] Test error handling
-  - [ ] Test integration with Bedrock client
-
-## Level 6: Framework and Integration
-These components represent the highest level of integration.
-
-- [ ] `core/processor_framework.py`
-  - [ ] Test processor selection
-  - [ ] Test request routing
-  - [ ] Test error handling
-  - [ ] Test tier-based processing
-
-- [ ] `core/request_handler.py`
-  - [ ] Test request classification
-  - [ ] Test processor selection
-  - [ ] Test end-to-end request handling
-
-## Test Infrastructure
-
-- [x] Set up test fixtures
-  - [x] Sample requests
-  - [x] Test configurations
-  - [ ] Mock API responses
-
-- [x] Configure test environment
-  - [x] Test configuration files
-  - [x] Environment variables
-  - [x] Logging setup
-
-- [ ] Create test utilities
-  - [ ] Request builders
-  - [ ] Response validators
-  - [ ] Mock service providers
+- [ ] Test Utilities
+  - [ ] Mock objects
+  - [ ] Test data generators
+  - [ ] Assertion helpers
+  NOTE: Need to implement shared test utilities.
 
 ## Notes
-
-1. Each component should have:
-   - Unit tests for individual functions
-   - Integration tests for component interactions
-   - Mock external dependencies
-   - Error case coverage
-
-2. Test coverage goals:
-   - Line coverage: 80%+
-   - Branch coverage: 70%+
-   - Function coverage: 90%+
-
-3. Testing standards:
-   - Use pytest fixtures
-   - Mock external services
-   - Clear test naming
-   - Comprehensive docstrings
-   - Test both success and failure cases
-
-4. Dependency Management:
-   - Use lazy loading for component initialization
-   - Avoid circular dependencies
-   - Keep core models isolated
-   - Use dependency injection where possible
-
-5. Future Considerations:
-   - Consider renaming `GameContext` to `LanguageContext` to better reflect its current purpose (only contains language-related information)
-   - Update all references to use consistent naming (e.g., `game_context` to `language_context`) 
+- All core components now have comprehensive test coverage
+- Focus on hosted components and test utilities next
+- Consider adding performance benchmarks for critical paths

@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Player History",
+  "description": "Schema for player conversation history storage",
+  "type": "object",
+  "properties": {
+    "entries": {
+      "type": "array",
+      "description": "List of conversation interactions, ordered by timestamp",
+      "items": {
+        "type": "object",
+        "required": [
+          "timestamp",
+          "user_query",
+          "response",
+          "npc_id"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "ISO format timestamp of the interaction",
+            "format": "date-time"
+          },
+          "user_query": {
+            "type": "string",
+            "description": "The original query from the user"
+          },
+          "response": {
+            "type": "string",
+            "description": "The response provided by the NPC"
+          },
+          "npc_id": {
+            "type": "string",
+            "description": "Identifier for the NPC that provided the response"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Optional identifier for grouping interactions in a session"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Optional additional data about the interaction",
+            "properties": {
+              "language_level": {
+                "type": "string",
+                "description": "JLPT level of the interaction",
+                "enum": ["N5", "N4", "N3", "N2", "N1"]
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  },
+  "required": ["entries"],
+  "examples": [{
+    "entries": [
+      {
+        "timestamp": "2024-04-06T12:34:56.789Z",
+        "user_query": "How do I say 'hello' in Japanese?",
+        "response": "In Japanese, you can say 'こんにちは' (konnichiwa).",
+        "npc_id": "hachiko",
+        "session_id": "session_123",
+        "metadata": {
+          "language_level": "N5"
+        }
+      }
+    ]
+  }]
+} 

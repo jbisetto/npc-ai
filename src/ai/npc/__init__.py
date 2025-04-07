@@ -21,12 +21,12 @@ from .core.models import CompanionRequest, ClassifiedRequest, ProcessingTier
 _prompt_manager = None
 _storage_manager = None
 _knowledge_store = None
-_conversation_manager = None
 _local_processor = None
 _hosted_processor = None
+_context_manager = None
 
 def get_prompt_manager():
-    """Get or initialize the prompt manager."""
+    """Get the global prompt manager instance."""
     global _prompt_manager
     if _prompt_manager is None:
         from .core.prompt_manager import PromptManager
@@ -48,14 +48,6 @@ def get_knowledge_store():
         from .core.vector.tokyo_knowledge_store import TokyoKnowledgeStore
         _knowledge_store = TokyoKnowledgeStore()
     return _knowledge_store
-
-def get_conversation_manager():
-    """Get or initialize the conversation manager."""
-    global _conversation_manager
-    if _conversation_manager is None:
-        from .core.conversation_manager import ConversationManager
-        _conversation_manager = ConversationManager(get_storage_manager())
-    return _conversation_manager
 
 def get_local_processor():
     """Get or initialize the local processor."""

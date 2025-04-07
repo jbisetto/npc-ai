@@ -33,7 +33,7 @@ class ProcessorMonitor:
     - Logger (error tracking)
     - UsageTracker (API usage)
     - Direct logging in HostedProcessor (response times)
-    - PlayerHistoryManager (success/failure tracking)
+    - ConversationManager (success/failure tracking)
     
     Need to determine if this should be:
     1. Properly integrated to provide additional metrics

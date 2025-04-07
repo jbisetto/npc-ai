@@ -21,13 +21,11 @@ from src.ai.npc.core.processor_framework import Processor
 from src.ai.npc.hosted.bedrock_client import BedrockClient, BedrockError
 from src.ai.npc.hosted.usage_tracker import UsageTracker, default_tracker
 from src.ai.npc.core.context_manager import ContextManager, default_context_manager
-from src.ai.npc.core.conversation_manager import ConversationManager, ConversationState
 from src.ai.npc.core.prompt_manager import PromptManager
-from src.ai.npc.hosted.conversation_manager import ConversationManager
 from src.ai.npc.utils.monitoring import ProcessorMonitor
 from src.ai.npc.config import get_config, CLOUD_API_CONFIG
 from src.ai.npc.core.response_parser import ResponseParser
-from src.ai.npc.core.player_history_manager import PlayerHistoryManager
+from src.ai.npc.core.conversation_manager import ConversationManager
 
 
 class HostedProcessor(Processor):
@@ -43,7 +41,7 @@ class HostedProcessor(Processor):
         self,
         usage_tracker: Optional[UsageTracker] = None,
         context_manager: Optional[ContextManager] = None,
-        player_history_manager: Optional[PlayerHistoryManager] = None
+        conversation_manager: Optional[ConversationManager] = None
     ):
         """
         Initialize the hosted processor.
@@ -51,18 +49,17 @@ class HostedProcessor(Processor):
         Args:
             usage_tracker: The usage tracker for monitoring API usage
             context_manager: Context manager for tracking conversation context
-            player_history_manager: Player history manager for tracking player interactions
+            conversation_manager: Conversation manager for tracking interactions
         """
         # Initialize logger
         self.logger = logging.getLogger(__name__)
         
         # Initialize components
         self.client = self._create_bedrock_client(usage_tracker)
-        self.conversation_manager = ConversationManager()
         self.prompt_manager = PromptManager(tier_specific_config={"model_type": "bedrock"})
         self.context_manager = context_manager or default_context_manager
         self.monitor = ProcessorMonitor()
-        self.player_history_manager = player_history_manager
+        self.conversation_manager = conversation_manager
         self.response_parser = ResponseParser()
         
         # Initialize storage
@@ -109,8 +106,8 @@ class HostedProcessor(Processor):
             # Get conversation history if available
             history = []
             conversation_id = request.additional_params.get('conversation_id')
-            if conversation_id and self.player_history_manager:
-                history = await self.player_history_manager.get_history(conversation_id)
+            if conversation_id and self.conversation_manager:
+                history = await self.conversation_manager.get_player_history(request.game_context.player_id)
 
             # Create prompt
             prompt = self.prompt_manager.create_prompt(request, history)
@@ -122,11 +119,13 @@ class HostedProcessor(Processor):
             result = self.response_parser.parse_response(response_text, request)
 
             # Update conversation history if needed
-            if conversation_id and self.player_history_manager:
-                await self.player_history_manager.add_to_history(
-                    conversation_id,
-                    request.player_input,
-                    result['response_text']
+            if conversation_id and self.conversation_manager:
+                await self.conversation_manager.add_to_history(
+                    conversation_id=conversation_id,
+                    user_query=request.player_input,
+                    response=result['response_text'],
+                    npc_id=request.game_context.npc_id,
+                    player_id=request.game_context.player_id
                 )
 
             return result

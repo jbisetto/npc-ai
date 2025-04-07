@@ -14,7 +14,7 @@ from src.ai.npc.core.models import (
 )
 from src.ai.npc.core.response_parser import ResponseParser
 from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
-from src.ai.npc.core.player_history_manager import PlayerHistoryManager
+from src.ai.npc.core.conversation_manager import ConversationManager
 from src.ai.npc.core.prompt_manager import create_prompt
 
 logger = logging.getLogger(__name__)
@@ -28,17 +28,17 @@ class LocalProcessor:
     def __init__(
         self,
         ollama_client: OllamaClient,
-        player_history_manager: Optional[PlayerHistoryManager] = None
+        conversation_manager: Optional[ConversationManager] = None
     ):
         """
         Initialize the local processor.
         
         Args:
             ollama_client: Client for interacting with Ollama
-            player_history_manager: Optional manager for conversation history
+            conversation_manager: Optional manager for conversation history
         """
         self.ollama_client = ollama_client
-        self.player_history_manager = player_history_manager
+        self.conversation_manager = conversation_manager
         self.response_parser = ResponseParser()
         self.logger = logging.getLogger(__name__)
         
@@ -56,8 +56,8 @@ class LocalProcessor:
             # Get conversation history if available
             history = []
             conversation_id = request.additional_params.get('conversation_id')
-            if conversation_id and self.player_history_manager:
-                history = await self.player_history_manager.get_history(conversation_id)
+            if conversation_id and self.conversation_manager:
+                history = await self.conversation_manager.get_player_history(request.game_context.player_id)
 
             # Create prompt
             prompt = create_prompt(request, history)
@@ -69,11 +69,13 @@ class LocalProcessor:
             result = self.response_parser.parse_response(response_text, request)
 
             # Update conversation history if needed
-            if conversation_id and self.player_history_manager:
-                await self.player_history_manager.add_to_history(
-                    conversation_id,
-                    request.player_input,
-                    result['response_text']
+            if conversation_id and self.conversation_manager:
+                await self.conversation_manager.add_to_history(
+                    conversation_id=conversation_id,
+                    user_query=request.player_input,
+                    response=result['response_text'],
+                    npc_id=request.game_context.npc_id,
+                    player_id=request.game_context.player_id
                 )
 
             return result

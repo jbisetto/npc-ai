@@ -25,18 +25,14 @@ The following files still contain references to the removed `IntentCategory` enu
    - Line 33, 81: Used in context management
 
 ## Hosted Components
-1. `src/ai/npc/hosted/test_conversation_manager.py`
-   - Line 11: Import statement
-   - Line 54: Used in test cases
-
-2. `src/ai/npc/hosted/context_manager.py`
+1. `src/ai/npc/hosted/context_manager.py`
    - Line 16: Import statement
    - Lines 33, 81: Used in context management
 
-3. `src/ai/npc/hosted/bedrock_client.py`
+2. `src/ai/npc/hosted/bedrock_client.py`
    - Line 15: Import statement
 
-4. `src/ai/npc/hosted/specialized_handlers.py`
+3. `src/ai/npc/hosted/specialized_handlers.py`
    - Line 13: Import statement
    - Multiple uses throughout the file in handler logic
    - Lines 709-741: Used in handler registration
