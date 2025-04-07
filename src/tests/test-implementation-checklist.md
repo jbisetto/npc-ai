@@ -12,13 +12,6 @@ These components currently have minimal placeholder implementations that need to
   - [ ] Add proper profile loading/saving
   - [ ] Test all implemented functionality
 
-- [ ] `core/storage_manager.py`
-  - [ ] Implement actual data persistence
-  - [ ] Add proper error handling
-  - [ ] Add data validation
-  - [ ] Add proper async file operations
-  - [ ] Test all implemented functionality
-
 ## Level 1: Core Models and Utilities
 These components have minimal dependencies and should be tested first.
 
@@ -110,3 +103,4 @@ These components handle request processing and routing.
 - All core components now have comprehensive test coverage
 - Focus on hosted components and test utilities next
 - Consider adding performance benchmarks for critical paths
+- Storage functionality is now handled by individual managers (Conversation, Context)

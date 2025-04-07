@@ -50,7 +50,7 @@ def get_knowledge_store():
     return _knowledge_store
 
 def get_local_processor():
-    """Get or initialize the local processor."""
+    """Get or create the local processor instance."""
     global _local_processor
     if _local_processor is None:
         from .local.local_processor import LocalProcessor
@@ -58,7 +58,7 @@ def get_local_processor():
     return _local_processor
 
 def get_hosted_processor():
-    """Get or initialize the hosted processor."""
+    """Get or create the hosted processor instance."""
     global _hosted_processor
     if _hosted_processor is None:
         from .hosted.hosted_processor import HostedProcessor
