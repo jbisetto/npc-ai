@@ -52,4 +52,7 @@ log/
 # Local development
 *.env
 .env.local
-.env.*.local 
+.env.*.local
+
+# Conversation histories
+src/data/conversations/ 

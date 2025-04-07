@@ -13,7 +13,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
-from src.ai.npc.core.models import ClassifiedRequest, IntentCategory
+from src.ai.npc.core.models import ClassifiedRequest
 
 logger = logging.getLogger(__name__)
 
@@ -152,27 +152,18 @@ Remember to always stay in character and respond as {self.name} would.
 """
         return prompt
     
-    def get_response_format(self, intent: IntentCategory) -> str:
+    def get_response_format(self, request: ClassifiedRequest) -> str:
         """
-        Get the response format for the specified intent.
+        Get the response format for the request.
         
         Args:
-            intent: The intent category
+            request: The classified request
             
         Returns:
-            A string with the response format, or empty if none is defined
+            The response format to use
         """
-        # Try to get a format for the specific intent
-        intent_key = intent.value.upper()
-        if intent_key in self.response_format:
-            return self.response_format[intent_key]
-        
-        # Fall back to DEFAULT if available
-        if "DEFAULT" in self.response_format:
-            return self.response_format["DEFAULT"]
-        
-        # No format defined
-        return ""
+        # Simple response format for now
+        return "You are a helpful NPC. Respond naturally to: {input}"
     
     def get_emotion_expression(self, emotion: str) -> str:
         """

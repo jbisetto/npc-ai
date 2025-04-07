@@ -11,10 +11,11 @@ import logging
 import copy
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+import json
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
-    IntentCategory
+    GameContext
 )
 
 logger = logging.getLogger(__name__)
@@ -28,27 +29,24 @@ class ContextEntry:
     
     def __init__(
         self,
-        request: str,
+        player_input: str,
         response: str,
-        timestamp: Optional[datetime] = None,
-        intent: Optional[IntentCategory] = None,
-        entities: Optional[Dict[str, Any]] = None
+        game_context: GameContext,
+        timestamp: Optional[datetime] = None
     ):
         """
         Initialize a context entry.
         
         Args:
-            request: The player's request
-            response: The companion's response
-            timestamp: When the exchange occurred (defaults to now)
-            intent: The classified intent of the request
-            entities: Any entities extracted from the request
+            player_input: The input from the player
+            response: The response given
+            game_context: The game context at the time
+            timestamp: When this entry was created (defaults to now)
         """
-        self.request = request
+        self.player_input = player_input
         self.response = response
+        self.game_context = game_context
         self.timestamp = timestamp or datetime.now()
-        self.intent = intent
-        self.entities = entities or {}
     
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -58,11 +56,10 @@ class ContextEntry:
             A dictionary representation of the context entry
         """
         return {
-            "request": self.request,
+            "player_input": self.player_input,
             "response": self.response,
-            "timestamp": self.timestamp.isoformat(),
-            "intent": self.intent.value if self.intent else None,
-            "entities": self.entities
+            "game_context": self.game_context.to_dict(),
+            "timestamp": self.timestamp.isoformat()
         }
     
     @classmethod
@@ -76,19 +73,11 @@ class ContextEntry:
         Returns:
             A new ContextEntry instance
         """
-        intent = None
-        if data.get("intent"):
-            try:
-                intent = IntentCategory(data["intent"])
-            except ValueError:
-                logger.warning(f"Unknown intent: {data['intent']}")
-        
         return cls(
-            request=data["request"],
+            player_input=data["player_input"],
             response=data["response"],
-            timestamp=datetime.fromisoformat(data["timestamp"]),
-            intent=intent,
-            entities=data.get("entities", {})
+            game_context=GameContext(**data["game_context"]),
+            timestamp=datetime.fromisoformat(data["timestamp"])
         )
 
 
@@ -149,11 +138,10 @@ class ConversationContext:
             response: The response to the request
         """
         entry = ContextEntry(
-            request=request.player_input,
+            player_input=request.player_input,
             response=response,
-            timestamp=request.timestamp if hasattr(request, 'timestamp') else None,
-            intent=request.intent if hasattr(request, 'intent') else None,
-            entities=request.extracted_entities if hasattr(request, 'extracted_entities') else {}
+            game_context=request.game_context if hasattr(request, 'game_context') else None,
+            timestamp=request.timestamp if hasattr(request, 'timestamp') else None
         )
         self.add_entry(entry)
     

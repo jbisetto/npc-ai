@@ -13,9 +13,10 @@ from datetime import datetime
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
+    CompanionRequest,
     ProcessingTier
 )
-from src.ai.npc.local.prompt_engineering import create_prompt
+from src.ai.npc.core.prompt_manager import PromptManager
 from src.ai.npc.config import get_config
 
 logger = logging.getLogger(__name__)

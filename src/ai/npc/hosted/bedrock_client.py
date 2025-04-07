@@ -1,7 +1,8 @@
 """
-Bedrock client module.
+Bedrock client for hosted request processing.
 
-This module provides a client for interacting with AWS Bedrock's language models.
+This module provides a client for interacting with AWS Bedrock for
+processing requests that require advanced language models.
 """
 
 import logging
@@ -10,15 +11,16 @@ import asyncio
 import boto3
 from typing import Dict, Any, Optional, List
 from datetime import datetime
+from botocore.config import Config
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
-    IntentCategory,
-    ComplexityLevel,
+    CompanionRequest,
     ProcessingTier
 )
-from src.ai.npc.hosted.prompt_optimizer import create_optimized_prompt
-from src.ai.npc.config import get_config
+from src.ai.npc.core.prompt_manager import PromptManager
+from src.ai.npc.hosted.usage_tracker import UsageTracker
+from src.ai.npc.config import get_config, CLOUD_API_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -45,94 +47,89 @@ class BedrockError(Exception):
         self.error_type = error_type or "UNKNOWN_ERROR"
 
 class BedrockClient:
-    """
-    Client for interacting with AWS Bedrock's language models.
-    """
-
-    def __init__(
-        self,
-        region_name: Optional[str] = None,
-        default_model: Optional[str] = None,
-        cache_enabled: bool = True,
-        cache_dir: Optional[str] = None,
-        cache_ttl: int = 86400,
-        max_cache_entries: int = 1000,
-        max_cache_size_mb: int = 100
-    ):
+    """Client for interacting with AWS Bedrock."""
+    
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
         Initialize the Bedrock client.
-
+        
         Args:
-            region_name: AWS region name.
-            default_model: Default model to use.
-            cache_enabled: Whether to enable response caching.
-            cache_dir: Directory to store cache files.
-            cache_ttl: Cache time-to-live in seconds.
-            max_cache_entries: Maximum number of cache entries.
-            max_cache_size_mb: Maximum cache size in megabytes.
+            config: Optional configuration for the client
         """
-        # Get configuration
-        config = get_config('hosted', {})
-        self.region_name = region_name or config.get('region_name', 'us-west-2')
-        self.default_model = default_model or config.get('default_model', 'anthropic.claude-v2')
-        self.cache_enabled = cache_enabled
-        self.cache_dir = cache_dir or config.get('cache_dir', '/tmp/cache')
-        self.cache_ttl = cache_ttl
-        self.max_cache_entries = max_cache_entries
-        self.max_cache_size_mb = max_cache_size_mb
-
-        # Initialize AWS client
-        try:
-            self.client = boto3.client('bedrock-runtime', region_name=self.region_name)
-            logger.info(f"Initialized Bedrock client in region {self.region_name}")
-        except Exception as e:
-            logger.error(f"Failed to initialize Bedrock client: {e}")
-            raise BedrockError(f"Failed to initialize Bedrock client: {e}", BedrockError.CONNECTION_ERROR)
-
-    async def generate(self, prompt: str, model: Optional[str] = None) -> str:
+        self.config = config or {}
+        self.logger = logging.getLogger(__name__)
+        
+    async def generate(
+        self,
+        prompt: str,
+        max_tokens: int = 1000,
+        temperature: float = 0.7,
+        model_id: str = "anthropic.claude-3-sonnet-20240229-v1:0"
+    ) -> str:
         """
-        Generate a response using the specified model.
-
+        Generate a response using Bedrock.
+        
         Args:
-            prompt: The prompt to send to the model.
-            model: The model to use (optional).
-
+            prompt: The prompt to send to the model
+            max_tokens: Maximum number of tokens to generate
+            temperature: Temperature for response generation
+            model_id: The model ID to use
+            
         Returns:
-            The generated response text.
-
-        Raises:
-            BedrockError: If an error occurs during generation.
+            The generated response
         """
-        try:
-            # Use default model if none specified
-            model = model or self.default_model
-
-            # Create request body
-            request_body = {
-                "prompt": prompt,
-                "max_tokens": 1000,
-                "temperature": 0.7,
-                "top_p": 0.9,
-                "stop_sequences": ["Human:", "Assistant:"]
-            }
-
-            # Invoke model
-            response = await self._invoke_model(model, request_body)
-
-            # Parse response
-            if 'completion' in response:
-                return response['completion']
-            elif 'generated_text' in response:
-                return response['generated_text']
-            else:
-                raise BedrockError("Invalid response format", BedrockError.INVALID_RESPONSE)
-
-        except BedrockError as e:
-            logger.error(f"Bedrock error: {e.message}")
-            raise
-        except Exception as e:
-            logger.error(f"Error generating response: {e}")
-            raise BedrockError(f"Error generating response: {e}", BedrockError.CONNECTION_ERROR)
+        # Placeholder for actual Bedrock integration
+        self.logger.info(f"Would send to Bedrock: {prompt[:100]}...")
+        return f"Response to: {prompt[:50]}..."
+        
+    def process_request(self, request: ClassifiedRequest) -> Dict[str, Any]:
+        """
+        Process a request using Bedrock.
+        
+        Args:
+            request: The request to process
+            
+        Returns:
+            The processed response
+        """
+        # Only process hosted requests
+        if request.processing_tier != ProcessingTier.HOSTED:
+            self.logger.warning(f"Received non-hosted request: {request.processing_tier}")
+            return {"error": "Only hosted requests can be processed by Bedrock"}
+            
+        # Create prompt based on request
+        prompt = self._create_prompt(request)
+        
+        # Process with Bedrock
+        response = self.generate_sync(prompt)
+        
+        return {"response": response}
+        
+    def generate_sync(self, prompt: str) -> str:
+        """
+        Generate a response synchronously.
+        
+        Args:
+            prompt: The prompt to send to the model
+            
+        Returns:
+            The generated response
+        """
+        # Placeholder for synchronous generation
+        self.logger.info(f"Would send to Bedrock sync: {prompt[:100]}...")
+        return f"Sync response to: {prompt[:50]}..."
+        
+    def _create_prompt(self, request: ClassifiedRequest) -> str:
+        """
+        Create a prompt for the request.
+        
+        Args:
+            request: The request to create a prompt for
+            
+        Returns:
+            The prompt to send to the model
+        """
+        return PromptManager.create_base_prompt(request)
 
     async def _invoke_model(self, model: str, request_body: Dict[str, Any]) -> Dict[str, Any]:
         """

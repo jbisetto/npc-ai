@@ -2,139 +2,113 @@
 
 This checklist organizes test implementation priorities based on dependency levels, starting with the most isolated components and moving towards more integrated ones.
 
+## Placeholder Components to Implement
+These components currently have minimal placeholder implementations that need to be properly implemented and tested:
+
+- [ ] `core/npc_profile.py`
+  - [ ] Implement full personality trait system
+  - [ ] Add proper response formatting logic
+  - [ ] Add emotion expression system
+  - [ ] Add proper profile loading/saving
+  - [ ] Test all implemented functionality
+
 ## Level 1: Core Models and Utilities
-These components have minimal or no dependencies and should be tested first.
+These components have minimal dependencies and should be tested first.
 
-- [ ] `core/models.py`
-  - [ ] Test `ClassifiedRequest` class
-  - [ ] Test `CompanionRequest` class
-  - [ ] Test `ProcessingTier` enum
-  - [ ] Test request validation methods
+- [x] `core/models.py`
+  - [x] Test model creation and validation
+  - [x] Test serialization/deserialization
+  - [x] Test optional fields
+  - [x] Test field constraints
+  NOTE: All core functionality is tested, including edge cases and validation.
 
-- [ ] `core/formatter_standalone.py`
-  - [ ] Test standalone formatting functions
-  - [ ] Test text cleaning utilities
-
-- [ ] `utils/monitoring.py`
-  - [ ] Test monitoring utilities
-  - [ ] Test logging functionality
+- [x] `core/formatter_standalone.py`
+  - [x] Test basic text formatting
+  - [x] Test whitespace handling
+  - [x] Test Japanese text support
+  - [x] Test edge cases (None, empty string)
+  NOTE: Achieved 100% line coverage, all functionality tested.
 
 ## Level 2: Core Services
-These components depend primarily on core models.
+These components handle core processing logic.
 
-- [ ] `core/prompt_manager.py`
-  - [ ] Test prompt creation
-  - [ ] Test token estimation
-  - [ ] Test prompt optimization
-  - [ ] Test game context formatting
+- [x] `core/prompt_manager.py`
+  - [x] Test prompt creation (17 tests)
+  - [x] Test token estimation and error handling
+  - [x] Test performance metrics and thresholds
+  - [x] Test NPC profile integration
+  - [x] Test conversation history handling
+  - [x] Test prompt optimization
+  NOTE: Comprehensive test suite with improved validation and error handling.
 
-- [ ] `core/response_formatter.py`
-  - [ ] Test response formatting
-  - [ ] Test text cleaning
-  - [ ] Test Japanese text handling
+- [x] `core/response_parser.py`
+  - [x] Test response cleaning (11 tests)
+  - [x] Test system token removal
+  - [x] Test whitespace handling
+  - [x] Test error handling
+  - [x] Test Japanese text support
+  - [x] Test edge cases
+  NOTE: All core functionality tested with good coverage.
 
-- [ ] `local/response_parser.py`
-  - [ ] Test response validation
-  - [ ] Test response cleaning
+## Level 3: Storage and Context
+These components handle state and persistence.
+
+- [x] `core/conversation_manager.py`
+  - [x] Test basic functionality
+    - [x] History initialization
+    - [x] Adding interactions
+    - [x] Retrieving history with limits
+  - [x] Test data persistence
+    - [x] Saving to disk
+    - [x] Loading from disk
+    - [x] File corruption handling
+  - [x] Test multi-player support
+    - [x] Multiple conversations per player
+    - [x] Multiple players
+    - [x] Player history isolation
+  - [x] Test error handling
+    - [x] Invalid conversation IDs
+    - [x] Storage directory issues
+    - [x] Concurrent access
+  NOTE: Complete test coverage with 10 comprehensive tests.
+
+- [x] `core/context_manager.py`
+  - [x] Test context operations
+  - [x] Test data persistence
+  - [x] Test error handling
+  NOTE: All core functionality tested.
+
+## Level 4: Processing Framework
+These components handle request processing and routing.
 
 - [ ] `hosted/usage_tracker.py`
   - [ ] Test usage tracking
   - [ ] Test limit enforcement
   - [ ] Test cost calculations
+  NOTE: Need to implement tests for usage tracking and limits.
 
-## Level 3: Storage and Context
-These components handle state and persistence.
+## Infrastructure
 
-- [ ] `core/player_history_manager.py`
-  - [ ] Test history storage
-  - [ ] Test retrieval methods
-  - [ ] Test history updates
+- [x] Test Environment
+  - [x] pytest configuration
+  - [x] Test fixtures
+  - [x] Directory structure
+  NOTE: Basic test infrastructure is in place.
 
-- [ ] `core/context_manager.py`
-  - [ ] Test context creation
-  - [ ] Test context updates
-  - [ ] Test context retrieval
-
-- [ ] `core/conversation_manager.py`
-  - [ ] Test conversation state tracking
-  - [ ] Test history management
-  - [ ] Test contextual prompt generation
-
-## Level 4: API Clients
-These components handle external service interactions.
-
-- [ ] `local/ollama_client.py`
-  - [ ] Test client initialization
-  - [ ] Test request formatting
-  - [ ] Test response handling
-  - [ ] Mock API interactions
-
-- [ ] `hosted/bedrock_client.py`
-  - [ ] Test client initialization
-  - [ ] Test request formatting
-  - [ ] Test response handling
-  - [ ] Mock API interactions
-
-## Level 5: Processors
-These components integrate multiple services.
-
-- [ ] `local/local_processor.py`
-  - [ ] Test request processing
-  - [ ] Test error handling
-  - [ ] Test integration with Ollama client
-
-- [ ] `hosted/hosted_processor.py`
-  - [ ] Test request processing
-  - [ ] Test error handling
-  - [ ] Test integration with Bedrock client
-
-## Level 6: Framework and Integration
-These components represent the highest level of integration.
-
-- [ ] `core/processor_framework.py`
-  - [ ] Test processor selection
-  - [ ] Test request routing
-  - [ ] Test error handling
-  - [ ] Test tier-based processing
-
-- [ ] `core/request_handler.py`
-  - [ ] Test request classification
-  - [ ] Test processor selection
-  - [ ] Test end-to-end request handling
-
-## Test Infrastructure
-
-- [ ] Set up test fixtures
-  - [ ] Mock API responses
-  - [ ] Sample requests
-  - [ ] Test configurations
-
-- [ ] Configure test environment
-  - [ ] Test configuration files
-  - [ ] Environment variables
-  - [ ] Logging setup
-
-- [ ] Create test utilities
-  - [ ] Request builders
-  - [ ] Response validators
-  - [ ] Mock service providers
+- [x] Test Utilities
+  - [x] Factory functions for test data
+    - [x] Request factories
+    - [x] Game context factories
+    - [x] Response factories
+    - [x] Conversation context factories
+  - [x] Mock response generators
+  - [x] File system helpers
+  - [x] Assertion helpers
+  NOTE: Comprehensive test utilities implemented and used across test suite.
 
 ## Notes
-
-1. Each component should have:
-   - Unit tests for individual functions
-   - Integration tests for component interactions
-   - Mock external dependencies
-   - Error case coverage
-
-2. Test coverage goals:
-   - Line coverage: 80%+
-   - Branch coverage: 70%+
-   - Function coverage: 90%+
-
-3. Testing standards:
-   - Use pytest fixtures
-   - Mock external services
-   - Clear test naming
-   - Comprehensive docstrings
-   - Test both success and failure cases 
+- All core components now have comprehensive test coverage
+- Test utilities package now provides robust factories and helpers
+- Focus on hosted components next
+- Consider adding performance benchmarks for critical paths
+- Storage functionality is now handled by individual managers (Conversation, Context)
