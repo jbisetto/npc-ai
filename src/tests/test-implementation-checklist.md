@@ -54,10 +54,12 @@ These components depend primarily on core models.
   - [x] Test error handling
   - [x] Test performance characteristics
 
-- [ ] `core/response_formatter.py`
-  - [ ] Test response formatting
-  - [ ] Test text cleaning
-  - [ ] Test Japanese text handling
+- [x] `core/formatter_standalone.py` ✅ (7 tests passing)
+  - [x] Test basic text formatting
+  - [x] Test whitespace handling
+  - [x] Test edge cases (None, empty string)
+  - [x] Test Japanese text support
+  - [x] 100% line coverage achieved
 
 - [ ] `local/response_parser.py`
   - [ ] Test response validation
