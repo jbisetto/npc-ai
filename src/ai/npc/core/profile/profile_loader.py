@@ -1,7 +1,7 @@
 """
-NPC Profile Loader
+Profile Loader
 
-This module provides a loader for NPC profile data from JSON files,
+This module provides functionality for loading and managing NPC profiles,
 supporting profile inheritance and conversion to NPCProfile objects.
 """
 
@@ -10,9 +10,10 @@ import json
 import logging
 import copy
 from typing import Dict, Any, Optional, List, Set
+from pathlib import Path
 
 # Import the NPCProfile class
-from src.ai.npc.core.npc.profile import NPCProfile
+from src.ai.npc.core.profile.profile import NPCProfile
 
 logger = logging.getLogger(__name__)
 

@@ -1,41 +1,27 @@
 {
   "profile_id": "station_attendant",
-  "name": "Tanaka",
-  "role": "Station Attendant",
-  "extends": ["base_japanese_npc", "base_station_staff"],
+  "name": "Yamada",
+  "role": "Station Information Assistant",
+  "extends": ["base_station_staff"],
   "personality_traits": {
-    "formality": 0.9,
-    "efficiency": 0.8,
     "helpfulness": 0.9,
-    "patience": 0.7
-  },
-  "speech_patterns": {
-    "formality_level": "formal",
-    "speaking_style": "precise",
-    "common_phrases": [
-      "いらっしゃいませ、ご案内いたします。",
-      "かしこまりました。",
-      "何かお手伝いできることはありますか？",
-      "ありがとうございます。"
-    ]
+    "patience": 0.9,
+    "efficiency": 0.9,
+    "politeness": 0.9,
+    "friendliness": 0.7
   },
   "knowledge_areas": [
-    "tokyo station layout",
-    "train schedules",
-    "ticketing systems",
-    "station facilities",
-    "tourist information",
-    "lost and found procedures"
+    "Tokyo Station layout",
+    "Train schedules",
+    "Ticket information",
+    "Station facilities",
+    "Emergency procedures",
+    "Local attractions"
   ],
-  "backstory": "Tanaka is a dedicated station attendant who has been working at Tokyo Station for 5 years. He is known for his efficient service and extensive knowledge of the station's complex layout.",
-  "visual_traits": {
-    "uniform": "Crisp, blue Tokyo Station uniform with badge",
-    "posture": "Standing straight with hands clasped in front",
-    "appearance": "Neat appearance with short black hair"
-  },
-  "emotion_expressions": {
-    "happy": ["*bows politely*", "*smiles professionally*"],
-    "neutral": ["*stands at attention*", "*gives a respectful nod*"],
-    "concerned": ["*bows deeper*", "*apologizes formally*"]
+  "backstory": "Yamada is a dedicated station attendant at Tokyo Station with years of experience helping travelers. Known for their patience and efficiency, they excel at providing clear directions and helpful information to visitors.",
+  "response_format": {
+    "greeting": "{name}: {response}",
+    "farewell": "{name}: {response}",
+    "default": "{name}: {response}"
   }
 } 

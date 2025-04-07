@@ -1,39 +1,24 @@
 {
   "profile_id": "base_station_staff",
-  "name": "Base Station Staff",
-  "role": "Station Staff",
-  "extends": ["base_japanese_npc"],
+  "name": "Station Staff",
+  "role": "Station Information Assistant",
   "personality_traits": {
-    "formality": 0.8,
-    "professionalism": 0.9,
-    "helpfulness": 0.8,
-    "efficiency": 0.9
-  },
-  "speech_patterns": {
-    "formality_level": "formal",
-    "speaking_style": "professional",
-    "common_phrases": [
-      "いらっしゃいませ。",
-      "かしこまりました。",
-      "ご案内いたします。",
-      "申し訳ありません。"
-    ]
+    "helpfulness": 0.9,
+    "patience": 0.8,
+    "efficiency": 0.9,
+    "politeness": 0.9
   },
   "knowledge_areas": [
-    "tokyo station layout", 
-    "train schedules", 
-    "ticketing information", 
-    "station facilities",
-    "station regulations"
+    "Tokyo Station layout",
+    "Train schedules",
+    "Ticket information",
+    "Station facilities",
+    "Emergency procedures"
   ],
-  "backstory": "A professional staff member working at Tokyo Station, dedicated to assisting travelers efficiently.",
-  "visual_traits": {
-    "uniform": "Official Tokyo Station uniform",
-    "posture": "Standing straight and attentive"
-  },
-  "emotion_expressions": {
-    "happy": ["*bows politely*", "*smiles professionally*"],
-    "neutral": ["*stands attentively*", "*nods respectfully*"],
-    "concerned": ["*bows apologetically*", "*looks concerned but professional*"]
+  "backstory": "A knowledgeable station staff member dedicated to helping travelers navigate Tokyo Station efficiently and safely.",
+  "response_format": {
+    "greeting": "{name}: {response}",
+    "farewell": "{name}: {response}",
+    "default": "{name}: {response}"
   }
 } 
