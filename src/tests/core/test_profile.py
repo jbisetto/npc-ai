@@ -22,7 +22,7 @@ SAMPLE_PROFILE_DATA = {
     "knowledge_areas": ["testing", "programming"],
     "backstory": "A test NPC for testing purposes.",
     "extends": ["base_japanese_npc"],
-    "response_format": {
+    "response_formats": {
         "default": "{name}: {response}",
         "greeting": "Hello! {name} here: {response}"
     }
@@ -89,7 +89,7 @@ def test_profile_from_dict():
     assert profile.knowledge_areas == SAMPLE_PROFILE_DATA["knowledge_areas"]
     assert profile.backstory == SAMPLE_PROFILE_DATA["backstory"]
     assert profile.extends == SAMPLE_PROFILE_DATA["extends"]
-    assert profile.response_format == SAMPLE_PROFILE_DATA["response_format"]
+    assert profile.response_formats == SAMPLE_PROFILE_DATA["response_formats"]
 
 def test_profile_to_dict(sample_profile):
     """Test converting profile to dictionary."""
@@ -100,6 +100,7 @@ def test_profile_to_dict(sample_profile):
     assert profile_dict["personality_traits"] == sample_profile.personality_traits
     assert profile_dict["knowledge_areas"] == sample_profile.knowledge_areas
     assert profile_dict["backstory"] == sample_profile.backstory
+    assert "response_formats" in profile_dict
 
 def test_get_system_prompt(sample_profile):
     """Test system prompt generation."""

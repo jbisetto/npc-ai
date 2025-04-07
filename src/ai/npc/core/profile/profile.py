@@ -8,6 +8,12 @@ from typing import Dict, List, Any, Optional
 import json
 import random
 from pathlib import Path
+from src.ai.npc.core.constants import (
+    METADATA_KEY_INTENT,
+    INTENT_DEFAULT,
+    RESPONSE_FORMAT_DEFAULT,
+    RESPONSE_FORMAT_GREETING
+)
 
 class NPCProfile:
     """NPC Profile class for managing NPC personalities and behavior."""
@@ -21,7 +27,7 @@ class NPCProfile:
         knowledge_areas: List[str],
         backstory: str,
         extends: Optional[List[str]] = None,
-        response_format: Optional[Dict[str, str]] = None
+        response_formats: Optional[Dict[str, str]] = None
     ):
         """Initialize an NPC profile.
         
@@ -33,7 +39,7 @@ class NPCProfile:
             knowledge_areas: List of topics this NPC is knowledgeable about
             backstory: NPC's background story
             extends: Optional list of base profile IDs to extend
-            response_format: Optional dictionary of intent-specific response formats
+            response_formats: Optional dictionary of response format templates
         """
         self.profile_id = profile_id
         self.name = name
@@ -42,8 +48,9 @@ class NPCProfile:
         self.knowledge_areas = knowledge_areas
         self.backstory = backstory
         self.extends = extends or []
-        self.response_format = response_format or {
-            "default": "{name}: {response}"
+        self.response_formats = response_formats or {
+            RESPONSE_FORMAT_DEFAULT: "{name}: {response}",
+            RESPONSE_FORMAT_GREETING: "Hello! {name} here: {response}"
         }
     
     @classmethod
@@ -64,7 +71,7 @@ class NPCProfile:
             knowledge_areas=data["knowledge_areas"],
             backstory=data["backstory"],
             extends=data.get("extends"),
-            response_format=data.get("response_format")
+            response_formats=data.get("response_formats")
         )
     
     def to_dict(self) -> Dict[str, Any]:
@@ -81,7 +88,7 @@ class NPCProfile:
             "knowledge_areas": self.knowledge_areas,
             "backstory": self.backstory,
             "extends": self.extends,
-            "response_format": self.response_format
+            "response_formats": self.response_formats
         }
     
     def get_system_prompt(self) -> str:
@@ -102,24 +109,34 @@ Your personality traits are:
         return prompt
     
     def format_response(self, response: str, request: Optional[Dict[str, Any]] = None) -> str:
-        """Format a response according to the NPC's personality.
+        """
+        Format a response based on the request's intent.
         
         Args:
-            response: The response text to format
-            request: Optional request data for context
+            response: The response to format
+            request: Optional request data containing intent and other metadata
             
         Returns:
-            Formatted response string
+            The formatted response
         """
-        # Get the appropriate format based on intent or use default
-        intent = request.get("intent") if request else None
-        format_str = self.response_format.get(intent, self.response_format["default"])
+        if not response:
+            return ""
+            
+        # Get the intent from request metadata
+        intent = INTENT_DEFAULT
+        if request and isinstance(request, dict):
+            intent = request.get(METADATA_KEY_INTENT, INTENT_DEFAULT)
+            
+        # Get the appropriate format template
+        format_key = f"response_format_{intent.lower()}"
+        format_template = self.response_formats.get(format_key, self.response_formats[RESPONSE_FORMAT_DEFAULT])
         
-        # Format the response
-        return format_str.format(
-            name=self.name,
-            response=response
-        )
+        # Format the response using the template
+        try:
+            return format_template.format(name=self.name, response=response)
+        except KeyError:
+            # If template formatting fails, return the response as is
+            return response
     
     def get_personality_trait(self, trait: str) -> float:
         """Get the value of a personality trait.

@@ -19,6 +19,7 @@ from src.ai.npc.core.models import (
     ProcessingTier
 )
 from src.ai.npc.core.processor_framework import ProcessorFactory
+from src.ai.npc.core.constants import METADATA_KEY_INTENT, INTENT_DEFAULT
 
 
 class RequestHandler:
@@ -30,7 +31,8 @@ class RequestHandler:
     def __init__(
         self,
         processor_factory: ProcessorFactory,
-        response_formatter
+        response_formatter,
+        npc_name: str = "NPC"
     ):
         """
         Initialize the request handler.
@@ -38,9 +40,11 @@ class RequestHandler:
         Args:
             processor_factory: The processor factory
             response_formatter: The response formatter
+            npc_name: Name of the NPC handling requests
         """
         self.processor_factory = processor_factory
         self.response_formatter = response_formatter
+        self.npc_name = npc_name
         self.logger = logging.getLogger(__name__)
     
     async def handle_request(self, request: CompanionRequest) -> str:
@@ -57,6 +61,12 @@ class RequestHandler:
             ValueError: If no LLM processors are enabled
         """
         self.logger.info(f"Handling request {request.request_id}")
+        
+        # Ensure request has an intent and NPC name
+        if METADATA_KEY_INTENT not in request.additional_params:
+            request.additional_params[METADATA_KEY_INTENT] = INTENT_DEFAULT
+        if "name" not in request.additional_params:
+            request.additional_params["name"] = self.npc_name
         
         # Create classified request with default processing tier
         classified_request = ClassifiedRequest(
@@ -77,6 +87,9 @@ class RequestHandler:
             # Handle both dictionary and string responses
             if isinstance(response, dict):
                 response_text = response.get('response_text', '')
+                # Update intent if provided in response
+                if 'intent' in response:
+                    classified_request.additional_params[METADATA_KEY_INTENT] = response['intent']
             else:
                 response_text = response
                 
