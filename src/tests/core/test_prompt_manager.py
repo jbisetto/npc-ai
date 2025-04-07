@@ -175,7 +175,7 @@ def test_prompt_with_npc_profile(prompt_manager, sample_request):
                     "Station facilities"
                 ],
                 backstory="A knowledgeable station staff member dedicated to helping travelers.",
-                response_format={
+                response_formats={
                     "default": "{name}: {response}"
                 }
             )

@@ -7,6 +7,11 @@ any external dependencies or complex formatting rules.
 
 from typing import Optional
 from src.ai.npc.core.models import ClassifiedRequest
+from src.ai.npc.core.constants import (
+    METADATA_KEY_INTENT,
+    INTENT_DEFAULT,
+    RESPONSE_FORMAT_DEFAULT
+)
 
 def format_response(response: Optional[str], request: ClassifiedRequest) -> str:
     """

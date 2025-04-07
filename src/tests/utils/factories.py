@@ -15,6 +15,7 @@ from src.ai.npc.core.models import (
     ConversationContext,
     CompanionResponse
 )
+from src.ai.npc.core.constants import METADATA_KEY_INTENT, INTENT_DEFAULT
 
 
 def create_test_game_context(
@@ -72,6 +73,16 @@ def create_test_request(
     if game_context is None:
         game_context = create_test_game_context()
         
+    # Default additional parameters
+    default_params = {
+        "name": "Test NPC",
+        METADATA_KEY_INTENT: INTENT_DEFAULT
+    }
+    
+    # Merge with any provided additional parameters
+    additional_params = kwargs.pop("additional_params", {})
+    default_params.update(additional_params)
+        
     request_data = {
         "request_id": request_id,
         "player_input": player_input,
@@ -81,7 +92,7 @@ def create_test_request(
         "confidence": confidence,
         "timestamp": datetime.now(),
         "extracted_entities": {},
-        "additional_params": {},
+        "additional_params": default_params,
         **kwargs
     }
     

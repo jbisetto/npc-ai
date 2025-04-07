@@ -11,6 +11,10 @@ from src.ai.npc.core.models import (
     ClassifiedRequest,
     ProcessingTier
 )
+from src.ai.npc.core.constants import (
+    METADATA_KEY_INTENT,
+    INTENT_DEFAULT
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,18 +35,39 @@ class Processor:
         Returns:
             The processed response
         """
+        # Get the intent from metadata, defaulting to DEFAULT if not present
+        intent = request.additional_params.get(METADATA_KEY_INTENT, INTENT_DEFAULT)
+        
         # Select processor based on tier
         if request.processing_tier == ProcessingTier.LOCAL:
-            return self._process_local(request)
+            return self._process_local(request, intent)
         else:
-            return self._process_hosted(request)
+            return self._process_hosted(request, intent)
     
-    def _process_local(self, request: ClassifiedRequest) -> Dict[str, Any]:
-        """Process a request using the local processor."""
+    def _process_local(self, request: ClassifiedRequest, intent: str) -> Dict[str, Any]:
+        """
+        Process a request using the local processor.
+        
+        Args:
+            request: The request to process
+            intent: The classified intent of the request
+            
+        Returns:
+            The processed response
+        """
         # Local processing logic
         pass
     
-    def _process_hosted(self, request: ClassifiedRequest) -> Dict[str, Any]:
-        """Process a request using the hosted processor."""
+    def _process_hosted(self, request: ClassifiedRequest, intent: str) -> Dict[str, Any]:
+        """
+        Process a request using the hosted processor.
+        
+        Args:
+            request: The request to process
+            intent: The classified intent of the request
+            
+        Returns:
+            The processed response
+        """
         # Hosted processing logic
         pass

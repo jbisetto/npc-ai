@@ -1,0 +1,34 @@
+"""
+Core constants for the NPC system.
+
+This module defines string constants used throughout the NPC system,
+including intent classifications and metadata keys.
+"""
+
+# Intent classification strings
+INTENT_VOCABULARY_HELP = "VOCABULARY_HELP"
+INTENT_GRAMMAR_EXPLANATION = "GRAMMAR_EXPLANATION"
+INTENT_TRANSLATION_CONFIRMATION = "TRANSLATION_CONFIRMATION"
+INTENT_DIRECTION_GUIDANCE = "DIRECTION_GUIDANCE"
+INTENT_GENERAL_HINT = "GENERAL_HINT"
+INTENT_DEFAULT = "DEFAULT"
+
+# List of all valid intents
+VALID_INTENTS = [
+    INTENT_VOCABULARY_HELP,
+    INTENT_GRAMMAR_EXPLANATION,
+    INTENT_TRANSLATION_CONFIRMATION,
+    INTENT_DIRECTION_GUIDANCE,
+    INTENT_GENERAL_HINT,
+    INTENT_DEFAULT
+]
+
+# Metadata keys
+METADATA_KEY_INTENT = "intent"
+METADATA_KEY_LANGUAGE_LEVEL = "language_level"
+METADATA_KEY_CURRENT_LOCATION = "current_location"
+METADATA_KEY_CONVERSATION_HISTORY = "conversation_history"
+
+# Response format keys
+RESPONSE_FORMAT_DEFAULT = "default"
+RESPONSE_FORMAT_GREETING = "greeting" 

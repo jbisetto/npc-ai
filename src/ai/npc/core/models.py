@@ -9,6 +9,10 @@ from typing import Dict, List, Optional, Any
 from enum import Enum, auto
 import datetime
 from pydantic import BaseModel
+from src.ai.npc.core.constants import (
+    METADATA_KEY_INTENT,
+    INTENT_DEFAULT
+)
 
 
 class ProcessingTier(Enum):
@@ -51,13 +55,18 @@ class ClassifiedRequest(CompanionRequest):
     """
     A request that has been classified.
     
-    Only contains:
+    Contains:
     - processing_tier: Whether to process locally or via hosted services
-    - additional_params: Additional parameters for processing
-    - (Future) npc_profile: The NPC profile to use for response generation
+    - additional_params: Additional parameters for processing, including:
+        - intent: The classified intent of the request (string)
+        - language_level: Player's language proficiency
+        - current_location: Player's current location in the station
+        - conversation_history: Previous conversation context
     """
     processing_tier: ProcessingTier
-    additional_params: Dict[str, Any] = {}
+    additional_params: Dict[str, Any] = field(default_factory=lambda: {
+        METADATA_KEY_INTENT: INTENT_DEFAULT
+    })
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
