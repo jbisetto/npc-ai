@@ -23,6 +23,7 @@ from src.ai.npc.core.models import (
 )
 from src.ai.npc.core.prompt_manager import PromptManager, BASE_SYSTEM_PROMPT
 from src.ai.npc.core.npc_profile import NPCProfile
+from src.tests.utils.factories import create_test_request, create_test_game_context
 
 # Register performance mark
 performance = pytest.mark.performance
@@ -35,15 +36,9 @@ def prompt_manager():
 @pytest.fixture
 def sample_request():
     """Create a sample request for testing."""
-    return ClassifiedRequest(
+    return create_test_request(
         request_id="test_id",
-        player_input="Where is the ticket gate?",
-        game_context=GameContext(
-            player_id="player1",
-            language_proficiency={"JLPT": 5, "speaking": 0.3, "listening": 0.4}
-        ),
-        processing_tier=ProcessingTier.LOCAL,
-        timestamp=datetime.now()
+        player_input="Where is the ticket gate?"
     )
 
 @pytest.fixture

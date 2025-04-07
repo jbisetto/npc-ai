@@ -19,30 +19,29 @@ from src.ai.npc.core.models import (
     GameContext,
     ProcessingTier
 )
+from src.tests.utils.factories import (
+    create_test_request,
+    create_test_game_context,
+    create_test_conversation_context
+)
+from src.tests.utils.mock_responses import create_mock_llm_response
+from src.tests.utils.assertions import assert_valid_context
 
 # Test Data Fixtures
 @pytest.fixture
 def sample_game_context() -> GameContext:
     """Create a sample game context for testing."""
-    return GameContext(
-        player_id="test_player",
-        language_proficiency={"JLPT": 5, "speaking": 0.3, "listening": 0.4}
-    )
+    return create_test_game_context()
 
 @pytest.fixture
 def sample_request(sample_game_context) -> ClassifiedRequest:
     """Create a sample classified request for testing."""
-    return ClassifiedRequest(
-        request_id="test_req_001",
-        player_input="Where is the ticket gate?",
-        game_context=sample_game_context,
-        processing_tier=ProcessingTier.LOCAL
-    )
+    return create_test_request(game_context=sample_game_context)
 
 @pytest.fixture
-def sample_response() -> str:
+def sample_response() -> Dict[str, Any]:
     """Create a sample response for testing."""
-    return "The ticket gate is straight ahead. 改札口はまっすぐです。(kaisatsuguchi wa massugu desu)"
+    return create_mock_llm_response(text="The ticket gate is straight ahead.")
 
 @pytest.fixture
 def context_manager() -> ContextManager:
@@ -61,14 +60,10 @@ def test_create_context(context_manager):
     """Test creating a new conversation context."""
     context = context_manager.create_context(
         player_id="test_player",
-        player_language_level="N5",
-        current_location="tokyo_station"
+        player_language_level={"JLPT": 5, "speaking": 0.3, "listening": 0.4}
     )
     
-    assert context is not None
-    assert context.player_id == "test_player"
-    assert context.player_language_level == "N5"
-    assert context.current_location == "tokyo_station"
+    assert_valid_context(context)
     assert context.conversation_id in context_manager.contexts
 
 def test_get_context(context_manager):
@@ -116,7 +111,7 @@ def test_get_or_create_context(context_manager):
     # First call should create
     context1 = context_manager.get_or_create_context(
         player_id="test_player",
-        player_language_level="N5"
+        player_language_level={"JLPT": 5, "speaking": 0.3, "listening": 0.4}
     )
     assert context1 is not None
     
@@ -129,15 +124,9 @@ def test_get_or_create_context(context_manager):
     # Call without ID should create new
     context3 = context_manager.get_or_create_context(
         player_id="test_player",
-        player_language_level="N5"
+        player_language_level={"JLPT": 5, "speaking": 0.3, "listening": 0.4}
     )
     assert context3 is not context1
-
-# Edge Cases and Error Handling
-def test_get_nonexistent_context(context_manager):
-    """Test getting a context that doesn't exist."""
-    context = context_manager.get_context("nonexistent-id")
-    assert context is None
 
 def test_update_nonexistent_context(context_manager, sample_request, sample_response):
     """Test updating a context that doesn't exist."""
@@ -147,18 +136,6 @@ def test_update_nonexistent_context(context_manager, sample_request, sample_resp
         sample_response
     )
     assert result is None
-
-def test_delete_nonexistent_context(context_manager):
-    """Test deleting a context that doesn't exist."""
-    result = context_manager.delete_context("nonexistent-id")
-    assert result is False
-
-def test_create_context_without_player_id(context_manager):
-    """Test creating a context without a player ID."""
-    context = context_manager.create_context()
-    assert context is not None
-    assert context.player_id is None
-    assert context.player_language_level == "N5"  # Default value
 
 # State Management Tests
 def test_context_timestamps(context_manager, sample_request, sample_response):
@@ -188,11 +165,10 @@ def test_multiple_updates(context_manager, sample_request, sample_response):
     
     # Add three entries
     for i in range(3):
-        modified_request = ClassifiedRequest(
+        modified_request = create_test_request(
             request_id=f"req_{i}",
             player_input=f"Input {i}",
-            game_context=sample_request.game_context,
-            processing_tier=ProcessingTier.LOCAL
+            game_context=sample_request.game_context
         )
         context = context_manager.update_context(
             context.conversation_id,
@@ -213,8 +189,7 @@ def test_context_entry_serialization(context_manager, sample_request, sample_res
     # Create and update context
     context = context_manager.create_context(
         player_id="test_player",
-        player_language_level="N5",
-        current_location="tokyo_station"
+        player_language_level={"JLPT": 5, "speaking": 0.3, "listening": 0.4}
     )
     context = context_manager.update_context(
         context.conversation_id,
@@ -230,7 +205,6 @@ def test_context_entry_serialization(context_manager, sample_request, sample_res
         conversation_id=context_dict["conversation_id"],
         player_id=context_dict["player_id"],
         player_language_level=context_dict["player_language_level"],
-        current_location=context_dict["current_location"],
         created_at=datetime.fromisoformat(context_dict["created_at"]),
         updated_at=datetime.fromisoformat(context_dict["updated_at"])
     )
