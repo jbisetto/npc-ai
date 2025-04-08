@@ -102,26 +102,11 @@ async def test_local_processor_error_handling(local_processor, test_request, moc
     # Verify we got a fallback response
     assert result is not None
     assert "response_text" in result
-    assert "trouble" in result["response_text"].lower()  # Changed from "error" to match actual fallback message
-
-@pytest.mark.asyncio
-async def test_local_processor_retry_mechanism(local_processor, test_request, mock_ollama_client):
-    """Test the retry mechanism for failed requests."""
-    # Make the first call fail, then succeed
-    mock_ollama_client.generate.side_effect = [
-        OllamaError("First attempt failed"),
-        "Success response"
-    ]
+    assert "trouble" in result["response_text"].lower()
+    assert result["is_fallback"] is True
     
-    # Process the request
-    result = await local_processor.process(test_request)
-    
-    # Verify we got the success response
-    assert result is not None
-    assert result["response_text"] == "Success response"
-    
-    # Verify we tried twice
-    assert mock_ollama_client.generate.call_count == 2 
+    # Verify the client was called exactly once (no retries)
+    mock_ollama_client.generate.assert_called_once()
 
 @pytest.mark.asyncio
 async def test_local_processor_with_history(local_processor, test_request, mock_ollama_client, mock_conversation_manager):

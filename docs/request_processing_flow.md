@@ -53,25 +53,19 @@ sequenceDiagram
     LocalProcessor->>PromptManager: create_prompt(request, history, knowledge_context)
     PromptManager-->>LocalProcessor: prompt
     
-    loop max_retries=3
-        LocalProcessor->>OllamaClient: generate(prompt)
-        alt success
-            OllamaClient-->>LocalProcessor: response_text
+    LocalProcessor->>OllamaClient: generate(prompt)
+    alt success
+        OllamaClient-->>LocalProcessor: response_text
+        LocalProcessor->>ResponseParser: parse_response(response_text)
+        ResponseParser-->>LocalProcessor: result
+        
+        alt has conversation history
+            LocalProcessor->>ConversationManager: add_to_history(conversation_id, response)
         end
-        Note over LocalProcessor: Sleep with exponential backoff
-    end
-    
-    LocalProcessor->>ResponseParser: parse_response(response_text)
-    ResponseParser-->>LocalProcessor: result
-    
-    alt has conversation history
-        LocalProcessor->>ConversationManager: add_to_history(conversation_id, response)
-    end
-    
-    alt error occurred
-        LocalProcessor-->>Client: fallback_response
-    else
         LocalProcessor-->>Client: result
+    else error
+        OllamaClient-->>LocalProcessor: error
+        LocalProcessor-->>Client: fallback_response
     end
 ```
 

@@ -75,7 +75,7 @@ class LocalProcessor:
             )
 
             # Generate response
-            response_text = await self._generate_with_retries(prompt)
+            response_text = await self.ollama_client.generate(prompt)
 
             # Parse response
             result = self.response_parser.parse_response(response_text, request)
@@ -98,34 +98,6 @@ class LocalProcessor:
         except Exception as e:
             self.logger.error(f"Error processing request: {e}", exc_info=True)
             return self._generate_fallback_response(request, e)
-
-    async def _generate_with_retries(self, prompt: str) -> str:
-        """
-        Generate a response with retries on failure.
-
-        Args:
-            prompt: The prompt to send to the model.
-
-        Returns:
-            The generated response text.
-
-        Raises:
-            OllamaError: If all retries fail.
-        """
-        max_retries = 3
-        base_delay = 1.0
-        max_delay = 5.0
-        backoff_factor = 2.0
-
-        for attempt in range(max_retries):
-            try:
-                return await self.ollama_client.generate(prompt)
-            except OllamaError as e:
-                if attempt == max_retries - 1:
-                    raise
-                delay = min(base_delay * (backoff_factor ** attempt), max_delay)
-                self.logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay}s: {e}")
-                await asyncio.sleep(delay)
 
     def _generate_fallback_response(self, request: ClassifiedRequest, error: Exception) -> Dict[str, Any]:
         """
