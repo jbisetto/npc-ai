@@ -74,8 +74,14 @@ class LocalProcessor:
                 knowledge_context=knowledge_context
             )
 
+            # Set request_id on the client for prompt capture
+            self.ollama_client.request_id = request.request_id
+
             # Generate response
             response_text = await self.ollama_client.generate(prompt)
+
+            # Clear request_id after generation
+            self.ollama_client.request_id = None
 
             # Parse response
             result = self.response_parser.parse_response(response_text, request)

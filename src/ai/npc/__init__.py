@@ -54,7 +54,8 @@ def get_local_processor():
     global _local_processor
     if _local_processor is None:
         from .local.local_processor import LocalProcessor
-        _local_processor = LocalProcessor()
+        from .local.ollama_client import OllamaClient
+        _local_processor = LocalProcessor(ollama_client=OllamaClient())
     return _local_processor
 
 def get_hosted_processor():
@@ -65,13 +66,13 @@ def get_hosted_processor():
         _hosted_processor = HostedProcessor()
     return _hosted_processor
 
-def process_request(request: CompanionRequest, profile: Optional['NPCProfile'] = None) -> Dict[str, Any]:
+async def process_request(request: CompanionRequest, profile: Optional['NPCProfile'] = None) -> Dict[str, Any]:
     """
     Process a request to the companion AI.
     
     Args:
         request: The request to process
-        profile: Optional NPC profile to use
+        profile: Optional NPC profile to use (currently unused)
         
     Returns:
         The processed response
@@ -90,8 +91,8 @@ def process_request(request: CompanionRequest, profile: Optional['NPCProfile'] =
     
     # Process based on tier
     if processing_tier == ProcessingTier.LOCAL:
-        response = get_local_processor().process(classified_request, profile)
+        response = await get_local_processor().process(classified_request)
     else:
-        response = get_hosted_processor().process(classified_request, profile)
+        response = await get_hosted_processor().process(classified_request)
         
     return response 
