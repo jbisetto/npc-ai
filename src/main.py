@@ -7,6 +7,8 @@ import os
 import sys
 import logging
 import logging.config
+import asyncio
+from pathlib import Path
 
 # Add the current directory to the Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -59,12 +61,49 @@ logging_config = {
 # Apply the logging configuration
 logging.config.dictConfig(logging_config)
 
-def main():
-    """
-    Main entry point for the NPC AI application
-    """
-    logging.info("Starting NPC AI application")
-    # Add your application initialization code here
+from src.ai.npc import get_knowledge_store
+from src.ai.npc.config import load_config
+
+async def initialize_knowledge_base():
+    """Initialize the knowledge base at startup."""
+    try:
+        # Get the knowledge base path
+        current_dir = Path(__file__).parent
+        knowledge_base_path = current_dir / "data" / "knowledge" / "tokyo-train-knowledge-base.json"
+        
+        if not knowledge_base_path.exists():
+            logger.warning(f"Knowledge base file not found: {knowledge_base_path}")
+            return
+            
+        # Initialize the knowledge store
+        store = get_knowledge_store()
+        await store.from_file(str(knowledge_base_path))
+        
+        # Log analytics
+        analytics = store.get_analytics()
+        logger.info(f"Knowledge store initialized with {store.collection.count()} documents")
+        logger.info(f"Cache hit rate: {analytics['cache_hit_rate']:.2%}")
+        
+    except Exception as e:
+        logger.error(f"Error initializing knowledge base: {e}")
+        raise
+
+async def main():
+    """Main entry point."""
+    try:
+        # Load configuration
+        config = load_config()
+        logger.info("Configuration loaded successfully")
+        
+        # Initialize knowledge base
+        await initialize_knowledge_base()
+        
+        # Start the server or other components
+        # TODO: Add server initialization
+        
+    except Exception as e:
+        logger.error(f"Error in main: {e}")
+        raise
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

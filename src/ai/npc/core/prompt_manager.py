@@ -70,7 +70,8 @@ class PromptManager:
         self,
         request: ClassifiedRequest,
         history: Optional[List[Dict[str, Any]]] = None,
-        profile: Optional[NPCProfile] = None
+        profile: Optional[NPCProfile] = None,
+        knowledge_context: Optional[List[Dict[str, Any]]] = None
     ) -> str:
         """
         Create an optimized prompt for the language model.
@@ -79,6 +80,7 @@ class PromptManager:
             request: The classified request
             history: Optional conversation history
             profile: Optional NPC profile to use
+            knowledge_context: Optional knowledge context from vector store
             
         Returns:
             The formatted and optimized prompt string
@@ -123,6 +125,12 @@ class PromptManager:
         # Add base system prompt if no profile or profile prompt is empty
         if not prompt_parts:
             prompt_parts.append(BASE_SYSTEM_PROMPT)
+
+        # Add knowledge context if available
+        if knowledge_context:
+            knowledge_text = self._format_knowledge_context(knowledge_context)
+            if knowledge_text.strip():  # Only add if not empty
+                prompt_parts.append(knowledge_text)
 
         # Add conversation history if available
         if history:
@@ -278,4 +286,39 @@ class PromptManager:
             for skill, level in context.language_proficiency.items():
                 parts.append(f"- {skill}: {level}")
                 
+        return "\n".join(parts)
+
+    def _format_knowledge_context(self, knowledge_docs: List[Dict[str, Any]]) -> str:
+        """
+        Format knowledge context for inclusion in prompt.
+        
+        Args:
+            knowledge_docs: List of knowledge documents with metadata
+            
+        Returns:
+            Formatted knowledge context string
+        """
+        if not knowledge_docs:
+            return ""
+            
+        parts = ["Relevant information:"]
+        
+        for doc in knowledge_docs:
+            # Get document content
+            content = doc.get('document', '').strip()
+            if not content:
+                continue
+                
+            # Get metadata
+            metadata = doc.get('metadata', {})
+            doc_type = metadata.get('type', 'general')
+            importance = metadata.get('importance', 'medium')
+            
+            # Format the entry
+            entry = f"- [{doc_type.upper()}] {content}"
+            if importance != 'medium':
+                entry += f" (Importance: {importance})"
+                
+            parts.append(entry)
+            
         return "\n".join(parts)

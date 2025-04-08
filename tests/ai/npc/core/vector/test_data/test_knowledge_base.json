@@ -1,0 +1,45 @@
+[
+    {
+        "id": "doc1",
+        "title": "Tokyo Station Main Entrance",
+        "content": "The main entrance is located on the Marunouchi side. It features a grand facade with red brick architecture.",
+        "type": "location",
+        "importance": "high",
+        "related_npcs": ["Station Master"],
+        "related_locations": ["Marunouchi Exit", "Central Exit"]
+    },
+    {
+        "id": "doc2",
+        "title": "Basic Japanese Directions",
+        "content": "To ask for directions, say 'すみません、道を教えてください' (sumimasen, michi wo oshiete kudasai).",
+        "type": "language_learning",
+        "importance": "medium",
+        "related_npcs": ["Tourist Guide"]
+    },
+    {
+        "id": "doc3",
+        "title": "Ticket Office Location",
+        "content": "The ticket office is located near the Marunouchi Central Exit. Look for signs with 切符売り場 (kippu uriba).",
+        "type": "location",
+        "importance": "high",
+        "related_npcs": ["Ticket Clerk"],
+        "related_locations": ["Marunouchi Central Exit"]
+    },
+    {
+        "id": "doc4",
+        "title": "Common Japanese Phrases",
+        "content": "すみません (sumimasen) means 'excuse me' and is used to get attention. ありがとうございます (arigatou gozaimasu) means 'thank you'.",
+        "type": "language_learning",
+        "importance": "medium",
+        "related_npcs": ["Tourist Guide", "Station Staff"]
+    },
+    {
+        "id": "doc5",
+        "title": "Station Layout Overview",
+        "content": "Tokyo Station has multiple levels. The ground level contains the main entrances and ticket offices. The basement levels contain shopping areas and restaurants.",
+        "type": "location",
+        "importance": "high",
+        "related_npcs": ["Station Master", "Information Desk Staff"],
+        "related_locations": ["Ground Level", "Basement Level"]
+    }
+] 
