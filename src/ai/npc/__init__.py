@@ -79,12 +79,21 @@ async def process_request(request: CompanionRequest, profile: Optional['NPCProfi
     """
     logger.info(f"Processing request: {request.request_id}")
     
+    # Load config
+    from src.ai.npc.config import get_full_config
+    config = get_full_config()
+    
     # Determine processing tier based on configuration
-    processing_tier = ProcessingTier.LOCAL  # Default to local
+    if config.get('hosted', {}).get('enabled', False):
+        processing_tier = ProcessingTier.HOSTED
+    elif config.get('local', {}).get('enabled', False):
+        processing_tier = ProcessingTier.LOCAL
+    else:
+        raise ValueError("No processing tier enabled in config")
     
     # Create classified request
     classified_request = ClassifiedRequest(
-        **request.dict(),
+        **request.model_dump(),
         processing_tier=processing_tier,
         metadata={}
     )

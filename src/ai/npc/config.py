@@ -59,15 +59,24 @@ def get_config(section: str, default: Optional[Dict[str, Any]] = None) -> Dict[s
     Returns:
         The configuration dictionary for the section
     """
+    config = get_full_config()
+    if section in config:
+        return config[section]
+    return default if default is not None else {}
+
+def get_full_config() -> Dict[str, Any]:
+    """Get the full configuration.
+    
+    Returns:
+        The complete configuration dictionary
+    """
     config_path = os.path.join(os.path.dirname(__file__), "..", "..", "config", "npc-config.yaml")
     
     try:
         if os.path.exists(config_path):
             with open(config_path, 'r') as f:
-                config = yaml.safe_load(f)
-                if section in config:
-                    return config[section]
+                return yaml.safe_load(f)
     except Exception as e:
         logger.error(f"Error loading config: {e}")
     
-    return default if default is not None else {} 
+    return {} 

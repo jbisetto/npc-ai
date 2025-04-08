@@ -10,7 +10,6 @@ import sys
 import os
 import logging
 import json
-import re
 from pathlib import Path
 
 # Add the src directory to the Python path
@@ -18,64 +17,13 @@ parent_dir = str(Path(__file__).resolve().parent.parent)
 sys.path.append(parent_dir)
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Import from src
 from src.ai.npc import process_request
 from src.ai.npc.core.models import CompanionRequest, GameContext, ClassifiedRequest
 from src.ai.npc.core.models import ProcessingTier
-from src.ai.npc.core.processor_framework import Processor
-from src.ai.npc.local.local_processor import LocalProcessor
-from src.ai.npc.local.ollama_client import OllamaClient
-from src.ai.npc import get_knowledge_store
-from src.ai.npc.core.vector.tokyo_knowledge_store import TokyoKnowledgeStore
-
-# Initialize Ollama client
-ollama_client = OllamaClient()
-
-# Load knowledge base
-knowledge_store = get_knowledge_store()
-knowledge_base_path = os.path.join(parent_dir, "src", "data", "knowledge", "tokyo-train-knowledge-base.json")
-persist_dir = os.path.join(parent_dir, "demo", "knowledge_store")
-os.makedirs(persist_dir, exist_ok=True)
-knowledge_store = TokyoKnowledgeStore(persist_directory=persist_dir)
-knowledge_store.load_knowledge_base(knowledge_base_path)
-logger.info("Loaded knowledge base")
-
-# Setup monkey patch to capture prompts sent to AI models
-# This is needed because the prompt generation happens deep inside the processors
-CAPTURED_PROMPTS = {}
-
-# Import and monkey patch the Ollama client
-original_ollama_generate = OllamaClient.generate
-
-async def patched_ollama_generate(self, prompt):
-    # Capture the prompt before sending it to the LLM
-    global CAPTURED_PROMPTS
-    if hasattr(self, 'request_id'):
-        CAPTURED_PROMPTS[self.request_id] = prompt
-    # Call the original method
-    return await original_ollama_generate(self, prompt)
-
-OllamaClient.generate = patched_ollama_generate
-
-# Try to import and monkey patch bedrock client (for hosted)
-try:
-    from src.ai.npc.hosted.bedrock_client import BedrockClient
-    original_bedrock_generate = BedrockClient.generate
-    
-    async def patched_bedrock_generate(self, request=None, model_id=None, prompt=None, **kwargs):
-        # Capture the prompt before sending it to Bedrock
-        global CAPTURED_PROMPTS
-        if request and hasattr(request, 'request_id'):
-            CAPTURED_PROMPTS[request.request_id] = prompt
-        # Call the original method
-        return await original_bedrock_generate(self, request=request, model_id=model_id, prompt=prompt, **kwargs)
-    
-    BedrockClient.generate = patched_bedrock_generate
-except ImportError:
-    logger.warning("Could not import BedrockClient for monkey patching")
 
 # Define NPC profiles
 npc_profiles = {
@@ -118,7 +66,7 @@ async def process_message(message, selected_npc):
     
     logger.info(f"Processing message for NPC: {selected_npc}")
     
-    # Create a unique request ID we can use to track prompts
+    # Create a unique request ID
     request_id = str(uuid.uuid4())
     
     # Get NPC data
@@ -162,11 +110,14 @@ async def process_message(message, selected_npc):
         emotion = response.get("emotion", "neutral")
         confidence = response.get("confidence", 0.0)
         debug_info = response.get("debug_info", {})
+        response_thinking = response.get("response_thinking", None)
+        prompt = debug_info.get("prompt", "")
         
         # Create a JSON representation of the response (for debugging display)
         response_dict = {
-            "request_id": response.get("request_id", request_id),  # Use request_id from request if not in response
+            "request_id": response.get("request_id", request_id),
             "response_text": response_text,
+            "response_thinking": response_thinking,
             "intent": response.get("intent", "unknown"),
             "processing_tier": processing_tier.value if isinstance(processing_tier, ProcessingTier) else str(processing_tier),
             "suggested_actions": suggested_actions,
@@ -176,15 +127,11 @@ async def process_message(message, selected_npc):
         }
         raw_response_json = json.dumps(response_dict, indent=2)
         
-        # Get the captured prompt if available
-        captured_prompt = CAPTURED_PROMPTS.get(request_id, "")
-        
-        # Return debug information for all tiers
-        return response_text, processing_tier.value, raw_request_json, raw_response_json, captured_prompt
+        # Return debug information
+        return response_text, processing_tier.value, raw_request_json, raw_response_json, prompt
             
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}", exc_info=True)
-        # Handle any errors
         return f"Error processing request: {str(e)}", "ERROR", raw_request_json, "{}", ""
 
 # Create Gradio interface
@@ -221,7 +168,7 @@ def create_demo():
                 # Clear Button
                 clear_btn = gr.Button("Clear")
             
-            # AI Response Display (positioned below input)
+            # AI Response Display
             response_display = gr.Textbox(
                 label="AI Response",
                 interactive=False,
@@ -261,7 +208,7 @@ def create_demo():
         # Connect components
         def process_wrapper(msg, npc):
             if not msg.strip():
-                return "Please enter a message.", "", "", "", ""
+                return "Please enter a message.", "", {}, {}, ""
             result = asyncio.run(process_message(msg, npc))
             # Parse the JSON strings into dictionaries for the JSON components
             try:
@@ -270,7 +217,9 @@ def create_demo():
             except json.JSONDecodeError:
                 request_json = {}
                 response_json = {}
-            return result[0], result[1], request_json, response_json, result[4]
+            # Ensure we're returning the prompt from debug_info
+            prompt = result[4] if result[4] else ""
+            return result[0], result[1], request_json, response_json, prompt
         
         def clear_fields():
             return "", "", {}, {}, ""

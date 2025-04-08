@@ -35,6 +35,34 @@ The system uses a simple processor selection based on the `processing_tier` fiel
        HOSTED = "hosted"
    ```
 
+## Response Formatting Flow
+The system uses a formatter-based approach to handle different LLM response formats:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant ResponseParser
+    participant ResponseFormatter
+    participant DeepSeekFormatter
+    participant DefaultFormatter
+
+    Client->>ResponseParser: parse_response(raw_response)
+    
+    alt using DeepSeekFormatter
+        ResponseParser->>DeepSeekFormatter: format_response(raw_response)
+        Note over DeepSeekFormatter: Extract <thinking> section
+        DeepSeekFormatter-->>ResponseParser: (response_text, thinking_section)
+    else using DefaultFormatter
+        ResponseParser->>DefaultFormatter: format_response(raw_response)
+        Note over DefaultFormatter: No special formatting
+        DefaultFormatter-->>ResponseParser: (raw_response, None)
+    end
+    
+    ResponseParser->>ResponseParser: clean_response()
+    ResponseParser->>ResponseParser: validate_response()
+    ResponseParser-->>Client: formatted_result
+```
+
 ## Local Processor Flow
 The local processor uses Ollama for generating responses locally.
 
@@ -57,6 +85,8 @@ sequenceDiagram
     alt success
         OllamaClient-->>LocalProcessor: response_text
         LocalProcessor->>ResponseParser: parse_response(response_text)
+        ResponseParser->>ResponseFormatter: format_response(response_text)
+        ResponseFormatter-->>ResponseParser: (response_text, thinking_section)
         ResponseParser-->>LocalProcessor: result
         
         alt has conversation history
@@ -92,6 +122,8 @@ sequenceDiagram
     BedrockClient-->>HostedProcessor: response_text
     
     HostedProcessor->>ResponseParser: parse_response(response_text)
+    ResponseParser->>ResponseFormatter: format_response(response_text)
+    ResponseFormatter-->>ResponseParser: (response_text, thinking_section)
     ResponseParser-->>HostedProcessor: result
     
     alt has conversation history
@@ -109,27 +141,62 @@ sequenceDiagram
     Note over HostedProcessor: Log elapsed time
 ```
 
+## Response Formatter Design
+
+The system uses the Strategy pattern to handle different LLM response formats:
+
+1. **ResponseFormatter Protocol**
+   ```python
+   class ResponseFormatter(Protocol):
+       def format_response(self, raw_response: str) -> tuple[str, Optional[str]]:
+           """Format a raw response from an LLM."""
+           ...
+   ```
+
+2. **Concrete Formatters**
+   ```python
+   class DeepSeekFormatter:
+       """Formats responses from DeepSeek models which use <thinking> tags."""
+       def format_response(self, raw_response: str) -> tuple[str, Optional[str]]:
+           # Extract <thinking> sections
+           ...
+
+   class DefaultFormatter:
+       """Default formatter for LLMs that don't have special formatting needs."""
+       def format_response(self, raw_response: str) -> tuple[str, Optional[str]]:
+           return raw_response.strip(), None
+   ```
+
+3. **Usage**
+   ```python
+   # For DeepSeek LLM:
+   parser = ResponseParser(formatter=DeepSeekFormatter())
+
+   # For other LLMs:
+   parser = ResponseParser(formatter=DefaultFormatter())
+   ```
+
 ## Key Differences
 
 1. **Model Backend**
    - Local: Uses Ollama for local model inference
    - Hosted: Uses Amazon Bedrock for cloud-based inference
 
-2. **Error Handling**
+2. **Response Formatting**
+   - DeepSeek: Extracts thinking sections from `<thinking>` tags
+   - Default: No special formatting, returns raw response
+
+3. **Error Handling**
    - Local: Implements retry mechanism with exponential backoff
    - Hosted: Handles quota errors specifically and tracks API usage
 
-3. **Configuration**
+4. **Configuration**
    - Local: Simpler configuration focused on Ollama settings
    - Hosted: More complex configuration including API quotas, model settings
 
-4. **Performance Monitoring**
+5. **Performance Monitoring**
    - Local: Basic error logging
    - Hosted: Comprehensive usage tracking and monitoring
-
-5. **Cost Considerations**
-   - Local: Free to use, limited by local compute resources
-   - Hosted: Pay-per-use, higher quality but more expensive
 
 ## Common Components
 
@@ -137,9 +204,15 @@ Both processors share these components:
 - Conversation Manager: Tracks chat history
 - Knowledge Store: Provides relevant context
 - Prompt Manager: Creates optimized prompts
-- Response Parser: Standardizes output format
+- Response Parser: Standardizes output format using appropriate formatter
 
 ## Component Details
+
+### Response Parser and Formatters
+- Uses Strategy pattern to handle different LLM response formats
+- Supports multiple formatters for different LLMs
+- Maintains clean separation of formatting logic
+- Easy to add support for new LLM formats
 
 ### Conversation Manager
 - Manages conversation history for each player
@@ -155,11 +228,6 @@ Both processors share these components:
 - Creates optimized prompts for each model
 - Handles token limits and optimization
 - Manages model-specific configurations
-
-### Response Parser
-- Standardizes response format
-- Handles error cases
-- Ensures consistent output structure
 
 ## Error Handling
 

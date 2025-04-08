@@ -50,15 +50,50 @@ class BedrockError(Exception):
 class BedrockClient:
     """Client for interacting with AWS Bedrock."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        config: Optional[Dict[str, Any]] = None,
+        usage_tracker: Optional['UsageTracker'] = None,
+        model_id: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        top_k: Optional[int] = None,
+        stop_sequences: Optional[List[str]] = None
+    ):
         """
         Initialize the Bedrock client.
         
         Args:
             config: Optional configuration for the client
+            usage_tracker: Optional usage tracker for monitoring API usage
+            model_id: The model ID to use
+            max_tokens: Maximum number of tokens to generate
+            temperature: Temperature for response generation
+            top_p: Top-p sampling parameter
+            top_k: Top-k sampling parameter
+            stop_sequences: List of sequences to stop generation at
         """
         self.config = config or {}
         self.logger = logging.getLogger(__name__)
+        self.usage_tracker = usage_tracker
+        self.model_id = model_id or self.config.get('model_id', 'anthropic.claude-3-sonnet-20240229-v1:0')
+        self.max_tokens = max_tokens or self.config.get('max_tokens', 1000)
+        self.temperature = temperature or self.config.get('temperature', 0.7)
+        self.top_p = top_p or self.config.get('top_p', 0.95)
+        self.top_k = top_k or self.config.get('top_k', 40)
+        self.stop_sequences = stop_sequences or self.config.get('stop_sequences', [])
+        
+        # Initialize AWS client
+        self.client = boto3.client(
+            'bedrock-runtime',
+            region_name=self.config.get('region_name', 'us-west-2'),
+            config=Config(
+                retries={'max_attempts': 3},
+                connect_timeout=5,
+                read_timeout=30
+            )
+        )
         
     async def generate(
         self,
@@ -79,6 +114,9 @@ class BedrockClient:
         Returns:
             The generated response
         """
+        # Log the prompt for debugging
+        self.logger.debug(f"Sending prompt to Bedrock:\n{prompt}")
+        
         # Placeholder for actual Bedrock integration
         self.logger.info(f"Would send to Bedrock: {prompt[:100]}...")
         return f"Response to: {prompt[:50]}..."

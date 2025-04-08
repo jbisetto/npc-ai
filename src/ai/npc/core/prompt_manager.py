@@ -28,6 +28,8 @@ CRITICAL RESPONSE CONSTRAINTS:
 2. Language Level: Strictly JLPT N5 vocabulary and grammar only
 3. Format: Always include both Japanese and English
 4. Style: Simple, friendly, and encouraging
+5. Response Format: Always wrap your thought process in <thinking> tags before your actual response
+6. Japanese Text: Always use proper Japanese characters (hiragana, katakana, kanji) - NEVER use Arabic or other scripts
 
 JLPT N5 GUIDELINES:
 - Use only basic particles: は, が, を, に, で, へ
@@ -36,9 +38,14 @@ JLPT N5 GUIDELINES:
 - Common nouns: でんしゃ, えき, きっぷ
 - Basic greetings: こんにちは, すみません
 
+EXAMPLE RESPONSE FORMAT:
+English: I'm Hachiko, your friendly dog companion here!
+Japanese: わたしは はちこです。えきの いぬです。
+Pronunciation: wa-ta-shi wa ha-chi-ko de-su. e-ki no i-nu de-su.
+
 RESPONSE STRUCTURE:
 1. English answer (1 sentence)
-2. Japanese phrase (with hiragana)
+2. Japanese phrase (using proper Japanese characters)
 3. Quick pronunciation guide"""
 
 class PromptManager:
@@ -106,7 +113,8 @@ class PromptManager:
                 "1. Keep responses short\n"
                 "2. Use JLPT N5 only\n"
                 "3. Include Japanese and English\n\n"
-                f"Human: {request.player_input}\nAssistant:"
+                "CURRENT REQUEST:\n"
+                f"Human: {request.player_input}"
             )
             return minimal_prompt
 
@@ -132,7 +140,7 @@ class PromptManager:
             if knowledge_text.strip():  # Only add if not empty
                 prompt_parts.append(knowledge_text)
 
-        # Add conversation history if available
+        # Add conversation history if available and has entries
         if history:
             history_entries = []
             for entry in history:
@@ -152,8 +160,8 @@ class PromptManager:
             if context_text.strip():  # Only add if not empty
                 prompt_parts.append(context_text)
 
-        # Add current request
-        prompt_parts.append(f"Human: {request.player_input}\nAssistant:")
+        # Add current request with clear section header
+        prompt_parts.append("CURRENT REQUEST:\n" + f"Human: {request.player_input}")
 
         # Combine all parts
         full_prompt = "\n\n".join(filter(None, prompt_parts))
@@ -202,6 +210,13 @@ class PromptManager:
             system_prompt = sections[0]  # First section is system prompt
             current_request = sections[-1]  # Last section is current request
             
+            # Find knowledge context section if it exists
+            knowledge_section = None
+            for section in sections:
+                if section.startswith("Relevant information:"):
+                    knowledge_section = section
+                    break
+            
             # Find history section if it exists
             history_section = None
             for section in sections:
@@ -229,8 +244,10 @@ class PromptManager:
                 else:
                     history_section = None
             
-            # Combine sections
+            # Combine sections in priority order
             sections = [system_prompt]
+            if knowledge_section:
+                sections.append(knowledge_section)
             if history_section:
                 sections.append(history_section)
             sections.append(current_request)
@@ -304,8 +321,8 @@ class PromptManager:
         parts = ["Relevant information:"]
         
         for doc in knowledge_docs:
-            # Get document content
-            content = doc.get('document', '').strip()
+            # Get document content (support both 'document' and 'text' keys)
+            content = doc.get('text', doc.get('document', '')).strip()
             if not content:
                 continue
                 
@@ -313,11 +330,20 @@ class PromptManager:
             metadata = doc.get('metadata', {})
             doc_type = metadata.get('type', 'general')
             importance = metadata.get('importance', 'medium')
+            source = metadata.get('source')
             
             # Format the entry
             entry = f"- [{doc_type.upper()}] {content}"
+            
+            # Add metadata fields
+            metadata_parts = []
             if importance != 'medium':
-                entry += f" (Importance: {importance})"
+                metadata_parts.append(f"Importance: {importance}")
+            if source:
+                metadata_parts.append(f"Source: {source}")
+                
+            if metadata_parts:
+                entry += f" ({', '.join(metadata_parts)})"
                 
             parts.append(entry)
             

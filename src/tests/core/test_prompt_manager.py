@@ -81,7 +81,7 @@ def test_create_basic_prompt(prompt_manager, sample_request):
     assert BASE_SYSTEM_PROMPT in prompt
     assert sample_request.player_input in prompt
     assert "Human:" in prompt
-    assert "Assistant:" in prompt
+    assert "CURRENT REQUEST:" in prompt
 
 def test_create_prompt_with_history(prompt_manager, sample_request, sample_history):
     """Test creating a prompt with conversation history."""
@@ -131,7 +131,7 @@ def test_prompt_optimization(prompt_manager, sample_request):
     
     assert prompt.startswith(expected_start)
     assert expected_rules in prompt
-    assert prompt.endswith(f"Human: {sample_request.player_input}\nAssistant:")
+    assert prompt.endswith(f"Human: {sample_request.player_input}")
 
 def test_text_truncation(prompt_manager):
     """Test text truncation functionality."""
@@ -228,7 +228,7 @@ def test_long_player_input(prompt_manager):
     
     assert prompt.startswith(expected_start)
     assert expected_rules in prompt
-    assert prompt.endswith(f"Human: {request.player_input}\nAssistant:")
+    assert prompt.endswith(f"Human: {request.player_input}")
 
 def test_invalid_prompt_manager_init():
     """Test invalid PromptManager initialization."""

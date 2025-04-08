@@ -16,12 +16,13 @@ from src.ai.npc.core.response_parser import ResponseParser
 from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
 from src.ai.npc.core.conversation_manager import ConversationManager
 from src.ai.npc.core.prompt_manager import PromptManager
-from src.ai.npc import get_knowledge_store
+from src.ai.npc.core.processor_framework import Processor
+from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 
 logger = logging.getLogger(__name__)
 
 
-class LocalProcessor:
+class LocalProcessor(Processor):
     """
     Processes requests using a local Ollama instance.
     """
@@ -29,7 +30,8 @@ class LocalProcessor:
     def __init__(
         self,
         ollama_client: OllamaClient,
-        conversation_manager: Optional[ConversationManager] = None
+        conversation_manager: Optional[ConversationManager] = None,
+        knowledge_store: Optional[KnowledgeStore] = None
     ):
         """
         Initialize the local processor.
@@ -37,15 +39,15 @@ class LocalProcessor:
         Args:
             ollama_client: Client for interacting with Ollama
             conversation_manager: Optional manager for conversation history
+            knowledge_store: Optional knowledge store instance to pass to base class
         """
+        # Initialize base class
+        super().__init__(knowledge_store=knowledge_store)
+        
         self.ollama_client = ollama_client
         self.conversation_manager = conversation_manager
         self.response_parser = ResponseParser()
         self.prompt_manager = PromptManager()
-        self.logger = logging.getLogger(__name__)
-        
-        # Initialize knowledge store
-        self.knowledge_store = get_knowledge_store()
         
     async def process(self, request: ClassifiedRequest) -> Dict[str, Any]:
         """

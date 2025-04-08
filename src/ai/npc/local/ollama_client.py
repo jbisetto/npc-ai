@@ -70,6 +70,9 @@ class OllamaClient:
             max_cache_entries: Maximum number of cache entries.
             max_cache_size_mb: Maximum cache size in megabytes.
         """
+        # Initialize logger
+        self.logger = logging.getLogger(__name__)
+
         # Get configuration
         config = get_config('local', {})
         self.base_url = base_url or config.get('base_url', 'http://localhost:11434')
@@ -82,7 +85,7 @@ class OllamaClient:
 
         # Initialize session
         self.session = None
-        logger.info(f"Initialized Ollama client with base URL {self.base_url}")
+        self.logger.info(f"Initialized Ollama client with base URL {self.base_url}")
 
     async def generate(self, prompt: str, model: Optional[str] = None) -> str:
         """
@@ -119,15 +122,17 @@ class OllamaClient:
 
             # Parse response
             if 'response' in response:
-                return response['response']
+                raw_response = response['response']
+                self.logger.debug(f"Raw response from Ollama: {raw_response}")
+                return raw_response
             else:
                 raise OllamaError("Invalid response format", OllamaError.INVALID_RESPONSE)
 
         except OllamaError as e:
-            logger.error(f"Ollama error: {e.message}")
+            self.logger.error(f"Ollama error: {e.message}")
             raise
         except Exception as e:
-            logger.error(f"Error generating response: {e}")
+            self.logger.error(f"Error generating response: {e}")
             raise OllamaError(f"Error generating response: {e}", OllamaError.CONNECTION_ERROR)
 
     async def _send_request(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -165,14 +170,14 @@ class OllamaClient:
                 return response_data
 
         except aiohttp.ClientError as e:
-            logger.error(f"Connection error: {e}")
+            self.logger.error(f"Connection error: {e}")
             raise OllamaError(f"Connection error: {e}", OllamaError.CONNECTION_ERROR)
         except asyncio.TimeoutError as e:
-            logger.error(f"Request timeout: {e}")
+            self.logger.error(f"Request timeout: {e}")
             raise OllamaError(f"Request timeout: {e}", OllamaError.TIMEOUT_ERROR)
         except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON response: {e}")
+            self.logger.error(f"Invalid JSON response: {e}")
             raise OllamaError(f"Invalid JSON response: {e}", OllamaError.INVALID_RESPONSE)
         except Exception as e:
-            logger.error(f"Error sending request: {e}")
+            self.logger.error(f"Error sending request: {e}")
             raise OllamaError(f"Error sending request: {e}", OllamaError.CONNECTION_ERROR) 

@@ -15,15 +15,24 @@ from src.ai.npc.core.constants import (
     METADATA_KEY_INTENT,
     INTENT_DEFAULT
 )
+from src.ai.npc import get_knowledge_store
+from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 
 logger = logging.getLogger(__name__)
 
 class Processor:
     """Base framework for processing requests."""
     
-    def __init__(self):
-        """Initialize the processor framework."""
+    def __init__(self, knowledge_store: Optional[KnowledgeStore] = None):
+        """
+        Initialize the processor framework.
+        
+        Args:
+            knowledge_store: Optional knowledge store instance. If not provided,
+                           will use the default knowledge store from get_knowledge_store()
+        """
         self.logger = logging.getLogger(__name__)
+        self.knowledge_store = knowledge_store or get_knowledge_store()
     
     def process_request(self, request: ClassifiedRequest) -> Dict[str, Any]:
         """

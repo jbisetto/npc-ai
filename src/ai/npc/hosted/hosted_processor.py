@@ -26,7 +26,7 @@ from src.ai.npc.utils.monitoring import ProcessorMonitor
 from src.ai.npc.config import get_config, CLOUD_API_CONFIG
 from src.ai.npc.core.response_parser import ResponseParser
 from src.ai.npc.core.conversation_manager import ConversationManager
-from src.ai.npc import get_knowledge_store
+from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,8 @@ class HostedProcessor(Processor):
         self,
         usage_tracker: Optional[UsageTracker] = None,
         context_manager: Optional[ContextManager] = None,
-        conversation_manager: Optional[ConversationManager] = None
+        conversation_manager: Optional[ConversationManager] = None,
+        knowledge_store: Optional[KnowledgeStore] = None
     ):
         """
         Initialize the hosted processor.
@@ -53,9 +54,10 @@ class HostedProcessor(Processor):
             usage_tracker: The usage tracker for monitoring API usage
             context_manager: Context manager for tracking conversation context
             conversation_manager: Conversation manager for tracking interactions
+            knowledge_store: Optional knowledge store instance to pass to base class
         """
-        # Initialize logger
-        self.logger = logging.getLogger(__name__)
+        # Initialize base class
+        super().__init__(knowledge_store=knowledge_store)
         
         # Initialize components
         self.client = self._create_bedrock_client(usage_tracker)
@@ -67,9 +69,6 @@ class HostedProcessor(Processor):
         
         # Initialize storage
         self.conversation_histories = {}
-        
-        # Initialize knowledge store
-        self.knowledge_store = get_knowledge_store()
         
         self.logger.info("Initialized HostedProcessor with Bedrock client")
     
@@ -125,11 +124,18 @@ class HostedProcessor(Processor):
                 knowledge_context=knowledge_context
             )
 
+            # Log the prompt for debugging
+            self.logger.debug(f"Generated prompt for request {request.request_id}:\n{prompt}")
+
             # Generate response
             response_text = await self.client.generate(prompt)
 
             # Parse response
             result = self.response_parser.parse_response(response_text, request)
+            
+            # Add prompt to debug info
+            result['debug_info'] = result.get('debug_info', {})
+            result['debug_info']['prompt'] = prompt
 
             # Update conversation history if needed
             if conversation_id and self.conversation_manager:
