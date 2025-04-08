@@ -41,6 +41,7 @@ class LocalProcessor:
         self.ollama_client = ollama_client
         self.conversation_manager = conversation_manager
         self.response_parser = ResponseParser()
+        self.prompt_manager = PromptManager()
         self.logger = logging.getLogger(__name__)
         
         # Initialize knowledge store
@@ -91,6 +92,9 @@ class LocalProcessor:
 
             return result
 
+        except OllamaError as e:
+            self.logger.error(f"Error from Ollama: {e}", exc_info=True)
+            return self._generate_fallback_response(request, e)
         except Exception as e:
             self.logger.error(f"Error processing request: {e}", exc_info=True)
             return self._generate_fallback_response(request, e)

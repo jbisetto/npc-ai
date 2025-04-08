@@ -47,13 +47,15 @@ class PromptManager:
     Handles prompt creation, optimization, and token management.
     """
     
-    def __init__(self, max_prompt_tokens: int = 800):
+    def __init__(self, max_prompt_tokens: int = 800, tier_specific_config: Optional[Dict[str, Any]] = None):
         """
         Initialize the prompt manager.
         
         Args:
             max_prompt_tokens: Maximum number of tokens to allow in a prompt.
                              Must be greater than 0.
+            tier_specific_config: Optional configuration specific to the processing tier.
+                                For example, {"model_type": "bedrock"} for hosted tier.
                              
         Raises:
             ValueError: If max_prompt_tokens is less than or equal to 0.
@@ -61,6 +63,7 @@ class PromptManager:
         if max_prompt_tokens <= 0:
             raise ValueError("max_prompt_tokens must be greater than 0")
         self.max_prompt_tokens = max_prompt_tokens
+        self.tier_specific_config = tier_specific_config or {}
         self.logger = logging.getLogger(__name__)
     
     def create_prompt(

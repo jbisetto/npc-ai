@@ -39,6 +39,7 @@ class BedrockError(Exception):
     MODEL_ERROR = "MODEL_ERROR"
     CONTENT_ERROR = "CONTENT_ERROR"
     INVALID_RESPONSE = "INVALID_RESPONSE"
+    QUOTA_ERROR = "QUOTA_ERROR"  # Added for quota/throttling errors
 
     def __init__(self, message: str, error_type: Optional[str] = None):
         """Initialize the error."""
