@@ -15,7 +15,7 @@ from src.ai.npc.core.models import (
 from src.ai.npc.core.response_parser import ResponseParser
 from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
 from src.ai.npc.core.conversation_manager import ConversationManager
-from src.ai.npc.core.prompt_manager import create_prompt
+from src.ai.npc.core.prompt_manager import PromptManager
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ class LocalProcessor:
         self.ollama_client = ollama_client
         self.conversation_manager = conversation_manager
         self.response_parser = ResponseParser()
+        self.prompt_manager = PromptManager()
         self.logger = logging.getLogger(__name__)
         
     async def process(self, request: ClassifiedRequest) -> Dict[str, Any]:
@@ -60,7 +61,7 @@ class LocalProcessor:
                 history = await self.conversation_manager.get_player_history(request.game_context.player_id)
 
             # Create prompt
-            prompt = create_prompt(request, history)
+            prompt = self.prompt_manager.create_prompt(request, history)
 
             # Generate response
             response_text = await self._generate_with_retries(prompt)
@@ -80,6 +81,9 @@ class LocalProcessor:
 
             return result
 
+        except OllamaError as e:
+            self.logger.error(f"Error from Ollama: {e}", exc_info=True)
+            return self._generate_fallback_response(request, e)
         except Exception as e:
             self.logger.error(f"Error processing request: {e}", exc_info=True)
             return self._generate_fallback_response(request, e)
