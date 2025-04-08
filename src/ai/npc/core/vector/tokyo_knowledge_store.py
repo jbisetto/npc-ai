@@ -227,7 +227,7 @@ class TokyoKnowledgeStore:
         results = self.collection.query(
             query_texts=[query],
             n_results=top_k,
-            where=filters,
+            where=None if not filters else filters,  # Use None for empty filters
             include=["documents", "metadatas", "distances"]
         )
         

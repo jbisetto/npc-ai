@@ -15,7 +15,7 @@ from src.ai.npc.core.models import (
 from src.ai.npc.core.response_parser import ResponseParser
 from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
 from src.ai.npc.core.conversation_manager import ConversationManager
-from src.ai.npc.core.prompt_manager import create_prompt
+from src.ai.npc.core.prompt_manager import PromptManager
 from src.ai.npc import get_knowledge_store
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class LocalProcessor:
             knowledge_context = await self.knowledge_store.contextual_search(request)
 
             # Create prompt with knowledge context
-            prompt = create_prompt(
+            prompt = self.prompt_manager.create_prompt(
                 request,
                 history=history,
                 knowledge_context=knowledge_context
