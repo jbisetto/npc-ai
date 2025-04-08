@@ -222,24 +222,28 @@ def create_demo():
             return result[0], result[1], request_json, response_json, prompt
         
         def clear_fields():
-            return "", "", {}, {}, ""
+            """Return empty values for all fields."""
+            return "", "", "", {}, {}, ""
+            
+        # Make all handlers consistent by ensuring the number of outputs matches
+        submit_outputs = [response_display, tier_display, raw_request_json, raw_response_json, raw_prompt_display]
         
         submit_btn.click(
             fn=process_wrapper,
             inputs=[message_input, npc_selector],
-            outputs=[response_display, tier_display, raw_request_json, raw_response_json, raw_prompt_display]
+            outputs=submit_outputs
         )
         
         message_input.submit(
             fn=process_wrapper,
             inputs=[message_input, npc_selector],
-            outputs=[response_display, tier_display, raw_request_json, raw_response_json, raw_prompt_display]
+            outputs=submit_outputs
         )
         
         clear_btn.click(
             fn=clear_fields,
             inputs=[],
-            outputs=[message_input, response_display, tier_display, raw_request_json, raw_response_json, raw_prompt_display]
+            outputs=[message_input] + submit_outputs
         )
         
     return demo

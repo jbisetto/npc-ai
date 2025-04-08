@@ -87,6 +87,35 @@ The main configuration files are:
   - System prompts and optimization settings
   - Usage tracking and limits
 
+## Environment Configuration
+
+This project uses environment variables for configuration, particularly for AWS credentials. These should be stored in a `.env` file in the project root, which is not committed to version control.
+
+### Setting up AWS credentials
+
+1. Create a `.env` file in the project root with the following template:
+   ```
+   # AWS Credentials for Bedrock
+   AWS_ACCESS_KEY_ID=your_access_key_here
+   AWS_SECRET_ACCESS_KEY=your_secret_key_here
+   AWS_REGION=us-east-1
+   AWS_DEFAULT_REGION=us-east-1
+   
+   # Bedrock configuration
+   BEDROCK_MODEL_ID=amazon.nova-micro-v1:0
+   # Uncomment to use debug mode without real API calls
+   # BEDROCK_DEBUG_MODE=true
+   ```
+
+2. Replace the placeholder values with your actual AWS credentials.
+
+3. **IMPORTANT: Never commit the `.env` file or hardcode credentials in the source code.**
+
+4. Ensure your IAM user has the necessary permissions, including:
+   ```
+   bedrock:InvokeModel
+   ```
+
 ## Development
 
 ### Running Tests

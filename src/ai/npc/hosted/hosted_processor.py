@@ -85,6 +85,13 @@ class HostedProcessor(Processor):
         hosted_config = get_config('hosted', {})
         bedrock_config = hosted_config.get('bedrock', {})
         
+        # Get debug mode from config
+        debug_mode = hosted_config.get('debug_mode')
+        
+        # Log the configuration for debugging
+        self.logger.info(f"Creating Bedrock client with config: {bedrock_config}")
+        self.logger.info(f"Debug mode: {debug_mode}")
+        
         return BedrockClient(
             usage_tracker=usage_tracker or default_tracker,
             model_id=bedrock_config.get('model_id'),
@@ -92,7 +99,8 @@ class HostedProcessor(Processor):
             temperature=bedrock_config.get('temperature'),
             top_p=bedrock_config.get('top_p'),
             top_k=bedrock_config.get('top_k'),
-            stop_sequences=bedrock_config.get('stop_sequences', [])
+            stop_sequences=bedrock_config.get('stop_sequences', []),
+            debug_mode=debug_mode
         )
     
     async def process(self, request: ClassifiedRequest) -> Dict[str, Any]:
@@ -128,7 +136,21 @@ class HostedProcessor(Processor):
             self.logger.debug(f"Generated prompt for request {request.request_id}:\n{prompt}")
 
             # Generate response
-            response_text = await self.client.generate(prompt)
+            self.logger.info(f"Calling Bedrock API for request {request.request_id}")
+            try:
+                response_text = await self.client.generate(prompt)
+                self.logger.info(f"Bedrock API response received: {response_text[:100]}...")
+                
+                # Check if we got the placeholder response
+                if response_text.startswith("Response to:") or response_text.startswith("Error generating response:"):
+                    self.logger.error(f"Bedrock API returned an error or placeholder: {response_text}")
+                    return self._generate_fallback_response(
+                        request, 
+                        Exception(f"Bedrock API error: {response_text}")
+                    )
+            except Exception as api_error:
+                self.logger.error(f"Error calling Bedrock API: {api_error}", exc_info=True)
+                return self._generate_fallback_response(request, api_error)
 
             # Parse response
             result = self.response_parser.parse_response(response_text, request)

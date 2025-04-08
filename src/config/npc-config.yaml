@@ -35,9 +35,9 @@ hosted:
     avg_chars_per_token: 4
     enabled: true
     max_prompt_tokens: 800
-    system_prompt: You are a helpful bilingual dog companion in a Japanese train station.
-      Assist with language help, directions, and cultural information. Provide clear
-      and helpful explanations.
+    # system_prompt: You are a helpful bilingual dog companion in a Japanese train station.
+    #   Assist with language help, directions, and cultural information. Provide clear
+    #   and helpful explanations.
   usage_tracker:
     auto_save: true
     cost_per_1k_input_tokens:

@@ -55,4 +55,18 @@ log/
 .env.*.local
 
 # Conversation histories
-src/data/conversations/ 
+src/data/conversations/
+
+# Environment variables
+.env
+.env.*
+*.env
+.flaskenv
+credentials.json
+*secret*
+*credential*
+*api_key*
+
+# AWS specific
+.aws/
+aws-credentials/ 

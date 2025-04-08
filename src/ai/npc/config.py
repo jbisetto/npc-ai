@@ -33,12 +33,12 @@ LOCAL_MODEL_CONFIG = {
 
 # Cloud API configuration (Bedrock)
 CLOUD_API_CONFIG = {
-    "region_name": "us-west-2",
-    "model_id": "amazon.claude-3-sonnet-20240229-v1:0",
-    "max_tokens": 1024,
-    "temperature": 0.7,
-    "top_p": 0.95,
-    "daily_quota": 10000  # Maximum tokens per day
+    "region_name": os.environ.get("AWS_REGION", "us-east-1"),
+    "model_id": os.environ.get("BEDROCK_MODEL_ID", "amazon.nova-micro-v1:0"),
+    "max_tokens": int(os.environ.get("BEDROCK_MAX_TOKENS", "1024")),
+    "temperature": float(os.environ.get("BEDROCK_TEMPERATURE", "0.7")),
+    "top_p": float(os.environ.get("BEDROCK_TOP_P", "0.95")),
+    "daily_quota": int(os.environ.get("BEDROCK_DAILY_QUOTA", "10000"))  # Maximum tokens per day
 }
 
 # Logging configuration
@@ -72,11 +72,34 @@ def get_full_config() -> Dict[str, Any]:
     """
     config_path = os.path.join(os.path.dirname(__file__), "..", "..", "config", "npc-config.yaml")
     
+    # Default configuration
+    default_config = {
+        'local': {
+            'enabled': True,
+            'model_name': LOCAL_MODEL_CONFIG.get('model_name'),
+            'max_tokens': LOCAL_MODEL_CONFIG.get('max_tokens'),
+            'temperature': LOCAL_MODEL_CONFIG.get('temperature')
+        },
+        'hosted': {
+            'enabled': True,
+            'debug_mode': True,  # Default to debug mode for testing without AWS credentials
+            'bedrock': {
+                'default_model': CLOUD_API_CONFIG.get('model_id'),
+                'max_tokens': CLOUD_API_CONFIG.get('max_tokens'),
+                'temperature': CLOUD_API_CONFIG.get('temperature'),
+                'top_p': CLOUD_API_CONFIG.get('top_p'),
+                'region_name': CLOUD_API_CONFIG.get('region_name')
+            }
+        }
+    }
+    
     try:
         if os.path.exists(config_path):
             with open(config_path, 'r') as f:
-                return yaml.safe_load(f)
+                loaded_config = yaml.safe_load(f) or {}
+                # Merge loaded config with defaults
+                return {**default_config, **loaded_config}
     except Exception as e:
         logger.error(f"Error loading config: {e}")
     
-    return {} 
+    return default_config 
