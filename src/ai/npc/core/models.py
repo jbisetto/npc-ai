@@ -26,13 +26,21 @@ class GameContext(BaseModel):
     player_id: str
     language_proficiency: Dict[str, float]
     conversation_history: Optional[List[Dict[str, Any]]] = None
+    player_location: Optional[str] = None
+    current_objective: Optional[str] = None
+    nearby_npcs: Optional[List[str]] = None
+    npc_id: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             "player_id": self.player_id,
             "language_proficiency": self.language_proficiency,
-            "conversation_history": self.conversation_history
+            "conversation_history": self.conversation_history,
+            "player_location": self.player_location,
+            "current_objective": self.current_objective,
+            "nearby_npcs": self.nearby_npcs,
+            "npc_id": self.npc_id
         }
 
 

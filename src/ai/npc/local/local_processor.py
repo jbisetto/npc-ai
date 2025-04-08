@@ -16,6 +16,7 @@ from src.ai.npc.core.response_parser import ResponseParser
 from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
 from src.ai.npc.core.conversation_manager import ConversationManager
 from src.ai.npc.core.prompt_manager import create_prompt
+from src.ai.npc import get_knowledge_store
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,9 @@ class LocalProcessor:
         self.response_parser = ResponseParser()
         self.logger = logging.getLogger(__name__)
         
+        # Initialize knowledge store
+        self.knowledge_store = get_knowledge_store()
+        
     async def process(self, request: ClassifiedRequest) -> Dict[str, Any]:
         """
         Process a request using the local model.
@@ -59,8 +63,15 @@ class LocalProcessor:
             if conversation_id and self.conversation_manager:
                 history = await self.conversation_manager.get_player_history(request.game_context.player_id)
 
-            # Create prompt
-            prompt = create_prompt(request, history)
+            # Get relevant knowledge from the knowledge store
+            knowledge_context = await self.knowledge_store.contextual_search(request)
+
+            # Create prompt with knowledge context
+            prompt = create_prompt(
+                request,
+                history=history,
+                knowledge_context=knowledge_context
+            )
 
             # Generate response
             response_text = await self._generate_with_retries(prompt)

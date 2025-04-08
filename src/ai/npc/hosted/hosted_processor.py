@@ -26,6 +26,9 @@ from src.ai.npc.utils.monitoring import ProcessorMonitor
 from src.ai.npc.config import get_config, CLOUD_API_CONFIG
 from src.ai.npc.core.response_parser import ResponseParser
 from src.ai.npc.core.conversation_manager import ConversationManager
+from src.ai.npc import get_knowledge_store
+
+logger = logging.getLogger(__name__)
 
 
 class HostedProcessor(Processor):
@@ -64,6 +67,9 @@ class HostedProcessor(Processor):
         
         # Initialize storage
         self.conversation_histories = {}
+        
+        # Initialize knowledge store
+        self.knowledge_store = get_knowledge_store()
         
         self.logger.info("Initialized HostedProcessor with Bedrock client")
     
@@ -109,8 +115,15 @@ class HostedProcessor(Processor):
             if conversation_id and self.conversation_manager:
                 history = await self.conversation_manager.get_player_history(request.game_context.player_id)
 
-            # Create prompt
-            prompt = self.prompt_manager.create_prompt(request, history)
+            # Get relevant knowledge from the knowledge store
+            knowledge_context = await self.knowledge_store.contextual_search(request)
+
+            # Create prompt with knowledge context
+            prompt = self.prompt_manager.create_prompt(
+                request,
+                history=history,
+                knowledge_context=knowledge_context
+            )
 
             # Generate response
             response_text = await self.client.generate(prompt)
