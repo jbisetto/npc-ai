@@ -2,55 +2,76 @@
 
 This document describes how the NPC AI system processes requests using both local and hosted processors. It includes sequence diagrams and explanations of the key components and their interactions.
 
+## Processor Selection
+
+The system uses a simple processor selection based on the `processing_tier` field in the request:
+
+1. **Selection Logic**
+   ```mermaid
+   sequenceDiagram
+       Player->>ProcessorFramework: ClassifiedRequest
+       Note over ProcessorFramework: Check processing_tier
+       
+       alt processing_tier == LOCAL
+           ProcessorFramework->>LocalProcessor: Process Request
+           LocalProcessor-->>Player: Response
+       else processing_tier == HOSTED
+           ProcessorFramework->>HostedProcessor: Process Request
+           HostedProcessor-->>Player: Response
+       end
+   ```
+
+2. **Request Model**
+   ```python
+   class ClassifiedRequest:
+       processing_tier: ProcessingTier  # LOCAL or HOSTED
+       additional_params: Dict[str, Any]  # Includes intent and other metadata
+   ```
+
+3. **Processing Tier Enum**
+   ```python
+   class ProcessingTier(Enum):
+       LOCAL = "local"
+       HOSTED = "hosted"
+   ```
+
 ## Local Processor Flow
 The local processor uses Ollama for generating responses locally.
 
 ```mermaid
 sequenceDiagram
-    participant Player
-    participant LocalProcessor
-    participant ConversationManager
-    participant KnowledgeStore
-    participant PromptManager
-    participant OllamaClient
-    participant ResponseParser
-
-    Player->>LocalProcessor: Request
+    Client->>LocalProcessor: process(request)
     
-    alt Has Conversation ID
-        LocalProcessor->>ConversationManager: Get Player History
-        ConversationManager-->>LocalProcessor: Conversation History
+    alt has conversation history
+        LocalProcessor->>ConversationManager: get_player_history(player_id)
+        ConversationManager-->>LocalProcessor: history
     end
     
-    LocalProcessor->>KnowledgeStore: Contextual Search
-    KnowledgeStore-->>LocalProcessor: Knowledge Context
+    LocalProcessor->>KnowledgeStore: contextual_search(request)
+    KnowledgeStore-->>LocalProcessor: knowledge_context
     
-    LocalProcessor->>PromptManager: Create Prompt
-    PromptManager-->>LocalProcessor: Formatted Prompt
+    LocalProcessor->>PromptManager: create_prompt(request, history, knowledge_context)
+    PromptManager-->>LocalProcessor: prompt
     
-    loop Max 3 Retries
-        LocalProcessor->>OllamaClient: Generate Response
-        
-        alt Success
-            OllamaClient-->>LocalProcessor: Response Text
-            break
-        else Error
-            OllamaClient-->>LocalProcessor: Error
-            Note over LocalProcessor: Wait with exponential backoff
+    loop max_retries=3
+        LocalProcessor->>OllamaClient: generate(prompt)
+        alt success
+            OllamaClient-->>LocalProcessor: response_text
         end
+        Note over LocalProcessor: Sleep with exponential backoff
     end
     
-    LocalProcessor->>ResponseParser: Parse Response
-    ResponseParser-->>LocalProcessor: Parsed Result
+    LocalProcessor->>ResponseParser: parse_response(response_text)
+    ResponseParser-->>LocalProcessor: result
     
-    alt Has Conversation ID
-        LocalProcessor->>ConversationManager: Add To History
+    alt has conversation history
+        LocalProcessor->>ConversationManager: add_to_history(conversation_id, response)
     end
     
-    LocalProcessor-->>Player: Response
-
-    alt Error Handling
-        LocalProcessor-->>Player: Fallback Response
+    alt error occurred
+        LocalProcessor-->>Client: fallback_response
+    else
+        LocalProcessor-->>Client: result
     end
 ```
 
@@ -59,49 +80,39 @@ The hosted processor uses Amazon Bedrock for cloud-based response generation.
 
 ```mermaid
 sequenceDiagram
-    participant Player
-    participant HostedProcessor
-    participant ConversationManager
-    participant KnowledgeStore
-    participant PromptManager
-    participant BedrockClient
-    participant UsageTracker
-    participant ResponseParser
-
-    Player->>HostedProcessor: Request
+    Client->>HostedProcessor: process(request)
+    Note over HostedProcessor: Record start time
     
-    alt Has Conversation ID
-        HostedProcessor->>ConversationManager: Get Player History
-        ConversationManager-->>HostedProcessor: Conversation History
+    alt has conversation history
+        HostedProcessor->>ConversationManager: get_player_history(player_id)
+        ConversationManager-->>HostedProcessor: history
     end
     
-    HostedProcessor->>KnowledgeStore: Contextual Search
-    KnowledgeStore-->>HostedProcessor: Knowledge Context
+    HostedProcessor->>KnowledgeStore: contextual_search(request)
+    KnowledgeStore-->>HostedProcessor: knowledge_context
     
-    HostedProcessor->>PromptManager: Create Prompt
-    Note over PromptManager: Uses Bedrock-specific config
-    PromptManager-->>HostedProcessor: Formatted Prompt
+    HostedProcessor->>PromptManager: create_prompt(request, history, knowledge_context)
+    PromptManager-->>HostedProcessor: prompt
     
-    HostedProcessor->>BedrockClient: Generate Response
-    BedrockClient->>UsageTracker: Track API Usage
+    HostedProcessor->>BedrockClient: generate(prompt)
+    BedrockClient-->>HostedProcessor: response_text
     
-    alt Success
-        BedrockClient-->>HostedProcessor: Response Text
-        HostedProcessor->>ResponseParser: Parse Response
-        ResponseParser-->>HostedProcessor: Parsed Result
-        
-        alt Has Conversation ID
-            HostedProcessor->>ConversationManager: Add To History
-        end
-        
-        HostedProcessor-->>Player: Response
-    else Error
-        alt Quota Error
-            HostedProcessor-->>Player: Quota Exceeded Message
-        else Other Error
-            HostedProcessor-->>Player: Generic Fallback Response
-        end
+    HostedProcessor->>ResponseParser: parse_response(response_text)
+    ResponseParser-->>HostedProcessor: result
+    
+    alt has conversation history
+        HostedProcessor->>ConversationManager: add_to_history(conversation_id, response)
     end
+    
+    alt quota exceeded
+        HostedProcessor-->>Client: quota_exceeded_response
+    else error occurred
+        HostedProcessor-->>Client: fallback_response
+    else
+        HostedProcessor-->>Client: result
+    end
+    
+    Note over HostedProcessor: Log elapsed time
 ```
 
 ## Key Differences
@@ -179,4 +190,4 @@ Both processors share these components:
 - Higher quality responses
 - Faster processing
 - API usage costs
-- Quota management required 
+- Quota management required
