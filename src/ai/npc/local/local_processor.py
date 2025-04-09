@@ -6,7 +6,7 @@ This module implements the local processor using Ollama.
 
 import logging
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
@@ -18,6 +18,8 @@ from src.ai.npc.core.conversation_manager import ConversationManager
 from src.ai.npc.core.prompt_manager import PromptManager
 from src.ai.npc.core.processor_framework import Processor
 from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
+from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
+from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +51,10 @@ class LocalProcessor(Processor):
         self.response_parser = ResponseParser()
         self.prompt_manager = PromptManager()
         
+        # Initialize adapters
+        self.history_adapter = DefaultConversationHistoryAdapter()
+        self.knowledge_adapter = DefaultKnowledgeContextAdapter()
+        
     async def process(self, request: ClassifiedRequest) -> Dict[str, Any]:
         """
         Process a request using the local model.
@@ -64,12 +70,19 @@ class LocalProcessor(Processor):
             history = []
             conversation_id = request.additional_params.get('conversation_id')
             if conversation_id and self.conversation_manager:
-                history = await self.conversation_manager.get_player_history(request.game_context.player_id)
+                # Get history in standardized format
+                history = await self.conversation_manager.get_player_history(
+                    request.game_context.player_id,
+                    standardized_format=True
+                )
 
-            # Get relevant knowledge from the knowledge store
-            knowledge_context = await self.knowledge_store.contextual_search(request)
+            # Get relevant knowledge from the knowledge store in standardized format
+            knowledge_context = await self.knowledge_store.contextual_search(
+                request,
+                standardized_format=True
+            )
 
-            # Create prompt with knowledge context
+            # Create prompt with standardized knowledge context and history
             prompt = self.prompt_manager.create_prompt(
                 request,
                 history=history,
@@ -98,6 +111,14 @@ class LocalProcessor(Processor):
                     player_id=request.game_context.player_id
                 )
 
+            # Add diagnostic information
+            if not result.get('debug_info'):
+                result['debug_info'] = {}
+            
+            result['debug_info']['knowledge_count'] = len(knowledge_context)
+            result['debug_info']['history_count'] = len(history)
+            result['debug_info']['prompt_tokens'] = self.prompt_manager.estimate_tokens(prompt)
+
             return result
 
         except OllamaError as e:
@@ -124,5 +145,9 @@ class LocalProcessor(Processor):
                 "Could you try rephrasing your question or asking something else?"
             ),
             'processing_tier': ProcessingTier.LOCAL,
-            'is_fallback': True
+            'is_fallback': True,
+            'debug_info': {
+                'error': str(error),
+                'error_type': type(error).__name__
+            }
         } 

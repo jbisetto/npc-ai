@@ -8,10 +8,13 @@ It handles prompt creation, optimization, and token management.
 import re
 import json
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Union
 
 from src.ai.npc.core.models import ClassifiedRequest, CompanionRequest, GameContext
 from src.ai.npc.core.profile.profile import NPCProfile
+from src.ai.npc.core.adapters import ConversationHistoryEntry, KnowledgeDocument
+from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
+from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -72,22 +75,26 @@ class PromptManager:
         self.max_prompt_tokens = max_prompt_tokens
         self.tier_specific_config = tier_specific_config or {}
         self.logger = logging.getLogger(__name__)
+        
+        # Initialize adapters for format conversion
+        self.history_adapter = DefaultConversationHistoryAdapter()
+        self.knowledge_adapter = DefaultKnowledgeContextAdapter()
     
     def create_prompt(
         self,
         request: ClassifiedRequest,
-        history: Optional[List[Dict[str, Any]]] = None,
+        history: Optional[Union[List[Dict[str, Any]], List[ConversationHistoryEntry]]] = None,
         profile: Optional[NPCProfile] = None,
-        knowledge_context: Optional[List[Dict[str, Any]]] = None
+        knowledge_context: Optional[Union[List[Dict[str, Any]], List[KnowledgeDocument]]] = None
     ) -> str:
         """
         Create an optimized prompt for the language model.
         
         Args:
             request: The classified request
-            history: Optional conversation history
+            history: Optional conversation history (in either standard or legacy format)
             profile: Optional NPC profile to use
-            knowledge_context: Optional knowledge context from vector store
+            knowledge_context: Optional knowledge context (in either standard or legacy format)
             
         Returns:
             The formatted and optimized prompt string
@@ -142,17 +149,9 @@ class PromptManager:
 
         # Add conversation history if available and has entries
         if history:
-            history_entries = []
-            for entry in history:
-                # Only include entries that have both user and assistant messages
-                user_msg = entry.get('user', '').strip()
-                assistant_msg = entry.get('assistant', '').strip()
-                if user_msg and assistant_msg:
-                    history_entries.append(f"Human: {user_msg}")
-                    history_entries.append(f"Assistant: {assistant_msg}")
-            
-            if history_entries:
-                prompt_parts.append("Previous conversation:\n" + "\n".join(history_entries))
+            history_text = self._format_conversation_history(history)
+            if history_text.strip():  # Only add if not empty
+                prompt_parts.append(history_text)
 
         # Add game context if available
         if request.game_context:
@@ -232,7 +231,7 @@ class PromptManager:
                 
                 # Add history entries from most recent to oldest until we run out of tokens
                 for entry in reversed(history_entries):
-                    entry_tokens = self.estimate_tokens(entry)
+                    entry_tokens = self.estimate_tokens(entry + "\n")
                     if entry_tokens <= remaining_tokens:
                         optimized_history.insert(0, entry)
                         remaining_tokens -= entry_tokens
@@ -305,32 +304,84 @@ class PromptManager:
                 
         return "\n".join(parts)
 
-    def _format_knowledge_context(self, knowledge_docs: List[Dict[str, Any]]) -> str:
+    def _format_conversation_history(
+        self, 
+        history: Union[List[Dict[str, Any]], List[ConversationHistoryEntry]]
+    ) -> str:
+        """
+        Format conversation history for inclusion in prompt.
+        
+        Args:
+            history: List of conversation history entries in either standard or legacy format
+            
+        Returns:
+            Formatted conversation history string
+        """
+        if not history:
+            return ""
+        
+        # Convert to standard format if not already
+        standardized_history = history
+        if history and isinstance(history[0], dict):
+            standardized_history = self.history_adapter.to_standard_format(history)
+        
+        parts = ["Previous conversation:"]
+        
+        for entry in standardized_history:
+            if isinstance(entry, ConversationHistoryEntry):
+                user_msg = entry.user.strip()
+                assistant_msg = entry.assistant.strip()
+            else:
+                user_msg = entry.get("user", "").strip()
+                assistant_msg = entry.get("assistant", "").strip()
+            
+            if user_msg:
+                parts.append(f"Human: {user_msg}")
+            if assistant_msg:
+                parts.append(f"Assistant: {assistant_msg}")
+        
+        return "\n".join(parts)
+
+    def _format_knowledge_context(
+        self, 
+        knowledge_docs: Union[List[Dict[str, Any]], List[KnowledgeDocument]]
+    ) -> str:
         """
         Format knowledge context for inclusion in prompt.
         
         Args:
-            knowledge_docs: List of knowledge documents with metadata
+            knowledge_docs: List of knowledge documents in either standard or legacy format
             
         Returns:
             Formatted knowledge context string
         """
         if not knowledge_docs:
             return ""
-            
+        
+        # Convert to standard format if not already
+        standardized_docs = knowledge_docs
+        if knowledge_docs and isinstance(knowledge_docs[0], dict):
+            standardized_docs = self.knowledge_adapter.to_standard_format(knowledge_docs)
+        
         parts = ["Relevant information:"]
         
-        for doc in knowledge_docs:
-            # Get document content (support both 'document' and 'text' keys)
-            content = doc.get('text', doc.get('document', '')).strip()
-            if not content:
-                continue
+        for doc in standardized_docs:
+            # Extract content, metadata, and importance
+            if isinstance(doc, KnowledgeDocument):
+                content = doc.text.strip()
+                metadata = doc.metadata
+                doc_type = metadata.get('type', 'general')
+                importance = metadata.get('importance', 'medium')
+                source = metadata.get('source', '')
+            else:
+                content = doc.get('text', doc.get('document', '')).strip()
+                if not content:
+                    continue
                 
-            # Get metadata
-            metadata = doc.get('metadata', {})
-            doc_type = metadata.get('type', 'general')
-            importance = metadata.get('importance', 'medium')
-            source = metadata.get('source')
+                metadata = doc.get('metadata', {})
+                doc_type = metadata.get('type', 'general')
+                importance = metadata.get('importance', 'medium')
+                source = metadata.get('source', '')
             
             # Format the entry
             entry = f"- [{doc_type.upper()}] {content}"

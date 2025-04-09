@@ -7,8 +7,12 @@ This module manages persistent conversation histories across multiple sessions.
 import os
 import json
 import logging
+import asyncio
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
+
+from src.ai.npc.core.adapters import ConversationHistoryEntry
+from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -26,22 +30,30 @@ class ConversationManager:
         """
         self.storage_dir = storage_dir
         self.player_histories = {}  # In-memory cache of player histories
+        self.history_adapter = DefaultConversationHistoryAdapter()
         
         # Create storage directory if it doesn't exist
         os.makedirs(storage_dir, exist_ok=True)
         
         logger.info(f"Initialized ConversationManager with storage directory: {storage_dir}")
     
-    def get_player_history(self, player_id: str, max_entries: int = 10) -> List[Dict[str, Any]]:
+    async def get_player_history(
+        self, 
+        player_id: str, 
+        max_entries: int = 10,
+        standardized_format: bool = True
+    ) -> Union[List[Dict[str, Any]], List[ConversationHistoryEntry]]:
         """
         Get the conversation history for a specific player.
         
         Args:
             player_id: The player ID to get history for
             max_entries: Maximum number of recent entries to return
+            standardized_format: If True, returns entries in standardized format
+                               with 'user' and 'assistant' keys
             
         Returns:
-            List of conversation entries, most recent first
+            List of conversation entries in standard or legacy format
         """
         # Load player history if not in cache
         if player_id not in self.player_histories:
@@ -55,11 +67,25 @@ class ConversationManager:
             entries = [{**entry, "conversation_id": conv_id} for entry in conversation["entries"]]
             all_entries.extend(entries)
         
-        # Sort by timestamp and return most recent
+        # Sort by timestamp and get most recent
         all_entries.sort(key=lambda x: x["timestamp"], reverse=True)
-        return all_entries[:max_entries]
+        legacy_entries = all_entries[:max_entries]
+        
+        # Convert to standardized format if requested
+        if standardized_format:
+            standardized_entries = self.history_adapter.to_standard_format(legacy_entries)
+            return standardized_entries
+        
+        # Otherwise, ensure legacy entries have 'user' and 'assistant' fields for backward compatibility
+        for entry in legacy_entries:
+            if 'user' not in entry:
+                entry['user'] = entry.get('user_query', '')
+            if 'assistant' not in entry:
+                entry['assistant'] = entry.get('response', '')
+        
+        return legacy_entries
     
-    def add_to_history(
+    async def add_to_history(
         self, 
         conversation_id: str, 
         user_query: str, 
@@ -97,11 +123,13 @@ class ConversationManager:
                 "entries": []
             }
         
-        # Create the entry
+        # Create the entry with both standard and legacy fields
         entry = {
             "timestamp": datetime.now().isoformat(),
             "user_query": user_query,
             "response": response,
+            "user": user_query,  # Standard field name
+            "assistant": response,  # Standard field name
             "npc_id": npc_id,
             "player_id": player_id
         }
@@ -116,7 +144,7 @@ class ConversationManager:
         player_data["conversations"][conversation_id]["entries"].append(entry)
         
         # Save to disk
-        self._save_player_history(player_id)
+        await self._save_player_history(player_id)
         
         logger.debug(f"Saved entry for player {player_id} in conversation {conversation_id}, now has {len(player_data['conversations'][conversation_id]['entries'])} entries")
     
@@ -141,7 +169,7 @@ class ConversationManager:
             logger.debug(f"No history file found for player {player_id}")
             self.player_histories[player_id] = {"player_id": player_id, "conversations": {}}
     
-    def _save_player_history(self, player_id: str) -> None:
+    async def _save_player_history(self, player_id: str) -> None:
         """
         Save a player's history to disk.
         

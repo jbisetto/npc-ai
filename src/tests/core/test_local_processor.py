@@ -6,6 +6,7 @@ import pytest
 import asyncio
 from unittest.mock import Mock, AsyncMock, patch
 from typing import Dict, Any
+from datetime import datetime
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
@@ -15,31 +16,68 @@ from src.ai.npc.core.models import (
 from src.ai.npc.local.local_processor import LocalProcessor
 from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
 from src.ai.npc.core.conversation_manager import ConversationManager
+from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
+from src.ai.npc.core.adapters import ConversationHistoryEntry, KnowledgeDocument
 
 @pytest.fixture
 def mock_ollama_client():
-    """Create a mock Ollama client."""
+    """Create a mock OllamaClient."""
     client = Mock(spec=OllamaClient)
-    client.generate = AsyncMock(return_value="Test response")
+    client.generate = AsyncMock(return_value="<thinking>Test thinking</thinking>\n\nEnglish: Test response\nJapanese: テスト\nPronunciation: te-su-to")
+    client.request_id = None
     return client
 
 @pytest.fixture
 def mock_conversation_manager():
-    """Create a mock conversation manager."""
+    """Create a mock ConversationManager."""
     manager = Mock(spec=ConversationManager)
+    # Set up standardized conversation history format
     manager.get_player_history = AsyncMock(return_value=[
-        {"role": "user", "content": "Previous message"},
-        {"role": "assistant", "content": "Previous response"}
+        ConversationHistoryEntry(
+            user="Previous message",
+            assistant="Previous response",
+            timestamp=datetime.now().isoformat(),
+            conversation_id="test_conversation"
+        )
     ])
     manager.add_to_history = AsyncMock()
     return manager
 
 @pytest.fixture
-def local_processor(mock_ollama_client, mock_conversation_manager):
+def mock_knowledge_store():
+    """Create a mock KnowledgeStore."""
+    store = Mock(spec=KnowledgeStore)
+    # Handle the standardized_format parameter
+    async def mock_search(request, standardized_format=False):
+        if standardized_format:
+            return [
+                KnowledgeDocument(
+                    text="Test knowledge context",
+                    id="test_doc_1",
+                    metadata={"type": "test", "source": "test_source"},
+                    relevance_score=0.9
+                )
+            ]
+        else:
+            return [
+                {
+                    "text": "Test knowledge context",
+                    "document": "Test knowledge context",
+                    "id": "test_doc_1",
+                    "metadata": {"type": "test", "source": "test_source"},
+                    "relevance_score": 0.9
+                }
+            ]
+    store.contextual_search = AsyncMock(side_effect=mock_search)
+    return store
+
+@pytest.fixture
+def local_processor(mock_ollama_client, mock_conversation_manager, mock_knowledge_store):
     """Create a local processor with mocked dependencies."""
     return LocalProcessor(
         ollama_client=mock_ollama_client,
-        conversation_manager=mock_conversation_manager
+        conversation_manager=mock_conversation_manager,
+        knowledge_store=mock_knowledge_store
     )
 
 @pytest.fixture
@@ -76,7 +114,7 @@ async def test_local_processor_process_request(local_processor, test_request, mo
     # Verify the result
     assert result is not None
     assert "response_text" in result
-    assert result["response_text"] == "Test response"
+    assert "Test response" in result["response_text"]
     
     # Verify the Ollama client was called
     mock_ollama_client.generate.assert_called_once()
@@ -85,7 +123,7 @@ async def test_local_processor_process_request(local_processor, test_request, mo
     mock_conversation_manager.add_to_history.assert_called_once_with(
         conversation_id="test_conversation",
         user_query="Hello",
-        response="Test response",
+        response=result["response_text"],
         npc_id=None,  # Not set in test request
         player_id="test_player"
     )
@@ -111,22 +149,17 @@ async def test_local_processor_error_handling(local_processor, test_request, moc
 @pytest.mark.asyncio
 async def test_local_processor_with_history(local_processor, test_request, mock_ollama_client, mock_conversation_manager):
     """Test that the processor uses conversation history when available."""
-    # Set up conversation history
-    mock_history = [
-        {"user": "Previous message", "assistant": "Previous response"}
-    ]
-    mock_conversation_manager.get_player_history.return_value = mock_history
-    
     # Process the request
     result = await local_processor.process(test_request)
     
     # Verify the result
     assert result is not None
-    assert result["response_text"] == "Test response"
+    assert "Test response" in result["response_text"]
     
     # Verify history was retrieved
     mock_conversation_manager.get_player_history.assert_called_once_with(
-        test_request.game_context.player_id
+        test_request.game_context.player_id,
+        standardized_format=True
     )
     
     # Verify the Ollama client was called with history
@@ -139,16 +172,19 @@ async def test_local_processor_with_history(local_processor, test_request, mock_
     mock_conversation_manager.add_to_history.assert_called_once_with(
         conversation_id="test_conversation",
         user_query="Hello",
-        response="Test response",
+        response=result["response_text"],
         npc_id=None,  # Not set in test request
         player_id="test_player"
     )
 
 @pytest.mark.asyncio
-async def test_local_processor_without_conversation_manager(mock_ollama_client):
+async def test_local_processor_without_conversation_manager(mock_ollama_client, mock_knowledge_store):
     """Test that processor works without a conversation manager."""
     # Create processor without conversation manager
-    processor = LocalProcessor(ollama_client=mock_ollama_client)
+    processor = LocalProcessor(
+        ollama_client=mock_ollama_client,
+        knowledge_store=mock_knowledge_store
+    )
     
     # Create request without conversation_id
     request = ClassifiedRequest(
@@ -166,7 +202,7 @@ async def test_local_processor_without_conversation_manager(mock_ollama_client):
     
     # Verify the result
     assert result is not None
-    assert result["response_text"] == "Test response"
+    assert "Test response" in result["response_text"]
     
     # Verify the Ollama client was called
     mock_ollama_client.generate.assert_called_once() 
