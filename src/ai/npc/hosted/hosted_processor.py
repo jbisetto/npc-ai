@@ -138,6 +138,8 @@ class HostedProcessor(Processor):
             # Get relevant knowledge from the knowledge store in standardized format
             try:
                 self.logger.debug(f"Retrieving knowledge context for: '{request.player_input}'")
+                self.logger.debug(f"Knowledge store collection has {self.knowledge_store.collection.count()} documents")
+                
                 knowledge_context = await self.knowledge_store.contextual_search(
                     request,
                     standardized_format=True
@@ -148,13 +150,13 @@ class HostedProcessor(Processor):
                 if knowledge_context:
                     for i, item in enumerate(knowledge_context):
                         if hasattr(item, 'text') and hasattr(item, 'metadata'):
-                            self.logger.debug(f"Knowledge item {i+1}: {item.text[:100]}... (score: {item.metadata.get('score', 'N/A')})")
+                            self.logger.debug(f"Knowledge item {i+1}: {item.text[:100]}... (relevance: {item.metadata.get('relevance_score', 'N/A')})")
                         else:
                             self.logger.debug(f"Knowledge item {i+1}: {str(item)[:100]}...")
                 else:
                     self.logger.debug("No knowledge items found")
             except Exception as e:
-                self.logger.error(f"Error retrieving knowledge context: {str(e)}")
+                self.logger.error(f"Error retrieving knowledge context: {str(e)}", exc_info=True)
                 knowledge_context = []
 
             # Create prompt with standardized knowledge context and history

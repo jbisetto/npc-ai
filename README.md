@@ -71,11 +71,38 @@ pip install -r requirements.txt
 - Copy `src/config/npc-config.yaml.example` to `src/config/npc-config.yaml`
 - Update configuration settings as needed
 
+5. Initialize the knowledge base:
+```bash
+python initialize_knowledge_base.py
+```
+This step is required before starting the demo to ensure the knowledge store is properly populated with the Tokyo train station information. The initialization script:
+- Loads documents from the knowledge base JSON file
+- Correctly assigns intents based on document types (DIRECTION_GUIDANCE, GENERAL_HINT, VOCABULARY_HELP)
+- Creates vector embeddings for semantic search
+- Verifies documents are loaded successfully with appropriate logging
+- Runs quality tests to ensure the knowledge base is functioning properly
+
 ### Running the Demo
 
 ```bash
 python demo/app.py
 ```
+
+## Known Issues
+
+### ChromaDB Persistence
+
+Currently, there is an issue with ChromaDB's persistence mechanism when storing vector embeddings. The system properly loads data into memory during initialization but has trouble maintaining persistence between application restarts. This affects the semantic search capabilities in some scenarios.
+
+Workarounds implemented:
+- The system includes robust fallback mechanisms to ensure knowledge retrieval works even when vector search fails
+- Initial knowledge base loading is performed through a separate initialization script
+- Additional diagnostics have been added to monitor knowledge store performance
+
+This issue is planned to be addressed in a future update that will:
+- Implement a more reliable persistence layer for the vector store
+- Add migration capabilities for vector data
+- Provide better configuration options for ChromaDB
 
 ## Configuration
 

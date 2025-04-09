@@ -9,6 +9,9 @@ __version__ = "0.1.0"
 
 import logging
 from typing import Dict, Any, Optional
+import os
+from pathlib import Path
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -46,7 +49,50 @@ def get_knowledge_store():
     global _knowledge_store
     if _knowledge_store is None:
         from .core.vector.tokyo_knowledge_store import TokyoKnowledgeStore
-        _knowledge_store = TokyoKnowledgeStore()
+        
+        # Ensure consistent path using project root
+        project_root = str(Path(__file__).resolve().parent.parent.parent.parent)
+        persist_directory = os.path.join(project_root, "data/vector_store")
+        
+        logger.info(f"Initializing knowledge store with persistence directory: {persist_directory}")
+        
+        # Initialize the knowledge store
+        _knowledge_store = TokyoKnowledgeStore(persist_directory=persist_directory)
+        
+        # Check if the store is empty and needs to be populated
+        doc_count = _knowledge_store.collection.count()
+        logger.info(f"Knowledge store initialized with {doc_count} documents")
+        
+        if doc_count == 0:
+            logger.info("Knowledge store is empty, attempting to load from processed file")
+            processed_kb_path = os.path.join(project_root, "data", "processed_knowledge_base.json")
+            
+            if os.path.exists(processed_kb_path):
+                try:
+                    # Load the processed knowledge base
+                    documents_count = _knowledge_store.load_knowledge_base(processed_kb_path)
+                    logger.info(f"Successfully loaded {documents_count} documents from processed knowledge base")
+                    
+                    # Verify document count after loading
+                    after_count = _knowledge_store.collection.count()
+                    logger.info(f"Knowledge store now contains {after_count} documents")
+                    
+                    # Verify by retrieving a document
+                    try:
+                        all_data = _knowledge_store.collection.get()
+                        if all_data and "documents" in all_data and all_data["documents"]:
+                            logger.info(f"Verification: Retrieved {len(all_data['documents'])} documents from the collection")
+                            logger.info(f"Sample document: {all_data['documents'][0][:100]}...")
+                        else:
+                            logger.warning("Verification failed: No documents retrieved after loading")
+                    except Exception as e:
+                        logger.error(f"Error verifying loaded documents: {e}")
+                    
+                except Exception as e:
+                    logger.error(f"Error loading processed knowledge base: {e}", exc_info=True)
+            else:
+                logger.warning(f"Processed knowledge base file not found: {processed_kb_path}")
+    
     return _knowledge_store
 
 def get_local_processor():

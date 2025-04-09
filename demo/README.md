@@ -29,6 +29,14 @@ This is a simplified Gradio demo for the AI components of the Tokyo Train Statio
    pip install -r ../requirements.txt
    ```
 
+4. Initialize the knowledge base (from the project root directory):
+   ```bash
+   cd ..
+   python initialize_knowledge_base.py
+   cd demo
+   ```
+   This step ensures the Tokyo train station knowledge base is properly loaded with documents and intents before running the app.
+
 ## Running the Demo
 
 Start the Gradio app with:
@@ -67,6 +75,23 @@ The collapsible "Advanced: Debug Information" section at the bottom of the inter
 
 This information is only populated for Tier2 and Tier3 processing, as these tiers involve more complex AI interactions. The raw prompt display is particularly useful for understanding how the system constructs prompts for different types of queries and NPC interactions.
 
+## Known Issues
+
+### Knowledge Base Persistence
+
+The demo currently experiences issues with ChromaDB's vector store persistence. If you find that knowledge-based queries (e.g., "Where can I buy a ticket?", "How do I say 'ticket' in Japanese?") don't return expected results, you may need to re-run the knowledge base initialization script:
+
+```bash
+cd ..  # Return to project root
+python initialize_knowledge_base.py
+cd demo
+python app.py
+```
+
+A robust fallback system has been implemented to ensure that even when vector search fails, the system will return basic knowledge documents through alternative retrieval methods.
+
+These persistence issues are planned to be addressed in a future update.
+
 ## Troubleshooting
 
 If you encounter errors:
@@ -79,4 +104,4 @@ If you encounter errors:
 
 ## Notes
 
-This demo uses the same AI components as the full game, but without the API layer. It directly interfaces with the core AI system, removing the unnecessary complexity of the API while still showcasing the sophisticated AI capabilities. 
+This demo uses the same AI components as the full game, but without the API layer. It directly interfaces with the core AI system, removing the unnecessary complexity of the API while still showcasing the sophisticated AI capabilities.

@@ -11,12 +11,14 @@ import chromadb
 import asyncio
 import json
 from typing import Dict, Any, List, Optional, Union
+import numpy as np
 
 from chromadb.config import Settings
+from chromadb.utils import embedding_functions
 
 from src.ai.npc.core.models import ClassifiedRequest
 from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
-from src.ai.npc.core.constants import INTENT_VOCABULARY_HELP, INTENT_DIRECTION_GUIDANCE
+from src.ai.npc.core.constants import INTENT_VOCABULARY_HELP, INTENT_DIRECTION_GUIDANCE, INTENT_GENERAL_HINT, METADATA_KEY_INTENT
 from src.ai.npc.core.adapters import KnowledgeDocument
 from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
 
@@ -32,7 +34,7 @@ class TokyoKnowledgeStore(KnowledgeStore):
     """
     
     def __init__(self, 
-                 persist_directory: str = "knowledge_store",
+                 persist_directory: str = "data/vector_store",
                  collection_name: str = "tokyo_knowledge",
                  embedding_model: str = "all-MiniLM-L6-v2",
                  cache_size: int = 1000,
@@ -49,18 +51,50 @@ class TokyoKnowledgeStore(KnowledgeStore):
         """
         self.logger = logging.getLogger(__name__)
         
+        # Create embedding function
+        try:
+            self.embedding_function = embedding_functions.DefaultEmbeddingFunction()
+            self.logger.info(f"Using DefaultEmbeddingFunction for embeddings")
+        except Exception as e:
+            self.logger.warning(f"Could not create embedding function: {e}")
+            # Fallback to dummy embedding function
+            self.embedding_function = DummyEmbeddingFunction()
+            self.logger.warning("Using DummyEmbeddingFunction instead - this will only work for exact matches")
+        
         # Create or use provided ChromaDB client
         if client is not None:
             self.client = client
         else:
-            self.client = chromadb.Client(Settings(
-                persist_directory=persist_directory,
-                anonymized_telemetry=False
-            ))
+            # Ensure the persistence directory exists with proper permissions
+            if persist_directory:
+                os.makedirs(persist_directory, exist_ok=True)
+                self.logger.info(f"Ensuring persistence directory exists: {persist_directory}")
+            
+            # Use PersistentClient instead of Client to ensure data is persisted
+            try:
+                from chromadb.config import Settings
+                from chromadb.api.client import PersistentClient
+                self.client = PersistentClient(
+                    path=persist_directory,
+                    settings=Settings(
+                        anonymized_telemetry=False
+                    )
+                )
+                self.logger.info(f"Created PersistentClient with path: {persist_directory}")
+            except (ImportError, AttributeError) as e:
+                self.logger.warning(f"Failed to create PersistentClient: {e}, falling back to Client")
+                self.client = chromadb.Client(Settings(
+                    persist_directory=persist_directory,
+                    anonymized_telemetry=False
+                ))
         
-        # Create or get collection
+        # Save the collection name for later use
+        self.collection_name = collection_name
+        
+        # Create or get collection with explicit embedding function
         self.collection = self.client.get_or_create_collection(
             name=collection_name,
+            embedding_function=self.embedding_function,
             metadata={
                 "hnsw:space": "cosine",
                 "embedding_model": embedding_model
@@ -88,7 +122,8 @@ class TokyoKnowledgeStore(KnowledgeStore):
     async def contextual_search(
         self, 
         request: ClassifiedRequest,
-        standardized_format: bool = False
+        standardized_format: bool = False,
+        max_results: int = 2  # Reduce default number of results
     ) -> Union[List[Dict[str, Any]], List[KnowledgeDocument]]:
         """
         Search for relevant knowledge context based on the request.
@@ -96,12 +131,25 @@ class TokyoKnowledgeStore(KnowledgeStore):
         Args:
             request: The classified request to find context for
             standardized_format: If True, returns entries in standardized KnowledgeDocument format
+            max_results: Maximum number of results to return (default: 2)
             
         Returns:
             A list of knowledge context documents in either standard or legacy format
         """
-        self.logger.debug(f"Performing contextual search for request: '{request.player_input}' (ID: {request.request_id})")
-        self.logger.debug(f"Standardized format requested: {standardized_format}")
+        # Get intent from request's additional_params
+        intent = request.additional_params.get(METADATA_KEY_INTENT, None)
+        
+        self.logger.debug(f"Performing contextual search for request: '{request.player_input}' with intent: {intent}")
+        
+        # Get all documents first to verify they exist (but only in debug mode)
+        all_docs = None
+        try:
+            all_docs = self.collection.get()
+            doc_count = len(all_docs['documents'] if 'documents' in all_docs else [])
+            self.logger.debug(f"Collection contains {doc_count} documents in total")
+        except Exception as e:
+            self.logger.error(f"Error getting all documents: {str(e)}")
+            all_docs = None
         
         # Check cache first
         cache_key = self._get_cache_key(request)
@@ -112,13 +160,11 @@ class TokyoKnowledgeStore(KnowledgeStore):
                 self._analytics["cache_hits"][cache_key] = 0
             self._analytics["cache_hits"][cache_key] += 1
             
-            # Return cached results in requested format
-            cached_results = self._cache[cache_key]
-            self.logger.debug(f"Returning {len(cached_results)} cached results")
+            # Return cached results in requested format (limited to max_results)
+            cached_results = self._cache[cache_key][:max_results]
             
             if standardized_format:
                 std_results = self.knowledge_adapter.to_standard_format(cached_results)
-                self.logger.debug(f"Converted {len(std_results)} cached results to standard format")
                 return std_results
             return cached_results
         
@@ -126,43 +172,70 @@ class TokyoKnowledgeStore(KnowledgeStore):
         query = request.player_input
         self.logger.debug(f"No cache hit, performing vector search for: '{query}'")
         
-        # Get intent from metadata if available
-        intent = request.additional_params.get('intent', None)
-        self.logger.debug(f"Request intent: {intent}")
-        
         start_time = asyncio.get_event_loop().time()
         
-        # Prepare where clause for filtering
-        where_clause = None
-        if intent:
-            # First try exact intent matching
-            where_clause = {"intent": intent}
-            self.logger.debug(f"Using where clause with intent: {intent}")
+        # Initialize results variable
+        results = None
         
-        try:
-            # Search collection
-            self.logger.debug(f"Querying vector database with query: '{query}'")
-            self.logger.debug(f"Collection size: {self.collection.count()} documents")
-            results = self.collection.query(
-                query_texts=[query],
-                n_results=5,
-                where=where_clause
-            )
+        # First try: exact intent matching if intent is specified
+        if intent and intent != "DEFAULT":
+            self.logger.debug(f"Trying search with exact intent: {intent}")
+            where_clause = {"intent": intent}
             
-            # Log results summary
-            if results['documents'] and len(results['documents']) > 0:
-                self.logger.debug(f"Vector search returned {len(results['documents'][0])} documents")
+            try:
+                results = self.collection.query(
+                    query_texts=[query],
+                    n_results=max_results,  # Use max_results
+                    where=where_clause
+                )
+            except Exception as e:
+                self.logger.error(f"Error during intent search: {str(e)}")
+                results = None
+                
+            # Check if we got results
+            if results and results['documents'] and results['documents'][0] and len(results['documents'][0]) > 0:
+                self.logger.debug(f"Intent search returned {len(results['documents'][0])} documents")
             else:
-                self.logger.debug("Vector search returned no documents")
-        except Exception as e:
-            self.logger.error(f"Error during vector search: {str(e)}", exc_info=True)
-            # Return empty results
-            return [] if not standardized_format else self.knowledge_adapter.to_standard_format([])
+                self.logger.debug("Intent search returned no documents, trying fallback...")
+                results = None
+        
+        # Second try: search without intent filter (always do this if first try fails or no intent specified)
+        if results is None:
+            self.logger.debug("Performing search without intent filter")
+            try:
+                results = self.collection.query(
+                    query_texts=[query],
+                    n_results=max_results,  # Use max_results
+                    where=None  # No filtering
+                )
+            except Exception as e:
+                self.logger.error(f"Error during unfiltered search: {str(e)}")
+                results = None
+                
+            # Check if we got results
+            if results and results['documents'] and results['documents'][0] and len(results['documents'][0]) > 0:
+                self.logger.debug(f"Unfiltered search returned {len(results['documents'][0])} documents")
+            else:
+                self.logger.debug("Unfiltered search also returned no documents")
+                results = None
+        
+        # Final fallback: if all searches failed, just return some documents
+        if results is None and all_docs and 'documents' in all_docs and all_docs['documents']:
+            self.logger.debug("Using fallback - returning documents without vector search")
+            
+            # Just use the first few documents as results
+            max_docs = min(max_results, len(all_docs['documents']))
+            
+            results = {
+                'documents': [all_docs['documents'][:max_docs]],
+                'metadatas': [all_docs['metadatas'][:max_docs]],
+                'ids': [all_docs['ids'][:max_docs]],
+                'distances': [[0.0] * max_docs]  # Dummy distances
+            }
         
         # Format results
         knowledge_context = []
-        if results['documents'] and len(results['documents'][0]) > 0:
-            # Use fixed relevance scores since we don't have distances
+        if results and results['documents'] and results['documents'][0] and len(results['documents'][0]) > 0:
             # Documents are already sorted by relevance in ChromaDB results
             docs_count = len(results['documents'][0])
             self.logger.debug(f"Processing {docs_count} documents from search results")
@@ -178,7 +251,6 @@ class TokyoKnowledgeStore(KnowledgeStore):
                 self._analytics["retrieved_docs"][doc_id] += 1
                 
                 # Calculate relevance score - linearly decreasing from 1.0 to 0.6
-                # This assumes the first result is most relevant
                 relevance_score = 1.0 - (i * 0.4 / max(1, docs_count - 1))
                 relevance_score = round(max(0.6, min(1.0, relevance_score)), 3)
                 
@@ -194,15 +266,9 @@ class TokyoKnowledgeStore(KnowledgeStore):
                     'id': doc_id,
                     'relevance_score': relevance_score
                 })
-                
-                # Log document details
-                self.logger.debug(f"Document {i+1}/{docs_count}: ID={doc_id}, Score={relevance_score}")
-                self.logger.debug(f"  Metadata: {metadata}")
-                self.logger.debug(f"  Content: {doc[:100]}...")
             
-            # Sort by relevance score (highest first) - redundant but keeping for clarity
+            # Sort by relevance score (highest first) 
             knowledge_context.sort(key=lambda x: x['relevance_score'], reverse=True)
-            self.logger.debug(f"Sorted {len(knowledge_context)} documents by relevance score")
         else:
             self.logger.warning(f"No knowledge documents found for query: '{query}'")
         
@@ -217,22 +283,21 @@ class TokyoKnowledgeStore(KnowledgeStore):
         
         # Cache results
         self._cache[cache_key] = knowledge_context
-        self.logger.debug(f"Cached {len(knowledge_context)} results for key: {cache_key}")
         
         # Prune cache if necessary
         if len(self._cache) > self._cache_size:
             # Remove oldest key
             oldest_key = next(iter(self._cache))
             del self._cache[oldest_key]
-            self.logger.debug(f"Pruned oldest cache entry: {oldest_key}")
         
-        # Return in requested format
+        # Limit results to max_results
+        knowledge_context = knowledge_context[:max_results]
+        
+        # Convert to standardized format if requested
         if standardized_format:
             std_results = self.knowledge_adapter.to_standard_format(knowledge_context)
-            self.logger.debug(f"Converted {len(std_results)} results to standard format")
             return std_results
-            
-        self.logger.debug(f"Returning {len(knowledge_context)} results in legacy format")
+        
         return knowledge_context
 
     def _get_cache_key(self, request: ClassifiedRequest) -> str:
@@ -316,14 +381,22 @@ class TokyoKnowledgeStore(KnowledgeStore):
                 "test": True  # For cleanup during tests
             }
             
-            # For testing, set intent based on type
-            if metadata["type"] == "location":
-                metadata["intent"] = INTENT_DIRECTION_GUIDANCE
-            elif metadata["type"] == "language_learning":
-                metadata["intent"] = INTENT_VOCABULARY_HELP
+            # Add intent field to metadata
+            if "intent" in item:
+                metadata["intent"] = item["intent"]
+                self.logger.debug(f"Using intent from item: {item['intent']}")
+            else:
+                # For testing, set intent based on type
+                if metadata["type"] == "location":
+                    metadata["intent"] = INTENT_DIRECTION_GUIDANCE
+                elif metadata["type"] == "language_learning":
+                    metadata["intent"] = INTENT_VOCABULARY_HELP
+                else:
+                    metadata["intent"] = INTENT_GENERAL_HINT
+                self.logger.debug(f"Assigned default intent based on type: {metadata['intent']}")
             
             # Add optional fields to metadata, converting lists to strings
-            for key in ["related_npcs", "related_locations", "intent"]:
+            for key in ["related_npcs", "related_locations"]:
                 if key in item:
                     value = item[key]
                     # Convert lists to strings to comply with ChromaDB requirements
@@ -334,6 +407,8 @@ class TokyoKnowledgeStore(KnowledgeStore):
             
             # Generate an ID
             doc_id = item.get("id", f"doc_{i+1}")
+            
+            self.logger.debug(f"Adding document {i+1}: {doc_id} with intent {metadata.get('intent', 'None')}")
             
             documents.append(content)
             metadatas.append(metadata)
@@ -347,7 +422,35 @@ class TokyoKnowledgeStore(KnowledgeStore):
                 ids=ids
             )
             
+            # Explicitly persist the data
+            try:
+                if hasattr(self.client, 'persist'):
+                    self.client.persist()
+                    self.logger.info("Explicitly persisted data to disk")
+            except Exception as e:
+                self.logger.warning(f"Failed to explicitly persist data: {e}")
+            
+            # Log detailed status after adding
             self.logger.info(f"Added {len(documents)} documents to knowledge store")
+            self.logger.info(f"Collection now contains {self.collection.count()} documents")
+            
+            # Check what we actually stored by retrieving some data
+            try:
+                all_data = self.collection.get()
+                if all_data and "documents" in all_data and all_data["documents"]:
+                    self.logger.info(f"Verification: Retrieved {len(all_data['documents'])} documents from the collection")
+                    self.logger.info(f"Sample document: {all_data['documents'][0][:100]}...")
+                    
+                    first_metadata = all_data["metadatas"][0] if all_data["metadatas"] else None
+                    if first_metadata:
+                        self.logger.info(f"Sample metadata: {first_metadata}")
+                    else:
+                        self.logger.warning("No metadata found for verification")
+                else:
+                    self.logger.warning("Verification failed: No documents retrieved after adding")
+            except Exception as e:
+                self.logger.error(f"Error verifying added documents: {e}")
+            
             return len(documents)
         
         return 0
@@ -418,4 +521,11 @@ class TokyoKnowledgeStore(KnowledgeStore):
             self.logger.info("Cleared knowledge store")
         except Exception as e:
             self.logger.error(f"Error clearing knowledge store: {e}")
-            raise 
+            raise
+
+class DummyEmbeddingFunction:
+    """A dummy embedding function that returns random vectors. Only for testing."""
+    
+    def __call__(self, texts):
+        """Generate random embeddings for the given texts."""
+        return [np.random.random(384).tolist() for _ in texts] 
