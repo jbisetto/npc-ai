@@ -1,0 +1,16 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Adapter Pattern Implementation Rule
+
+When implementing an adapter pattern across interfaces with standardized formats:
+
+1. **Identify all call sites**: Before making changes, systematically identify all locations where the interface is called
+2. **Test modifications incrementally**: Make targeted changes and test them incrementally rather than modifying multiple components at once
+3. **Update test expectations**: Ensure all test assertions account for new parameters or format changes
+4. **Test parameter alignment**: Verify that mock objects in tests properly handle any new parameters
+5. **Document parameter behavior**: Clearly document whether parameters are optional or required, and their default values
+6. **Handle async correctly**: When working with asynchronous interfaces, ensure all tests properly await coroutines
+7. **Test the end-to-end flow**: Create integration tests that validate the complete flow through all adapter components
