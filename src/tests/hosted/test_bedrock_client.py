@@ -60,7 +60,8 @@ def bedrock_client(mock_client):
 class TestBedrockClient:
     """Tests for the BedrockClient class."""
     
-    def test_claude_request_format(self, bedrock_client, mock_client):
+    @pytest.mark.asyncio
+    async def test_claude_request_format(self, bedrock_client, mock_client):
         """Test that Claude models use the correct request format."""
         # Configure mock to return a successful response
         mock_body = MagicMock()
@@ -69,7 +70,7 @@ class TestBedrockClient:
         
         # Call generate with Claude model
         model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-        bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
+        await bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
         
         # Get the call arguments
         args, kwargs = mock_client.invoke_model.call_args
@@ -82,7 +83,8 @@ class TestBedrockClient:
         assert request_body["messages"][0]["content"] == SAMPLE_PROMPT
         assert "anthropic_version" in request_body
     
-    def test_nova_request_format(self, bedrock_client, mock_client):
+    @pytest.mark.asyncio
+    async def test_nova_request_format(self, bedrock_client, mock_client):
         """Test that Nova models use the correct request format."""
         # Configure mock to return a successful response
         mock_body = MagicMock()
@@ -91,7 +93,7 @@ class TestBedrockClient:
         
         # Call generate with Nova model
         model_id = "amazon.nova-micro-v1:0"
-        bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
+        await bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
         
         # Get the call arguments
         args, kwargs = mock_client.invoke_model.call_args
@@ -105,7 +107,8 @@ class TestBedrockClient:
         assert "text" in request_body["messages"][0]["content"][0]
         assert request_body["messages"][0]["content"][0]["text"] == SAMPLE_PROMPT
     
-    def test_claude_response_parsing(self, bedrock_client, mock_client):
+    @pytest.mark.asyncio
+    async def test_claude_response_parsing(self, bedrock_client, mock_client):
         """Test parsing Claude model responses."""
         # Configure mock to return a Claude response
         mock_body = MagicMock()
@@ -114,12 +117,13 @@ class TestBedrockClient:
         
         # Call generate with Claude model
         model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-        response = bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
+        response = await bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
         
         # Verify the response parsing
         assert response == "This is a test response from Claude"
     
-    def test_nova_response_parsing(self, bedrock_client, mock_client):
+    @pytest.mark.asyncio
+    async def test_nova_response_parsing(self, bedrock_client, mock_client):
         """Test parsing Nova model responses."""
         # Configure mock to return a Nova response
         mock_body = MagicMock()
@@ -128,12 +132,13 @@ class TestBedrockClient:
         
         # Call generate with Nova model
         model_id = "amazon.nova-micro-v1:0"
-        response = bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
+        response = await bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
         
         # Verify the response parsing
         assert response == "This is a test response from Nova"
     
-    def test_titan_response_parsing(self, bedrock_client, mock_client):
+    @pytest.mark.asyncio
+    async def test_titan_response_parsing(self, bedrock_client, mock_client):
         """Test parsing Titan model responses."""
         # Configure mock to return a Titan response
         mock_body = MagicMock()
@@ -142,18 +147,19 @@ class TestBedrockClient:
         
         # Call generate with Titan model
         model_id = "amazon.titan-text-express-v1"
-        response = bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
+        response = await bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
         
         # Verify the response parsing
         assert response == "This is a test response from Titan"
     
-    def test_debug_mode(self):
+    @pytest.mark.asyncio
+    async def test_debug_mode(self):
         """Test that debug mode returns simulated responses."""
         # Create client in debug mode
         client = BedrockClient(debug_mode=True)
         
         # Call generate
-        response = client.generate(SAMPLE_PROMPT)
+        response = await client.generate(SAMPLE_PROMPT)
         
         # Verify that the response contains the expected debug text
         assert "<thinking>" in response
