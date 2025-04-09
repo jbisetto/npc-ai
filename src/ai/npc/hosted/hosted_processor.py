@@ -131,19 +131,40 @@ class HostedProcessor(Processor):
                     request.game_context.player_id,
                     standardized_format=True
                 )
+                self.logger.debug(f"Retrieved {len(history)} conversation history entries")
+            else:
+                self.logger.debug(f"No conversation history retrieved. conversation_id: {conversation_id}")
 
             # Get relevant knowledge from the knowledge store in standardized format
-            knowledge_context = await self.knowledge_store.contextual_search(
-                request,
-                standardized_format=True
-            )
+            try:
+                self.logger.debug(f"Retrieving knowledge context for: '{request.player_input}'")
+                knowledge_context = await self.knowledge_store.contextual_search(
+                    request,
+                    standardized_format=True
+                )
+                self.logger.debug(f"Retrieved {len(knowledge_context)} knowledge context items")
+                
+                # Log the retrieved knowledge items
+                if knowledge_context:
+                    for i, item in enumerate(knowledge_context):
+                        if hasattr(item, 'text') and hasattr(item, 'metadata'):
+                            self.logger.debug(f"Knowledge item {i+1}: {item.text[:100]}... (score: {item.metadata.get('score', 'N/A')})")
+                        else:
+                            self.logger.debug(f"Knowledge item {i+1}: {str(item)[:100]}...")
+                else:
+                    self.logger.debug("No knowledge items found")
+            except Exception as e:
+                self.logger.error(f"Error retrieving knowledge context: {str(e)}")
+                knowledge_context = []
 
             # Create prompt with standardized knowledge context and history
+            self.logger.debug(f"Creating prompt with {len(history)} history entries and {len(knowledge_context)} knowledge items")
             prompt = self.prompt_manager.create_prompt(
                 request,
                 history=history,
                 knowledge_context=knowledge_context
             )
+            self.logger.debug(f"Created prompt with {self.prompt_manager.estimate_tokens(prompt)} tokens")
 
             # Log the prompt for debugging
             self.logger.debug(f"Generated prompt for request {request.request_id}:\n{prompt}")
@@ -174,6 +195,17 @@ class HostedProcessor(Processor):
             result['debug_info']['knowledge_count'] = len(knowledge_context)
             result['debug_info']['history_count'] = len(history)
             result['debug_info']['prompt_tokens'] = self.prompt_manager.estimate_tokens(prompt)
+            
+            # Add knowledge items to debug info (simplified version)
+            knowledge_items = []
+            for item in knowledge_context:
+                if hasattr(item, 'text') and hasattr(item, 'metadata'):
+                    knowledge_items.append({
+                        'text': item.text,
+                        'source': item.metadata.get('source', 'unknown'),
+                        'score': item.metadata.get('score', 0)
+                    })
+            result['debug_info']['knowledge_items'] = knowledge_items
 
             # Update conversation history if needed
             if conversation_id and self.conversation_manager:

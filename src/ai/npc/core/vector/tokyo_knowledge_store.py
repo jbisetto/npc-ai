@@ -100,24 +100,35 @@ class TokyoKnowledgeStore(KnowledgeStore):
         Returns:
             A list of knowledge context documents in either standard or legacy format
         """
+        self.logger.debug(f"Performing contextual search for request: '{request.player_input}' (ID: {request.request_id})")
+        self.logger.debug(f"Standardized format requested: {standardized_format}")
+        
         # Check cache first
         cache_key = self._get_cache_key(request)
         if cache_key in self._cache:
+            self.logger.debug(f"Cache hit for key: {cache_key}")
             self._analytics["total_queries"] += 1
             if cache_key not in self._analytics["cache_hits"]:
                 self._analytics["cache_hits"][cache_key] = 0
             self._analytics["cache_hits"][cache_key] += 1
             
             # Return cached results in requested format
+            cached_results = self._cache[cache_key]
+            self.logger.debug(f"Returning {len(cached_results)} cached results")
+            
             if standardized_format:
-                return self.knowledge_adapter.to_standard_format(self._cache[cache_key])
-            return self._cache[cache_key]
+                std_results = self.knowledge_adapter.to_standard_format(cached_results)
+                self.logger.debug(f"Converted {len(std_results)} cached results to standard format")
+                return std_results
+            return cached_results
         
         # Get query text from request
         query = request.player_input
+        self.logger.debug(f"No cache hit, performing vector search for: '{query}'")
         
         # Get intent from metadata if available
         intent = request.additional_params.get('intent', None)
+        self.logger.debug(f"Request intent: {intent}")
         
         start_time = asyncio.get_event_loop().time()
         
@@ -126,13 +137,27 @@ class TokyoKnowledgeStore(KnowledgeStore):
         if intent:
             # First try exact intent matching
             where_clause = {"intent": intent}
+            self.logger.debug(f"Using where clause with intent: {intent}")
         
-        # Search collection
-        results = self.collection.query(
-            query_texts=[query],
-            n_results=5,
-            where=where_clause
-        )
+        try:
+            # Search collection
+            self.logger.debug(f"Querying vector database with query: '{query}'")
+            self.logger.debug(f"Collection size: {self.collection.count()} documents")
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=5,
+                where=where_clause
+            )
+            
+            # Log results summary
+            if results['documents'] and len(results['documents']) > 0:
+                self.logger.debug(f"Vector search returned {len(results['documents'][0])} documents")
+            else:
+                self.logger.debug("Vector search returned no documents")
+        except Exception as e:
+            self.logger.error(f"Error during vector search: {str(e)}", exc_info=True)
+            # Return empty results
+            return [] if not standardized_format else self.knowledge_adapter.to_standard_format([])
         
         # Format results
         knowledge_context = []
@@ -140,6 +165,7 @@ class TokyoKnowledgeStore(KnowledgeStore):
             # Use fixed relevance scores since we don't have distances
             # Documents are already sorted by relevance in ChromaDB results
             docs_count = len(results['documents'][0])
+            self.logger.debug(f"Processing {docs_count} documents from search results")
             
             for i, (doc, metadata, doc_id) in enumerate(zip(
                 results['documents'][0], 
@@ -168,9 +194,17 @@ class TokyoKnowledgeStore(KnowledgeStore):
                     'id': doc_id,
                     'relevance_score': relevance_score
                 })
+                
+                # Log document details
+                self.logger.debug(f"Document {i+1}/{docs_count}: ID={doc_id}, Score={relevance_score}")
+                self.logger.debug(f"  Metadata: {metadata}")
+                self.logger.debug(f"  Content: {doc[:100]}...")
             
             # Sort by relevance score (highest first) - redundant but keeping for clarity
             knowledge_context.sort(key=lambda x: x['relevance_score'], reverse=True)
+            self.logger.debug(f"Sorted {len(knowledge_context)} documents by relevance score")
+        else:
+            self.logger.warning(f"No knowledge documents found for query: '{query}'")
         
         # Update analytics
         self._analytics["total_queries"] += 1
@@ -183,16 +217,22 @@ class TokyoKnowledgeStore(KnowledgeStore):
         
         # Cache results
         self._cache[cache_key] = knowledge_context
+        self.logger.debug(f"Cached {len(knowledge_context)} results for key: {cache_key}")
         
         # Prune cache if necessary
         if len(self._cache) > self._cache_size:
             # Remove oldest key
             oldest_key = next(iter(self._cache))
             del self._cache[oldest_key]
+            self.logger.debug(f"Pruned oldest cache entry: {oldest_key}")
         
         # Return in requested format
         if standardized_format:
-            return self.knowledge_adapter.to_standard_format(knowledge_context)
+            std_results = self.knowledge_adapter.to_standard_format(knowledge_context)
+            self.logger.debug(f"Converted {len(std_results)} results to standard format")
+            return std_results
+            
+        self.logger.debug(f"Returning {len(knowledge_context)} results in legacy format")
         return knowledge_context
 
     def _get_cache_key(self, request: ClassifiedRequest) -> str:

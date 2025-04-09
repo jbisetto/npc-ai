@@ -34,18 +34,20 @@ class DefaultKnowledgeContextAdapter(KnowledgeContextAdapter):
         Returns:
             List of standardized knowledge documents
         """
+        logger.debug(f"Converting {len(documents) if documents else 0} documents to standard format")
         standardized_docs = []
         
         if not documents:
+            logger.warning("No knowledge documents provided to convert")
             return standardized_docs
         
-        for doc in documents:
+        for i, doc in enumerate(documents):
             try:
                 # Extract text content, supporting both 'document' and 'text' fields
                 text_content = doc.get('text', doc.get('document', ''))
                 
                 if not text_content:
-                    logger.warning(f"Skipping document with missing content: {doc}")
+                    logger.warning(f"Skipping document {i} with missing content: {doc}")
                     continue
                 
                 # Extract or generate document ID
@@ -61,6 +63,8 @@ class DefaultKnowledgeContextAdapter(KnowledgeContextAdapter):
                 elif 'score' in doc:
                     relevance_score = doc['score']
                 
+                logger.debug(f"Converting document {i} to standard format: ID={doc_id}, Score={relevance_score}, Content={text_content[:50]}...")
+                
                 # Create standardized document
                 standard_doc = KnowledgeDocument(
                     text=text_content,
@@ -70,8 +74,9 @@ class DefaultKnowledgeContextAdapter(KnowledgeContextAdapter):
                 )
                 
                 standardized_docs.append(standard_doc)
+                logger.debug(f"Successfully converted document {i} to standard format")
             except Exception as e:
-                logger.error(f"Error converting knowledge document to standard format: {e}")
+                logger.error(f"Error converting knowledge document {i} to standard format: {e}")
                 # Continue processing other documents
                 continue
         
@@ -81,7 +86,9 @@ class DefaultKnowledgeContextAdapter(KnowledgeContextAdapter):
                 key=lambda d: d.relevance_score if d.relevance_score is not None else 0,
                 reverse=True
             )
+            logger.debug(f"Sorted {len(standardized_docs)} documents by relevance score")
         
+        logger.debug(f"Converted {len(standardized_docs)} documents to standard format")
         return standardized_docs
     
     def from_standard_format(self, standardized_documents: List[KnowledgeDocument]) -> List[Dict[str, Any]]:
@@ -94,12 +101,14 @@ class DefaultKnowledgeContextAdapter(KnowledgeContextAdapter):
         Returns:
             List of knowledge documents in TokyoKnowledgeStore format
         """
+        logger.debug(f"Converting {len(standardized_documents) if standardized_documents else 0} documents from standard format")
         tokyo_docs = []
         
         if not standardized_documents:
+            logger.warning("No standardized documents provided to convert")
             return tokyo_docs
         
-        for doc in standardized_documents:
+        for i, doc in enumerate(standardized_documents):
             try:
                 # Convert to Tokyo format
                 tokyo_doc = {
@@ -113,10 +122,13 @@ class DefaultKnowledgeContextAdapter(KnowledgeContextAdapter):
                 if doc.relevance_score is not None:
                     tokyo_doc['relevance_score'] = doc.relevance_score
                 
+                logger.debug(f"Converting document {i} from standard format: ID={doc.id}, Score={doc.relevance_score}, Content={doc.text[:50]}...")
                 tokyo_docs.append(tokyo_doc)
+                logger.debug(f"Successfully converted document {i} from standard format")
             except Exception as e:
-                logger.error(f"Error converting standard document to Tokyo format: {e}")
+                logger.error(f"Error converting standard document {i} to Tokyo format: {e}")
                 # Continue processing other documents
                 continue
         
+        logger.debug(f"Converted {len(tokyo_docs)} documents from standard format")
         return tokyo_docs 
