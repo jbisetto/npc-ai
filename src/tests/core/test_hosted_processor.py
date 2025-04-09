@@ -9,6 +9,7 @@ import pytest
 import asyncio
 from unittest.mock import Mock, AsyncMock, patch
 from typing import Dict, Any
+from datetime import datetime
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
@@ -20,6 +21,7 @@ from src.ai.npc.hosted.bedrock_client import BedrockClient, BedrockError
 from src.ai.npc.hosted.usage_tracker import UsageTracker
 from src.ai.npc.core.context_manager import ContextManager
 from src.ai.npc.core.conversation_manager import ConversationManager
+from src.ai.npc.core.adapters import ConversationHistoryEntry
 
 @pytest.fixture
 def mock_bedrock_client():
@@ -49,9 +51,14 @@ def mock_context_manager():
 def mock_conversation_manager():
     """Create a mock conversation manager."""
     manager = Mock(spec=ConversationManager)
+    # Return standardized format conversation history
     manager.get_player_history = AsyncMock(return_value=[
-        {"role": "user", "content": "Previous message"},
-        {"role": "assistant", "content": "Previous response"}
+        ConversationHistoryEntry(
+            user="Previous question",
+            assistant="Previous answer",
+            timestamp=datetime.now().isoformat(),
+            conversation_id="test_conversation"
+        )
     ])
     manager.add_to_history = AsyncMock()
     return manager
@@ -167,13 +174,6 @@ async def test_hosted_processor_general_error(hosted_processor, test_request, mo
 @pytest.mark.asyncio
 async def test_hosted_processor_with_history(hosted_processor, test_request, mock_bedrock_client, mock_conversation_manager):
     """Test processing a request with conversation history."""
-    # Set up mock conversation history
-    history = [
-        {"role": "user", "content": "Previous question"},
-        {"role": "assistant", "content": "Previous answer"}
-    ]
-    mock_conversation_manager.get_player_history.return_value = history
-    
     # Process the request
     result = await hosted_processor.process(test_request)
     
@@ -182,7 +182,10 @@ async def test_hosted_processor_with_history(hosted_processor, test_request, moc
     assert result["response_text"] == "Test response from Bedrock"
     
     # Verify conversation history was retrieved and used
-    mock_conversation_manager.get_player_history.assert_called_once_with(test_request.game_context.player_id)
+    mock_conversation_manager.get_player_history.assert_called_once_with(
+        test_request.game_context.player_id,
+        standardized_format=True
+    )
     mock_bedrock_client.generate.assert_called_once()
 
 @pytest.mark.asyncio

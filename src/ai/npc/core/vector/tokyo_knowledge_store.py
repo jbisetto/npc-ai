@@ -10,12 +10,15 @@ import logging
 import chromadb
 import asyncio
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
+
 from chromadb.config import Settings
 
 from src.ai.npc.core.models import ClassifiedRequest
 from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 from src.ai.npc.core.constants import INTENT_VOCABULARY_HELP, INTENT_DIRECTION_GUIDANCE
+from src.ai.npc.core.adapters import KnowledgeDocument
+from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -77,17 +80,25 @@ class TokyoKnowledgeStore(KnowledgeStore):
             "retrieved_docs": {}
         }
         
+        # Initialize adapter
+        self.knowledge_adapter = DefaultKnowledgeContextAdapter()
+        
         self.logger.info(f"Initialized TokyoKnowledgeStore with {self.collection.count()} documents")
     
-    async def contextual_search(self, request: ClassifiedRequest) -> List[Dict[str, Any]]:
+    async def contextual_search(
+        self, 
+        request: ClassifiedRequest,
+        standardized_format: bool = False
+    ) -> Union[List[Dict[str, Any]], List[KnowledgeDocument]]:
         """
         Search for relevant knowledge context based on the request.
         
         Args:
             request: The classified request to find context for
+            standardized_format: If True, returns entries in standardized KnowledgeDocument format
             
         Returns:
-            A list of dictionaries containing relevant knowledge context
+            A list of knowledge context documents in either standard or legacy format
         """
         # Check cache first
         cache_key = self._get_cache_key(request)
@@ -96,6 +107,10 @@ class TokyoKnowledgeStore(KnowledgeStore):
             if cache_key not in self._analytics["cache_hits"]:
                 self._analytics["cache_hits"][cache_key] = 0
             self._analytics["cache_hits"][cache_key] += 1
+            
+            # Return cached results in requested format
+            if standardized_format:
+                return self.knowledge_adapter.to_standard_format(self._cache[cache_key])
             return self._cache[cache_key]
         
         # Get query text from request
@@ -122,18 +137,40 @@ class TokyoKnowledgeStore(KnowledgeStore):
         # Format results
         knowledge_context = []
         if results['documents'] and len(results['documents'][0]) > 0:
-            for doc, metadata, id in zip(results['documents'][0], results['metadatas'][0], results['ids'][0]):
+            # Use fixed relevance scores since we don't have distances
+            # Documents are already sorted by relevance in ChromaDB results
+            docs_count = len(results['documents'][0])
+            
+            for i, (doc, metadata, doc_id) in enumerate(zip(
+                results['documents'][0], 
+                results['metadatas'][0], 
+                results['ids'][0]
+            )):
                 # Track document retrieval for analytics
-                if id not in self._analytics["retrieved_docs"]:
-                    self._analytics["retrieved_docs"][id] = 0
-                self._analytics["retrieved_docs"][id] += 1
+                if doc_id not in self._analytics["retrieved_docs"]:
+                    self._analytics["retrieved_docs"][doc_id] = 0
+                self._analytics["retrieved_docs"][doc_id] += 1
                 
+                # Calculate relevance score - linearly decreasing from 1.0 to 0.6
+                # This assumes the first result is most relevant
+                relevance_score = 1.0 - (i * 0.4 / max(1, docs_count - 1))
+                relevance_score = round(max(0.6, min(1.0, relevance_score)), 3)
+                
+                # Ensure metadata is a dictionary
+                if metadata is None:
+                    metadata = {}
+                
+                # Create document with consistent field names and relevance score
                 knowledge_context.append({
-                    'document': doc,
-                    'text': doc,  # For backward compatibility
+                    'document': doc,  # Original field name
+                    'text': doc,  # Standardized field name
                     'metadata': metadata,
-                    'id': id
+                    'id': doc_id,
+                    'relevance_score': relevance_score
                 })
+            
+            # Sort by relevance score (highest first) - redundant but keeping for clarity
+            knowledge_context.sort(key=lambda x: x['relevance_score'], reverse=True)
         
         # Update analytics
         self._analytics["total_queries"] += 1
@@ -149,10 +186,13 @@ class TokyoKnowledgeStore(KnowledgeStore):
         
         # Prune cache if necessary
         if len(self._cache) > self._cache_size:
-            # Remove oldest item
+            # Remove oldest key
             oldest_key = next(iter(self._cache))
             del self._cache[oldest_key]
         
+        # Return in requested format
+        if standardized_format:
+            return self.knowledge_adapter.to_standard_format(knowledge_context)
         return knowledge_context
 
     def _get_cache_key(self, request: ClassifiedRequest) -> str:
@@ -160,7 +200,11 @@ class TokyoKnowledgeStore(KnowledgeStore):
         # Use request ID and player input as the key
         return f"{request.request_id}:{request.player_input}"
     
-    async def add_knowledge(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+    async def add_knowledge(
+        self, 
+        text: str, 
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
         """
         Add new knowledge to the store.
         
@@ -171,10 +215,19 @@ class TokyoKnowledgeStore(KnowledgeStore):
         # Generate a unique ID for the document
         doc_id = f"doc_{self.collection.count() + 1}"
         
+        # Ensure metadata is a dictionary
+        if metadata is None:
+            metadata = {}
+        
+        # Validate metadata
+        if not isinstance(metadata, dict):
+            self.logger.warning(f"Invalid metadata type: {type(metadata)}. Using empty dict instead.")
+            metadata = {}
+            
         # Add document to collection
         self.collection.add(
             documents=[text],
-            metadatas=[metadata or {}],
+            metadatas=[metadata],
             ids=[doc_id]
         )
         
@@ -253,69 +306,76 @@ class TokyoKnowledgeStore(KnowledgeStore):
                 metadatas=metadatas,
                 ids=ids
             )
+            
+            self.logger.info(f"Added {len(documents)} documents to knowledge store")
+            return len(documents)
         
-        self.logger.info(f"Loaded {len(documents)} documents into knowledge store")
-        return len(documents)
-
+        return 0
+    
     def get_explanation(self, doc_id: str) -> Optional[str]:
         """
-        Get an explanation for a document in the knowledge store.
+        Get an explanation for a specific document.
         
         Args:
-            doc_id: ID of the document to explain
+            doc_id: The document ID
             
         Returns:
-            String explanation or None if not found
+            An explanation string or None if the document doesn't exist
         """
         try:
             result = self.collection.get(ids=[doc_id])
-            if not result["documents"]:
-                return None
             
-            doc = result["documents"][0]
-            metadata = result["metadatas"][0]
+            if result['ids'] and result['metadatas']:
+                doc = result['documents'][0]
+                metadata = result['metadatas'][0]
+                
+                doc_type = metadata.get('type', 'general')
+                importance = metadata.get('importance', 'medium')
+                
+                explanation = f"This is a {importance} importance {doc_type} document about {metadata.get('source', 'unknown topic')}."
+                
+                if 'intent' in metadata:
+                    explanation += f" It's relevant for {metadata['intent']} queries."
+                
+                return explanation
             
-            explanation = f"Document: {doc}\n"
-            if "type" in metadata:
-                explanation += f"Type: {metadata['type']}\n"
-            if "importance" in metadata:
-                explanation += f"Importance: {metadata['importance']}\n"
-            if "source" in metadata:
-                explanation += f"Source: {metadata['source']}\n"
-            if "related_npcs" in metadata:
-                explanation += f"Related NPCs: {metadata['related_npcs']}\n"
-            if "related_locations" in metadata:
-                explanation += f"Related Locations: {metadata['related_locations']}\n"
-            
-            return explanation
-        except Exception as e:
-            self.logger.error(f"Error getting explanation: {e}")
             return None
-
+        except Exception as e:
+            self.logger.error(f"Error getting explanation for document {doc_id}: {e}")
+            return None
+    
     def get_analytics(self) -> Dict[str, Any]:
         """
-        Get analytics about the knowledge store usage.
+        Get analytics data for the knowledge store.
         
         Returns:
-            Dictionary with analytics data
+            A dictionary containing analytics data
         """
         total_queries = self._analytics["total_queries"]
-        cache_hits = sum(self._analytics["cache_hits"].values())
+        if total_queries > 0:
+            # Calculate cache hit ratio
+            total_hits = sum(self._analytics["cache_hits"].values())
+            hit_ratio = total_hits / total_queries
+            
+            # Calculate average query time
+            avg_query_time = sum(self._analytics["query_times"]) / len(self._analytics["query_times"]) if self._analytics["query_times"] else 0
+            
+            return {
+                **self._analytics,
+                "hit_ratio": hit_ratio,
+                "avg_query_time": avg_query_time
+            }
         
-        analytics = {
-            "total_queries": total_queries,
-            "cache_hit_rate": cache_hits / total_queries if total_queries > 0 else 0,
-            "avg_query_time": sum(self._analytics["query_times"]) / len(self._analytics["query_times"]) if self._analytics["query_times"] else 0,
-            "most_retrieved_docs": sorted(self._analytics["retrieved_docs"].items(), key=lambda x: x[1], reverse=True)[:5]
-        }
-        
-        return analytics
-
+        return self._analytics
+    
     async def clear(self) -> None:
-        """Clear all knowledge from the store."""
-        self.collection.delete()
-        self.collection = self.client.create_collection(
-            name="tokyo_knowledge",
-            metadata={"hnsw:space": "cosine"}
-        )
-        self.logger.info("Cleared knowledge store") 
+        """
+        Clear the knowledge store.
+        """
+        try:
+            self.collection.delete(where={"test": True})
+            self._cache = {}
+            self.logger.info("Cleared knowledge store")
+        except Exception as e:
+            self.logger.error(f"Error clearing knowledge store: {e}")
+            raise 

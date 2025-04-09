@@ -27,6 +27,8 @@ from src.ai.npc.config import get_config, CLOUD_API_CONFIG
 from src.ai.npc.core.response_parser import ResponseParser
 from src.ai.npc.core.conversation_manager import ConversationManager
 from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
+from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
+from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,10 @@ class HostedProcessor(Processor):
         self.monitor = ProcessorMonitor()
         self.conversation_manager = conversation_manager
         self.response_parser = ResponseParser()
+        
+        # Initialize adapters
+        self.history_adapter = DefaultConversationHistoryAdapter()
+        self.knowledge_adapter = DefaultKnowledgeContextAdapter()
         
         # Initialize storage
         self.conversation_histories = {}
@@ -120,12 +126,19 @@ class HostedProcessor(Processor):
             history = []
             conversation_id = request.additional_params.get('conversation_id')
             if conversation_id and self.conversation_manager:
-                history = await self.conversation_manager.get_player_history(request.game_context.player_id)
+                # Get history in standardized format
+                history = await self.conversation_manager.get_player_history(
+                    request.game_context.player_id,
+                    standardized_format=True
+                )
 
-            # Get relevant knowledge from the knowledge store
-            knowledge_context = await self.knowledge_store.contextual_search(request)
+            # Get relevant knowledge from the knowledge store in standardized format
+            knowledge_context = await self.knowledge_store.contextual_search(
+                request,
+                standardized_format=True
+            )
 
-            # Create prompt with knowledge context
+            # Create prompt with standardized knowledge context and history
             prompt = self.prompt_manager.create_prompt(
                 request,
                 history=history,
@@ -155,9 +168,12 @@ class HostedProcessor(Processor):
             # Parse response
             result = self.response_parser.parse_response(response_text, request)
             
-            # Add prompt to debug info
+            # Add diagnostic information
             result['debug_info'] = result.get('debug_info', {})
             result['debug_info']['prompt'] = prompt
+            result['debug_info']['knowledge_count'] = len(knowledge_context)
+            result['debug_info']['history_count'] = len(history)
+            result['debug_info']['prompt_tokens'] = self.prompt_manager.estimate_tokens(prompt)
 
             # Update conversation history if needed
             if conversation_id and self.conversation_manager:
@@ -201,7 +217,11 @@ class HostedProcessor(Processor):
                     "Could you ask something simpler, or try again later?"
                 ),
                 'processing_tier': request.processing_tier,
-                'is_fallback': True
+                'is_fallback': True,
+                'debug_info': {
+                    'error_type': 'QuotaExceeded',
+                    'error': str(error)
+                }
             }
         
         # For other errors, provide a generic message
@@ -212,5 +232,9 @@ class HostedProcessor(Processor):
                 "Could you rephrase your question or ask something else?"
             ),
             'processing_tier': request.processing_tier,
-            'is_fallback': True
+            'is_fallback': True,
+            'debug_info': {
+                'error_type': type(error).__name__,
+                'error': str(error)
+            }
         } 

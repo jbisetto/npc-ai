@@ -69,8 +69,8 @@ async def test_local_processor_knowledge_context(mock_knowledge_store, mock_olla
     # Process request
     result = await processor.process(test_request)
     
-    # Verify knowledge store was used
-    mock_knowledge_store.contextual_search.assert_called_once_with(test_request)
+    # Verify knowledge store was used with standardized_format=True
+    mock_knowledge_store.contextual_search.assert_called_once_with(test_request, standardized_format=True)
     
     # Verify response
     assert result is not None
@@ -96,8 +96,8 @@ async def test_hosted_processor_knowledge_context(mock_knowledge_store, mock_bed
         # Process request
         result = await processor.process(test_request)
         
-        # Verify knowledge store was used
-        mock_knowledge_store.contextual_search.assert_called_once_with(test_request)
+        # Verify knowledge store was used with standardized_format=True
+        mock_knowledge_store.contextual_search.assert_called_once_with(test_request, standardized_format=True)
         
         # Verify response
         assert result is not None
@@ -115,8 +115,8 @@ async def test_knowledge_context_optimization(mock_knowledge_store, mock_ollama_
     # Process request
     result = await processor.process(test_request)
     
-    # Verify knowledge store was used
-    mock_knowledge_store.contextual_search.assert_called_once_with(test_request)
+    # Verify knowledge store was used with standardized_format=True
+    mock_knowledge_store.contextual_search.assert_called_once_with(test_request, standardized_format=True)
     
     # Verify prompt includes knowledge context
     prompt_args = mock_ollama_client.generate.call_args[0][0]
@@ -138,8 +138,8 @@ async def test_empty_knowledge_context(mock_ollama_client, test_request):
     # Process request
     result = await processor.process(test_request)
     
-    # Verify knowledge store was used
-    empty_store.contextual_search.assert_called_once_with(test_request)
+    # Verify knowledge store was used with standardized_format=True
+    empty_store.contextual_search.assert_called_once_with(test_request, standardized_format=True)
     
     # Verify response still works
     assert result is not None
@@ -157,8 +157,8 @@ async def test_knowledge_context_metadata(mock_knowledge_store, mock_ollama_clie
     # Process request
     result = await processor.process(test_request)
     
-    # Verify knowledge store was used
-    mock_knowledge_store.contextual_search.assert_called_once_with(test_request)
+    # Verify knowledge store was used with standardized_format=True
+    mock_knowledge_store.contextual_search.assert_called_once_with(test_request, standardized_format=True)
     
     # Verify prompt includes metadata
     prompt_args = mock_ollama_client.generate.call_args[0][0]
