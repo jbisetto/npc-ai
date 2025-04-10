@@ -118,8 +118,8 @@ def test_request():
             player_location="main_entrance",
             current_objective="test",
             nearby_npcs=["npc1"],
-            npc_id=NPCProfileType.STATION_ATTENDANT,
-            language_proficiency={"japanese": 0.5, "english": 1.0}
+            npc_id=NPCProfileType.NAKAMURA,
+            language_proficiency={"JLPT": 5}
         ),
         processing_tier=ProcessingTier.HOSTED,
         additional_params={
@@ -161,7 +161,7 @@ async def test_hosted_processor_process_request(
     assert call_args.kwargs["user_query"] == "Hello"
     assert call_args.kwargs["response"] == "Test response from Bedrock"
     assert call_args.kwargs["player_id"] == "test_player"
-    assert call_args.kwargs["npc_id"] == "station_attendant"  # With string value
+    assert call_args.kwargs["npc_id"] == "station_attendant_odawara"  # With string value
 
 @pytest.mark.asyncio
 async def test_hosted_processor_quota_error(hosted_processor, test_request, mock_bedrock_client):
@@ -224,7 +224,7 @@ async def test_hosted_processor_without_conversation_manager(mock_bedrock_client
         player_input="Hello",
         game_context=GameContext(
             player_id="test_player",
-            language_proficiency={"japanese": 0.5, "english": 1.0}
+            language_proficiency={"JLPT": 5}
         ),
         processing_tier=ProcessingTier.HOSTED
     )
@@ -275,7 +275,7 @@ async def test_hosted_processor_history_in_prompt(hosted_processor, test_request
     assert call_args.kwargs["user_query"] == "Hello"
     assert call_args.kwargs["response"] == "Test response from Bedrock"
     assert call_args.kwargs["player_id"] == "test_player"
-    assert call_args.kwargs["npc_id"] == "station_attendant"  # With string value
+    assert call_args.kwargs["npc_id"] == "station_attendant_odawara"  # With string value
 
 @pytest.mark.asyncio
 async def test_hosted_processor_multiple_history_exchanges(hosted_processor, test_request, mock_bedrock_client, mock_conversation_manager):

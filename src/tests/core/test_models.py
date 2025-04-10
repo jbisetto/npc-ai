@@ -242,19 +242,19 @@ def test_conversation_context_multiple_interactions():
 def test_npc_profile_type_enum():
     """Test NPCProfileType enum values."""
     # Test enum values
-    assert NPCProfileType.STATION_ATTENDANT.value == "station_attendant"
-    assert NPCProfileType.STATION_ATTENDANT_KYOTO.value == "station_attendant_kyoto"
-    assert NPCProfileType.STATION_ATTENDANT_ODAWARA.value == "station_attendant_odawara"
-    assert NPCProfileType.INFORMATION_BOOTH_ATTENDANT.value == "information_booth_attendant"
-    assert NPCProfileType.TICKET_BOOTH_ATTENDANT.value == "ticket_booth_attendant"
-    assert NPCProfileType.COMPANION_DOG.value == "companion_dog"
+    assert NPCProfileType.YAMADA.value == "station_attendant_osaka"
+    assert NPCProfileType.TANAKA.value == "station_attendant_kyoto"
+    assert NPCProfileType.NAKAMURA.value == "station_attendant_odawara"
+    assert NPCProfileType.SUZUKI.value == "information_booth_attendant"
+    assert NPCProfileType.SATO.value == "ticket_booth_attendant"
+    assert NPCProfileType.HACHIKO.value == "companion_dog"
 
 
 def test_npc_profile_type_from_string():
     """Test NPCProfileType.from_string method."""
     # Test valid profile IDs
-    assert NPCProfileType.from_string("station_attendant") == NPCProfileType.STATION_ATTENDANT
-    assert NPCProfileType.from_string("companion_dog") == NPCProfileType.COMPANION_DOG
+    assert NPCProfileType.from_string("station_attendant_osaka") == NPCProfileType.YAMADA
+    assert NPCProfileType.from_string("companion_dog") == NPCProfileType.HACHIKO
     
     # Test invalid profile ID
     assert NPCProfileType.from_string("nonexistent_profile") is None
@@ -266,19 +266,19 @@ def test_game_context_with_npc_profile_type():
     context1 = GameContext(
         player_id="test1",
         language_proficiency={"english": 1.0},
-        npc_id=NPCProfileType.STATION_ATTENDANT
+        npc_id=NPCProfileType.YAMADA
     )
-    assert context1.npc_id == NPCProfileType.STATION_ATTENDANT
+    assert context1.npc_id == NPCProfileType.YAMADA
     
     # Test to_dict conversion
     context_dict = context1.to_dict()
-    assert context_dict["npc_id"] == "station_attendant"
+    assert context_dict["npc_id"] == "station_attendant_osaka"
     
     # Create with string
     context2 = GameContext(
         player_id="test2",
         language_proficiency={"english": 1.0},
-        npc_id="station_attendant"
+        npc_id="station_attendant_osaka"
     )
     assert isinstance(context2.npc_id, str)
-    assert context2.npc_id == "station_attendant" 
+    assert context2.npc_id == "station_attendant_osaka" 

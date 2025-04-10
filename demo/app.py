@@ -48,32 +48,32 @@ preset_player_ids = [
 # Define NPC profiles
 npc_profiles = {
     "Hachiko (Dog Companion)": {
-        "profile_id": NPCProfileType.COMPANION_DOG,
+        "profile_id": NPCProfileType.HACHIKO,
         "role": "companion",
         "personality": "helpful_bilingual_dog",
     },
     "Yamada (Station Staff)": {
-        "profile_id": NPCProfileType.STATION_ATTENDANT,
+        "profile_id": NPCProfileType.YAMADA,
         "role": "staff",
         "personality": "professional_helpful",
     },
-    "Kyoto Station Staff": {
-        "profile_id": NPCProfileType.STATION_ATTENDANT_KYOTO,
+    "Tanaka (Kyoto Station Staff)": {
+        "profile_id": NPCProfileType.TANAKA,
         "role": "staff",
         "personality": "formal_helpful",
     },
-    "Odawara Station Staff": {
-        "profile_id": NPCProfileType.STATION_ATTENDANT_ODAWARA,
+    "Nakamura (Odawara Station Staff)": {
+        "profile_id": NPCProfileType.NAKAMURA,
         "role": "staff",
         "personality": "local_helpful",
     },
-    "Information Booth": {
-        "profile_id": NPCProfileType.INFORMATION_BOOTH_ATTENDANT,
+    "Suzuki (Information Booth)": {
+        "profile_id": NPCProfileType.SUZUKI,
         "role": "information",
         "personality": "knowledgeable_patient",
     },
-    "Ticket Booth": {
-        "profile_id": NPCProfileType.TICKET_BOOTH_ATTENDANT,
+    "Sato (Ticket Booth)": {
+        "profile_id": NPCProfileType.SATO,
         "role": "ticketing",
         "personality": "efficient_helpful",
     },

@@ -89,12 +89,12 @@ def sample_request():
     """Create a sample ClassifiedRequest for testing."""
     game_context = GameContext(
         player_id="test_player",
-        language_proficiency={"japanese": 0.5},
+        language_proficiency={"JLPT": 5},
         conversation_history=None,
         player_location="Tokyo Station",
         current_objective="Find the main entrance",
         nearby_npcs=["Station Master"],
-        npc_id=NPCProfileType.COMPANION_DOG
+        npc_id=NPCProfileType.HACHIKO
     )
     return ClassifiedRequest(
         request_id="test_request",
@@ -183,12 +183,12 @@ async def test_cache_pruning(knowledge_store, tmp_path):
     for i in range(15):  # More than cache_size
         game_context = GameContext(
             player_id=f"player_{i}",
-            language_proficiency={"japanese": 0.5},
+            language_proficiency={"JLPT": 5},
             conversation_history=None,
             player_location=f"Location {i}",
             current_objective=f"Objective {i}",
             nearby_npcs=[f"NPC {i}"],
-            npc_id="hachiko"
+            npc_id=NPCProfileType.HACHIKO
         )
         request = ClassifiedRequest(
             request_id=f"request_{i}",
@@ -258,12 +258,12 @@ async def test_intent_based_filtering(knowledge_store, tmp_path):
     # Create requests with different intents
     game_context = GameContext(
         player_id="test_player",
-        language_proficiency={"japanese": 0.5},
+        language_proficiency={"JLPT": 5},
         conversation_history=None,
         player_location="Tokyo Station",
         current_objective="Learn Japanese",
         nearby_npcs=["Tourist Guide"],
-        npc_id="hachiko"
+        npc_id=NPCProfileType.HACHIKO
     )
     
     # Language learning request

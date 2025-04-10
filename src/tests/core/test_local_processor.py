@@ -100,8 +100,8 @@ def test_request():
         player_input="Hello",
         game_context=GameContext(
             player_id="test_player",
-            npc_id=NPCProfileType.STATION_ATTENDANT,
-            language_proficiency={"japanese": 0.5, "english": 1.0}
+            language_proficiency={"JLPT": 5},
+            npc_id=NPCProfileType.YAMADA,
         ),
         processing_tier=ProcessingTier.LOCAL,
         additional_params={
@@ -137,7 +137,7 @@ async def test_local_processor_process_request(local_processor, test_request, mo
     assert call_args.kwargs["response"] == result["response_text"]
     assert call_args.kwargs["player_id"] == "test_player"
     assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
-    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
+    assert call_args.kwargs["npc_id"].value == "station_attendant_osaka"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_error_handling(local_processor, test_request, mock_ollama_client):
@@ -188,7 +188,7 @@ async def test_local_processor_with_history(local_processor, test_request, mock_
     assert call_args.kwargs["response"] == result["response_text"]
     assert call_args.kwargs["player_id"] == "test_player"
     assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
-    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
+    assert call_args.kwargs["npc_id"].value == "station_attendant_osaka"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_without_conversation_manager(mock_ollama_client, mock_knowledge_store):
@@ -205,7 +205,8 @@ async def test_local_processor_without_conversation_manager(mock_ollama_client, 
         player_input="Hello",
         game_context=GameContext(
             player_id="test_player",
-            language_proficiency={"japanese": 0.5, "english": 1.0}
+            language_proficiency={"JLPT": 5},
+            npc_id=NPCProfileType.HACHIKO,
         ),
         processing_tier=ProcessingTier.LOCAL
     )
@@ -260,7 +261,7 @@ async def test_local_processor_history_in_prompt(local_processor, test_request, 
     assert call_args.kwargs["response"] == result["response_text"]
     assert call_args.kwargs["player_id"] == "test_player"
     assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
-    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
+    assert call_args.kwargs["npc_id"].value == "station_attendant_osaka"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_multiple_history_exchanges(local_processor, test_request, mock_ollama_client, mock_conversation_manager):
@@ -311,7 +312,7 @@ async def test_local_processor_multiple_history_exchanges(local_processor, test_
     assert call_args.kwargs["response"] == result["response_text"]
     assert call_args.kwargs["player_id"] == "test_player"
     assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
-    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
+    assert call_args.kwargs["npc_id"].value == "station_attendant_osaka"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_multiple_conversations(
@@ -323,7 +324,7 @@ async def test_local_processor_multiple_conversations(
     """Test that different conversations for the same player with different NPCs are handled correctly."""
     # First conversation with NPC1
     test_request.additional_params["conversation_id"] = "conversation_with_npc1"
-    test_request.game_context.npc_id = NPCProfileType.STATION_ATTENDANT
+    test_request.game_context.npc_id = NPCProfileType.YAMADA
     
     # Mock the conversation history for NPC1
     mock_conversation_manager.get_player_history.return_value = [
@@ -349,7 +350,7 @@ async def test_local_processor_multiple_conversations(
     
     # Second conversation with NPC2
     test_request.additional_params["conversation_id"] = "conversation_with_npc2"
-    test_request.game_context.npc_id = NPCProfileType.COMPANION_DOG
+    test_request.game_context.npc_id = NPCProfileType.HACHIKO
     
     # Mock the conversation history for NPC2
     mock_conversation_manager.get_player_history.return_value = [
@@ -372,6 +373,10 @@ async def test_local_processor_multiple_conversations(
     # Verify NPC1's conversation is not in NPC2's prompt
     assert "Message for NPC1" not in call_args_npc2
     assert "Response from NPC1" not in call_args_npc2
+
+    # Verify the add_to_history call for HACHIKO
+    call_args = mock_conversation_manager.add_to_history.call_args
+    assert call_args.kwargs["npc_id"].value == "companion_dog"  # Correct value for HACHIKO
 
 @pytest.mark.asyncio
 async def test_local_processor_empty_history(
@@ -408,7 +413,7 @@ async def test_local_processor_empty_history(
     assert call_args.kwargs["response"] == result["response_text"]
     assert call_args.kwargs["player_id"] == "test_player"
     assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
-    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
+    assert call_args.kwargs["npc_id"].value == "station_attendant_osaka"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_long_history(
@@ -460,7 +465,7 @@ async def test_local_processor_long_history(
     assert call_args.kwargs["response"] == result["response_text"]
     assert call_args.kwargs["player_id"] == "test_player"
     assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
-    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
+    assert call_args.kwargs["npc_id"].value == "station_attendant_osaka"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_close(local_processor, mock_ollama_client):

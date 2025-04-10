@@ -23,12 +23,12 @@ class ProcessingTier(Enum):
 
 class NPCProfileType(Enum):
     """Enum of available NPC profiles in the game."""
-    STATION_ATTENDANT = "station_attendant"
-    STATION_ATTENDANT_KYOTO = "station_attendant_kyoto"
-    STATION_ATTENDANT_ODAWARA = "station_attendant_odawara"
-    INFORMATION_BOOTH_ATTENDANT = "information_booth_attendant"
-    TICKET_BOOTH_ATTENDANT = "ticket_booth_attendant"
-    COMPANION_DOG = "companion_dog"  # Hachiko
+    YAMADA = "station_attendant_osaka"          # Osaka specialist
+    TANAKA = "station_attendant_kyoto"          # Kyoto specialist
+    NAKAMURA = "station_attendant_odawara"      # Odawara specialist
+    SUZUKI = "information_booth_attendant"      # Information booth attendant
+    SATO = "ticket_booth_attendant"             # Ticket booth attendant
+    HACHIKO = "companion_dog"                   # Companion dog
     
     @classmethod
     def from_string(cls, value: str):

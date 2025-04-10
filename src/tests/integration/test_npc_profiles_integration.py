@@ -75,7 +75,7 @@ def mock_profile_loader():
     # Setup the profiles dictionary
     loader.profiles = {
         "companion_dog": HACHIKO_PROFILE,
-        "station_attendant": STATION_ATTENDANT_PROFILE
+        "station_attendant_osaka": STATION_ATTENDANT_PROFILE
     }
     
     # Setup the get_profile method
@@ -105,7 +105,7 @@ def test_game_context():
 def station_attendant_request(test_game_context):
     """Create a request for the station attendant."""
     # Add NPC ID to the game context
-    test_game_context.npc_id = NPCProfileType.STATION_ATTENDANT
+    test_game_context.npc_id = NPCProfileType.YAMADA
     
     # Create the request
     return NPCRequest(
@@ -120,7 +120,7 @@ def station_attendant_request(test_game_context):
 def hachiko_request(test_game_context):
     """Create a request for Hachiko (companion dog)."""
     # Add NPC ID to the game context
-    test_game_context.npc_id = NPCProfileType.COMPANION_DOG
+    test_game_context.npc_id = NPCProfileType.HACHIKO
     
     # Create the request
     return NPCRequest(
@@ -332,8 +332,8 @@ async def test_different_npcs_have_different_prompts(mock_profile_loader):
         player_id="test_player",
         player_location="tokyo_station",
         current_objective="Navigate the station",
-        language_proficiency={"japanese": 0.3, "english": 0.9},
-        npc_id=NPCProfileType.STATION_ATTENDANT  # Set NPC ID directly here
+        language_proficiency={"japanese": 0.5, "english": 1.0},
+        npc_id=NPCProfileType.YAMADA  # Set NPC ID directly here
     )
     
     station_request = NPCRequest(
@@ -349,8 +349,8 @@ async def test_different_npcs_have_different_prompts(mock_profile_loader):
         player_id="test_player",
         player_location="tokyo_station",
         current_objective="Navigate the station",
-        language_proficiency={"japanese": 0.3, "english": 0.9},
-        npc_id=NPCProfileType.COMPANION_DOG  # Set NPC ID directly here
+        language_proficiency={"japanese": 0.5, "english": 1.0},
+        npc_id=NPCProfileType.HACHIKO  # Set NPC ID directly here
     )
     
     hachiko_request = NPCRequest(
