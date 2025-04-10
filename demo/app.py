@@ -27,8 +27,7 @@ logging.getLogger('src.ai.npc').setLevel(logging.DEBUG)
 
 # Import from src
 from src.ai.npc import process_request
-from src.ai.npc.core.models import CompanionRequest, GameContext, ClassifiedRequest
-from src.ai.npc.core.models import ProcessingTier
+from src.ai.npc.core.models import NPCRequest, GameContext, ProcessingTier
 
 # Define preset player IDs
 preset_player_ids = [
@@ -127,17 +126,16 @@ async def process_message(message, selected_npc, player_id, session_id=None):
         'npc_personality': npc_data.get('personality', 'helpful')
     }
     
-    # Create request with standard fields only
-    request = CompanionRequest(
+    # Create request with all necessary fields
+    request = NPCRequest(
         request_id=request_id,
         player_input=message,
-        game_context=game_context
+        game_context=game_context,
+        additional_params=additional_params
     )
     
     # Create a JSON representation of the request (for debugging display)
     request_dict = request.model_dump()
-    # Add additional_params to the request_dict for display purposes only
-    request_dict["additional_params"] = additional_params
     raw_request_json = json.dumps(request_dict, indent=2)
     
     try:
@@ -148,8 +146,7 @@ async def process_message(message, selected_npc, player_id, session_id=None):
         logger.debug(f"Request details: player_id={player_id}, conversation_id={conversation_id}")
         logger.debug(f"NPC data: {json.dumps(npc_data, indent=2)}")
         
-        # Process the request with the standard CompanionRequest
-        # The process_request function will handle creating the ClassifiedRequest
+        # Process the request with NPCRequest
         response = await process_request(request)
         
         logger.info(f"Response received - tier: {response.get('processing_tier', 'unknown')}")
