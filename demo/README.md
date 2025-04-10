@@ -46,7 +46,7 @@ python app.py
 
 The app will be available at http://localhost:7860 (or another port if 7860 is in use).
 
-<img src="demo/docs/images/ai-demo.png" alt="AI Demo Screenshot" width="600"/>
+<img src="docs/images/ai-demo.png" alt="AI Demo Screenshot" width="600"/>
 
 ## Usage
 
@@ -62,9 +62,8 @@ The app will be available at http://localhost:7860 (or another port if 7860 is i
 
 ## Processing Tiers
 
-- **TIER_1**: Rule-based responses (fastest, used for simple queries)
-- **TIER_2**: Local DeepSeek LLM (used for moderately complex queries)
-- **TIER_3**: AWS Bedrock (used for complex queries)
+- **TIER_1**: Local DeepSeek LLM (used for moderately complex queries) 
+- **TIER_2**: AWS Bedrock (used for complex queries)
 
 ## Debug Information
 
