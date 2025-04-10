@@ -11,6 +11,7 @@ import asyncio
 import time
 from typing import Dict, Any, Optional, List
 from unittest.mock import patch
+import os
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
@@ -75,8 +76,17 @@ class HostedProcessor(Processor):
         self.history_adapter = DefaultConversationHistoryAdapter()
         self.knowledge_adapter = DefaultKnowledgeContextAdapter()
         
-        # Initialize profile registry
-        self.profile_registry = ProfileLoader(profiles_directory="src/data/profiles")
+        # Initialize profile registry with absolute path
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../'))
+        profiles_dir = os.path.join(base_dir, "src/data/profiles")
+        self.logger.info(f"[PROFILE DEBUG] Current working directory: {os.getcwd()}")
+        self.logger.info(f"[PROFILE DEBUG] Base directory: {base_dir}")
+        self.logger.info(f"[PROFILE DEBUG] Absolute profiles directory: {profiles_dir}")
+        self.logger.info(f"[PROFILE DEBUG] Directory exists: {os.path.exists(profiles_dir)}")
+        if os.path.exists(profiles_dir):
+            self.logger.info(f"[PROFILE DEBUG] Files in directory: {os.listdir(profiles_dir)}")
+        self.profile_registry = ProfileLoader(profiles_directory=profiles_dir)
+        self.logger.info(f"[PROFILE DEBUG] ProfileLoader created, profiles loaded: {len(self.profile_registry.profiles)}")
         
         # Initialize storage
         self.conversation_histories = {}
@@ -145,19 +155,22 @@ class HostedProcessor(Processor):
             profile = None
             if hasattr(request.game_context, 'npc_id') and request.game_context.npc_id:
                 npc_id = request.game_context.npc_id
-                self.logger.debug(f"Loading profile for NPC ID: {npc_id}")
+                self.logger.info(f"[PROFILE DEBUG] Loading profile for NPC ID: {npc_id}")
+                
                 try:
                     # Convert enum to string value if it's an enum
                     if hasattr(npc_id, 'value'):
                         npc_id = npc_id.value
-                        
+                        self.logger.info(f"[PROFILE DEBUG] Converted enum value from {npc_id} to {npc_id}")
+                    
+                    # Get profile by ID - same as local_processor
                     profile = self.profile_registry.get_profile(npc_id, as_object=True)
                     if profile:
-                        self.logger.debug(f"Loaded profile for {profile.name}, role: {profile.role}")
+                        self.logger.info(f"[PROFILE DEBUG] Successfully loaded profile for {profile.name}, role: {profile.role}")
                     else:
-                        self.logger.warning(f"No profile found for NPC ID: {npc_id}")
+                        self.logger.warning(f"[PROFILE DEBUG] No profile found for NPC ID: {npc_id}")
                 except Exception as e:
-                    self.logger.error(f"Error loading NPC profile: {e}", exc_info=True)
+                    self.logger.error(f"[PROFILE DEBUG] Error loading NPC profile: {e}", exc_info=True)
 
             # Get relevant knowledge from the knowledge store in standardized format
             try:
@@ -193,6 +206,8 @@ class HostedProcessor(Processor):
 
             # Create prompt with standardized knowledge context, history, and profile
             self.logger.debug(f"Creating prompt with {len(history)} history entries and {len(knowledge_context)} knowledge items")
+            self.logger.info(f"[PROFILE DEBUG] Using profile in prompt generation: {profile.name if profile else 'None'}")
+            
             prompt = self.prompt_manager.create_prompt(
                 request,
                 history=history,

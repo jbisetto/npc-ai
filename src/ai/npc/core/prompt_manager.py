@@ -137,14 +137,21 @@ class PromptManager:
         # Add NPC profile if available
         if profile:
             try:
+                self.logger.info(f"[PROFILE DEBUG] Using profile in prompt generation: {profile.name}, {profile.role}")
                 profile_prompt = profile.get_system_prompt()
                 if profile_prompt and profile_prompt.strip():
+                    self.logger.info(f"[PROFILE DEBUG] Generated profile prompt: {profile_prompt[:100]}...")
                     prompt_parts.append(profile_prompt)
+                else:
+                    self.logger.warning(f"[PROFILE DEBUG] Profile returned empty prompt")
             except Exception as e:
-                self.logger.warning(f"Failed to get profile prompt: {e}")
+                self.logger.warning(f"[PROFILE DEBUG] Failed to get profile prompt: {e}")
+        else:
+            self.logger.warning(f"[PROFILE DEBUG] No profile provided, using BASE_SYSTEM_PROMPT")
 
         # Add base system prompt if no profile or profile prompt is empty
         if not prompt_parts:
+            self.logger.warning(f"[PROFILE DEBUG] Adding BASE_SYSTEM_PROMPT as fallback")
             prompt_parts.append(BASE_SYSTEM_PROMPT)
 
         # Add knowledge context if available and enabled in config

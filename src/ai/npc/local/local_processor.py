@@ -6,6 +6,7 @@ This module implements the local processor using Ollama.
 
 import logging
 import asyncio
+import os
 from typing import Dict, Any, Optional, List
 
 from src.ai.npc.core.models import (
@@ -49,11 +50,24 @@ class LocalProcessor(Processor):
         # Initialize base class
         super().__init__(knowledge_store=knowledge_store)
         
+        self.logger.info(f"[PROFILE DEBUG] Initializing LocalProcessor with profiles_dir: {profiles_dir}")
+        self.logger.info(f"[PROFILE DEBUG] Current working directory: {os.getcwd()}")
+        
+        # Convert to absolute path if it's a relative path
+        if not os.path.isabs(profiles_dir):
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../'))
+            profiles_dir = os.path.join(base_dir, profiles_dir)
+            self.logger.info(f"[PROFILE DEBUG] Using absolute profiles directory: {profiles_dir}")
+        
         self.ollama_client = ollama_client
         self.conversation_manager = conversation_manager
         self.response_parser = ResponseParser()
         self.prompt_manager = PromptManager()
+        
+        # Initialize profile registry
+        self.logger.info(f"[PROFILE DEBUG] Creating ProfileLoader with profiles_directory: {profiles_dir}")
         self.profile_registry = ProfileLoader(profiles_directory=profiles_dir)
+        self.logger.info(f"[PROFILE DEBUG] ProfileLoader created, profiles loaded: {len(self.profile_registry.profiles)}")
         
         # Initialize adapters
         self.history_adapter = DefaultConversationHistoryAdapter()
