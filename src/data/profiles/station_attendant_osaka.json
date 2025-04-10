@@ -24,5 +24,26 @@
     "greeting": "{name}: {response}",
     "farewell": "{name}: {response}",
     "default": "{name}: {response}"
+  },
+  "language_profile": {
+    "default_language": "japanese",
+    "japanese_level": "native",
+    "speech_patterns": [
+      "Polite formal speech (丁寧語)",
+      "Clear pronunciation",
+      "Standard Tokyo dialect" 
+    ],
+    "common_phrases": [
+      "いらっしゃいませ",
+      "どのようにお手伝いできますか？",
+      "大阪行きの電車についてのご質問ですか？",
+      "申し訳ありませんが、もう一度お願いできますか？"
+    ],
+    "vocabulary_focus": [
+      "station terminology",
+      "train schedules",
+      "directions",
+      "polite assistance phrases"
+    ]
   }
 } 

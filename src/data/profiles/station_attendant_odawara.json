@@ -26,5 +26,26 @@
     "greeting": "{name}: {response}",
     "farewell": "{name}: {response}",
     "default": "{name}: {response}"
+  },
+  "language_profile": {
+    "default_language": "japanese",
+    "japanese_level": "native",
+    "speech_patterns": [
+      "Friendly and polite speech (丁寧語)",
+      "Cheerful intonation",
+      "Welcoming tone"
+    ],
+    "common_phrases": [
+      "いらっしゃいませ",
+      "どのようにお手伝いできますか？",
+      "小田原行きの電車についてのご質問ですか？",
+      "わかりました、お調べいたします"
+    ],
+    "vocabulary_focus": [
+      "friendly service expressions",
+      "tourist information",
+      "clear directions",
+      "local area knowledge"
+    ]
   }
 } 

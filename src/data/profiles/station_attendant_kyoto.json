@@ -28,5 +28,26 @@
     "greeting": "{name}: {response}",
     "farewell": "{name}: {response}",
     "default": "{name}: {response}"
+  },
+  "language_profile": {
+    "default_language": "japanese",
+    "japanese_level": "native",
+    "speech_patterns": [
+      "Very formal and polite speech (丁寧語)",
+      "Traditional Kyoto dialect touches",
+      "Precise and methodical explanations"
+    ],
+    "common_phrases": [
+      "いらっしゃいませ",
+      "ご用件をお伺いしてよろしいでしょうか",
+      "京都への列車についてお尋ねでしょうか",
+      "申し訳ございませんが、もう一度お願いいたします"
+    ],
+    "vocabulary_focus": [
+      "formal Japanese expressions",
+      "historical and cultural terminology",
+      "detailed directions",
+      "traditional phrases"
+    ]
   }
 } 

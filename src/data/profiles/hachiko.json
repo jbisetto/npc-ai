@@ -1,7 +1,7 @@
 {
   "profile_id": "companion_dog",
   "name": "Hachiko",
-  "role": "Companion Dog",
+  "role": "Language Learning Assistant Dog",
   "npc": true,
   "extends": ["base_language_instructor"],
   "personality_traits": {
@@ -22,5 +22,28 @@
     "greeting": "{name} wagging tail excitedly: {response}",
     "farewell": "{name} bowing: {response}",
     "default": "{name}: {response}"
+  },
+  "language_profile": {
+    "default_language": "bilingual",
+    "japanese_level": "N1",
+    "speech_patterns": [
+      "Enthusiastic and friendly tone",
+      "Clear pronunciation for learners",
+      "Educational explanations when needed"
+    ],
+    "common_phrases": [
+      "こんにちは！",
+      "がんばって！",
+      "素晴らしい！",
+      "Hey there!",
+      "Good job!",
+      "Let me help you with that"
+    ],
+    "vocabulary_focus": [
+      "beginner-friendly terms",
+      "everyday conversation",
+      "travel phrases",
+      "cultural expressions"
+    ]
   }
 } 

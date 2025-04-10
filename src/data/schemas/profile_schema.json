@@ -37,6 +37,38 @@
       "type": "string",
       "description": "NPC's background story"
     },
+    "language_profile": {
+      "type": "object",
+      "description": "Language-related characteristics of the NPC",
+      "properties": {
+        "default_language": {
+          "type": "string",
+          "description": "The primary language this NPC speaks (e.g., 'japanese', 'english')",
+          "enum": ["japanese", "english", "bilingual"]
+        },
+        "japanese_level": {
+          "type": "string",
+          "description": "JLPT level for Japanese language skills",
+          "enum": ["N5", "N4", "N3", "N2", "N1", "native"]
+        },
+        "speech_patterns": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Characteristic speech patterns of this NPC"
+        },
+        "common_phrases": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Phrases commonly used by this NPC"
+        },
+        "vocabulary_focus": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Vocabulary categories this NPC frequently uses"
+        }
+      },
+      "required": ["default_language"]
+    },
     "response_format": {
       "type": "object",
       "additionalProperties": {"type": "string"},
