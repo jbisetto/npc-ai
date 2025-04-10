@@ -107,9 +107,9 @@ def test_companion_request_to_dict():
     assert request_dict["game_context"] == game_context.to_dict()
 
 
-# ClassifiedRequest Tests
-def test_classified_request_creation():
-    """Test creating a ClassifiedRequest with valid data."""
+# NPCRequest Tests
+def test_npc_request_creation():
+    """Test creating a NPCRequest with valid data."""
     game_context = create_test_game_context(conversation_history=[])
     request = create_test_request(
         request_id="test_req_001",
@@ -120,8 +120,8 @@ def test_classified_request_creation():
     assert request.processing_tier == ProcessingTier.LOCAL
 
 
-def test_classified_request_to_dict():
-    """Test ClassifiedRequest to_dict method."""
+def test_npc_request_to_dict():
+    """Test NPCRequest to_dict method."""
     game_context = create_test_game_context(conversation_history=[])
     request = create_test_request(
         request_id="test_req_001",

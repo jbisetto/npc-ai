@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from src.ai.npc.core.models import (
-    ClassifiedRequest,
+    NPCRequest,
     GameContext,
     ProcessingTier,
     ConversationContext,
@@ -54,9 +54,9 @@ def create_test_request(
     request_type: str = "navigation",
     confidence: float = 1.0,
     **kwargs
-) -> ClassifiedRequest:
+) -> NPCRequest:
     """
-    Create a ClassifiedRequest instance for testing.
+    Create a NPCRequest instance for testing.
     
     Args:
         request_id: Request identifier
@@ -68,7 +68,7 @@ def create_test_request(
         **kwargs: Additional fields to override
         
     Returns:
-        A ClassifiedRequest instance
+        A NPCRequest instance
     """
     if game_context is None:
         game_context = create_test_game_context()
@@ -88,15 +88,11 @@ def create_test_request(
         "player_input": player_input,
         "game_context": game_context,
         "processing_tier": processing_tier,
-        "request_type": request_type,
-        "confidence": confidence,
-        "timestamp": datetime.now(),
-        "extracted_entities": {},
         "additional_params": default_params,
         **kwargs
     }
     
-    return ClassifiedRequest(**request_data)
+    return NPCRequest(**request_data)
 
 
 def create_test_conversation_context(

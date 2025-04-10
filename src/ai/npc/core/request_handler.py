@@ -12,8 +12,7 @@ import time
 from typing import Optional, Any, Dict, Tuple
 
 from src.ai.npc.core.models import (
-    CompanionRequest,
-    ClassifiedRequest,
+    NPCRequest,
     CompanionResponse,
     ConversationContext,
     ProcessingTier
@@ -47,7 +46,7 @@ class RequestHandler:
         self.npc_name = npc_name
         self.logger = logging.getLogger(__name__)
     
-    async def handle_request(self, request: CompanionRequest) -> str:
+    async def handle_request(self, request: NPCRequest) -> str:
         """
         Handle a companion request.
         
@@ -68,40 +67,32 @@ class RequestHandler:
         if "name" not in request.additional_params:
             request.additional_params["name"] = self.npc_name
         
-        # Create classified request with default processing tier
-        classified_request = ClassifiedRequest(
-            request_id=request.request_id,
-            player_input=request.player_input,
-            request_type=request.request_type,
-            processing_tier=ProcessingTier.LOCAL,
-            confidence=1.0,
-            extracted_entities={},
-            additional_params=request.additional_params
-        )
+        # Set the processing tier directly on the request
+        request.processing_tier = ProcessingTier.LOCAL
         
         # Get the processor and process the request
         try:
             processor = self.processor_factory.get_processor(ProcessingTier.LOCAL)
-            response = await processor.process(classified_request)
+            response = await processor.process(request)
             
             # Handle both dictionary and string responses
             if isinstance(response, dict):
                 response_text = response.get('response_text', '')
                 # Update intent if provided in response
                 if 'intent' in response:
-                    classified_request.additional_params[METADATA_KEY_INTENT] = response['intent']
+                    request.additional_params[METADATA_KEY_INTENT] = response['intent']
             else:
                 response_text = response
                 
             return self.response_formatter.format_response(
                 processor_response=response_text,
-                classified_request=classified_request
+                classified_request=request
             )
         except Exception as e:
             self.logger.error(f"Error processing request {request.request_id}: {str(e)}")
             raise
 
-    def _generate_fallback_response(self, request: ClassifiedRequest) -> str:
+    def _generate_fallback_response(self, request: NPCRequest) -> str:
         """Generate a fallback response when processing fails"""
         return "I'm sorry, I encountered an error while processing your request. Please try again."
 

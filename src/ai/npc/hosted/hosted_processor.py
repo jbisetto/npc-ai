@@ -29,6 +29,7 @@ from src.ai.npc.core.conversation_manager import ConversationManager
 from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
 from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
+from src.ai.npc.core.models import NPCRequest
 
 logger = logging.getLogger(__name__)
 
@@ -109,12 +110,12 @@ class HostedProcessor(Processor):
             debug_mode=debug_mode
         )
     
-    async def process(self, request: ClassifiedRequest) -> Dict[str, Any]:
+    async def process(self, request: NPCRequest) -> Dict[str, Any]:
         """
-        Process a classified request and generate a response using Amazon Bedrock.
+        Process a request and generate a response using Amazon Bedrock.
         
         Args:
-            request: A classified request
+            request: A request to the NPC AI system
             
         Returns:
             A dictionary containing the response text and processing tier
@@ -229,7 +230,7 @@ class HostedProcessor(Processor):
             elapsed_time = time.time() - start_time
             self.logger.info(f"Processed request {request.request_id} in {elapsed_time:.2f}s")
     
-    def _generate_fallback_response(self, request: ClassifiedRequest, error: Any) -> Dict[str, Any]:
+    def _generate_fallback_response(self, request: NPCRequest, error: Any) -> Dict[str, Any]:
         """
         Generate a fallback response when an error occurs.
         

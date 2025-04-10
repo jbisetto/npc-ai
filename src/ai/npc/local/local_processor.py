@@ -9,7 +9,7 @@ import asyncio
 from typing import Dict, Any, Optional, List
 
 from src.ai.npc.core.models import (
-    ClassifiedRequest,
+    NPCRequest,
     ProcessingTier
 )
 from src.ai.npc.core.response_parser import ResponseParser
@@ -55,7 +55,7 @@ class LocalProcessor(Processor):
         self.history_adapter = DefaultConversationHistoryAdapter()
         self.knowledge_adapter = DefaultKnowledgeContextAdapter()
         
-    async def process(self, request: ClassifiedRequest) -> Dict[str, Any]:
+    async def process(self, request: NPCRequest) -> Dict[str, Any]:
         """
         Process a request using the local model.
         
@@ -163,7 +163,7 @@ class LocalProcessor(Processor):
             self.logger.error(f"Error processing request: {e}", exc_info=True)
             return self._generate_fallback_response(request, e)
 
-    def _generate_fallback_response(self, request: ClassifiedRequest, error: Exception) -> Dict[str, Any]:
+    def _generate_fallback_response(self, request: NPCRequest, error: Exception) -> Dict[str, Any]:
         """
         Generate a fallback response when processing fails.
 

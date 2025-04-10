@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Export core models directly as they are fundamental
-from .core.models import CompanionRequest, ClassifiedRequest, ProcessingTier
+from .core.models import NPCRequest, ProcessingTier, CompanionRequest, ClassifiedRequest
 
 # Initialize components lazily
 _prompt_manager = None
@@ -27,6 +27,7 @@ _knowledge_store = None
 _local_processor = None
 _hosted_processor = None
 _context_manager = None
+_conversation_manager = None
 
 def get_prompt_manager():
     """Get the global prompt manager instance."""
@@ -43,6 +44,24 @@ def get_storage_manager():
         from .core.storage_manager import StorageManager
         _storage_manager = StorageManager()
     return _storage_manager
+
+def get_conversation_manager():
+    """Get or initialize the conversation manager."""
+    global _conversation_manager
+    if _conversation_manager is None:
+        from .core.conversation_manager import ConversationManager
+        
+        # Ensure consistent path using project root
+        project_root = str(Path(__file__).resolve().parent.parent.parent.parent)
+        conversations_dir = os.path.join(project_root, "data/conversations")
+        
+        logger.info(f"Initializing conversation manager with storage directory: {conversations_dir}")
+        
+        # Initialize the conversation manager
+        _conversation_manager = ConversationManager(storage_dir=conversations_dir)
+        logger.info("Conversation manager initialized")
+    
+    return _conversation_manager
 
 def get_knowledge_store():
     """Get or initialize the knowledge store."""
@@ -101,7 +120,13 @@ def get_local_processor():
     if _local_processor is None:
         from .local.local_processor import LocalProcessor
         from .local.ollama_client import OllamaClient
-        _local_processor = LocalProcessor(ollama_client=OllamaClient())
+        
+        # Pass the conversation manager and knowledge store
+        _local_processor = LocalProcessor(
+            ollama_client=OllamaClient(),
+            conversation_manager=get_conversation_manager(),
+            knowledge_store=get_knowledge_store()
+        )
     return _local_processor
 
 def get_hosted_processor():
@@ -109,12 +134,17 @@ def get_hosted_processor():
     global _hosted_processor
     if _hosted_processor is None:
         from .hosted.hosted_processor import HostedProcessor
-        _hosted_processor = HostedProcessor()
+        
+        # Pass the conversation manager and knowledge store 
+        _hosted_processor = HostedProcessor(
+            conversation_manager=get_conversation_manager(),
+            knowledge_store=get_knowledge_store()
+        )
     return _hosted_processor
 
-async def process_request(request: CompanionRequest, profile: Optional['NPCProfile'] = None) -> Dict[str, Any]:
+async def process_request(request: NPCRequest, profile: Optional['NPCProfile'] = None) -> Dict[str, Any]:
     """
-    Process a request to the companion AI.
+    Process a request to the NPC AI system.
     
     Args:
         request: The request to process
@@ -137,17 +167,13 @@ async def process_request(request: CompanionRequest, profile: Optional['NPCProfi
     else:
         raise ValueError("No processing tier enabled in config")
     
-    # Create classified request
-    classified_request = ClassifiedRequest(
-        **request.model_dump(),
-        processing_tier=processing_tier,
-        metadata={}
-    )
+    # Set the processing tier directly on the request
+    request.processing_tier = processing_tier
     
     # Process based on tier
     if processing_tier == ProcessingTier.LOCAL:
-        response = await get_local_processor().process(classified_request)
+        response = await get_local_processor().process(request)
     else:
-        response = await get_hosted_processor().process(classified_request)
+        response = await get_hosted_processor().process(request)
         
     return response 

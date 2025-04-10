@@ -21,6 +21,11 @@ from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 def mock_knowledge_store():
     """Create a mock knowledge store."""
     store = Mock(spec=KnowledgeStore)
+    # Add a mock collection attribute with a count method
+    mock_collection = Mock()
+    mock_collection.count = Mock(return_value=10)  # Mock 10 documents in the collection
+    store.collection = mock_collection
+    
     store.contextual_search = AsyncMock(return_value=[
         {
             "text": "Test knowledge context",
@@ -46,13 +51,16 @@ def mock_bedrock_client():
 @pytest.fixture
 def test_request():
     """Create a test request."""
+    game_context = GameContext(
+        player_id="test_player",
+        language_proficiency={"en": 1.0, "ja": 0.5},
+        player_location="station"
+    )
+    
     return ClassifiedRequest(
         request_id="test_request",
         player_input="Hello",
-        game_context=GameContext(
-            player_id="test_player",
-            language_proficiency={"japanese": 0.5, "english": 1.0}
-        ),
+        game_context=game_context,
         processing_tier=ProcessingTier.LOCAL,
         additional_params={"conversation_id": "test_conversation"}
     )
@@ -127,6 +135,11 @@ async def test_empty_knowledge_context(mock_ollama_client, test_request):
     """Test that processor works with empty knowledge context."""
     # Create mock knowledge store that returns empty results
     empty_store = Mock(spec=KnowledgeStore)
+    # Add mock collection for the empty store too
+    mock_collection = Mock()
+    mock_collection.count = Mock(return_value=0)  # Mock 0 documents
+    empty_store.collection = mock_collection
+    
     empty_store.contextual_search = AsyncMock(return_value=[])
     
     # Create processor with empty knowledge store
