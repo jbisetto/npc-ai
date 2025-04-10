@@ -1,18 +1,19 @@
 """
-Tests for the local processor implementation.
+Tests for local processor module.
+
+This module contains unit tests for the LocalProcessor class.
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch
-from typing import Dict, Any
+import logging
+from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
 
 from src.ai.npc.core.models import (
-    ClassifiedRequest,
+    NPCRequest,
     GameContext,
     ProcessingTier,
-    NPCRequest
+    NPCProfileType
 )
 from src.ai.npc.local.local_processor import LocalProcessor
 from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
@@ -20,19 +21,23 @@ from src.ai.npc.core.conversation_manager import ConversationManager
 from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 from src.ai.npc.core.adapters import ConversationHistoryEntry, KnowledgeDocument
 
+# Configure logging for tests
+logging.basicConfig(level=logging.INFO)
+
 @pytest.fixture
 def mock_ollama_client():
-    """Create a mock OllamaClient."""
-    client = Mock(spec=OllamaClient)
-    client.generate = AsyncMock(return_value="<thinking>Test thinking</thinking>\n\nEnglish: Test response\nJapanese: テスト\nPronunciation: te-su-to")
+    """Create a mock Ollama client for testing."""
+    client = AsyncMock(spec=OllamaClient)
+    client.generate = AsyncMock(return_value="<thinking>Test thinking</thinking>\n\nTest response")
     client.request_id = None
     return client
 
 @pytest.fixture
 def mock_conversation_manager():
-    """Create a mock ConversationManager."""
-    manager = Mock(spec=ConversationManager)
-    # Set up standardized conversation history format
+    """Create a mock conversation manager for testing."""
+    manager = AsyncMock()
+    
+    # Mock get_player_history to return a single conversation entry
     manager.get_player_history = AsyncMock(return_value=[
         ConversationHistoryEntry(
             user="Previous message",
@@ -41,45 +46,46 @@ def mock_conversation_manager():
             conversation_id="test_conversation"
         )
     ])
+    
+    # Mock add_to_history
     manager.add_to_history = AsyncMock()
+    
     return manager
 
 @pytest.fixture
 def mock_knowledge_store():
-    """Create a mock KnowledgeStore."""
-    store = Mock(spec=KnowledgeStore)
-    # Add a mock collection attribute with a count method
-    mock_collection = Mock()
-    mock_collection.count = Mock(return_value=10)  # Mock 10 documents in the collection
-    store.collection = mock_collection
+    """Create a mock knowledge store for testing."""
+    store = AsyncMock()
     
-    # Handle the standardized_format parameter
+    # Mock collection
+    store.collection = MagicMock()
+    store.collection.count = MagicMock(return_value=10)
+    
+    # Mock contextual_search
     async def mock_search(request, standardized_format=False):
+        # Return a simple mock knowledge item
         if standardized_format:
             return [
                 KnowledgeDocument(
-                    text="Test knowledge context",
+                    text="Test knowledge content",
                     id="test_doc_1",
-                    metadata={"type": "test", "source": "test_source"},
-                    relevance_score=0.9
+                    metadata={
+                        "source": "test_source",
+                        "id": "test_id",
+                        "relevance_score": 0.95
+                    }
                 )
             ]
         else:
-            return [
-                {
-                    "text": "Test knowledge context",
-                    "document": "Test knowledge context",
-                    "id": "test_doc_1",
-                    "metadata": {"type": "test", "source": "test_source"},
-                    "relevance_score": 0.9
-                }
-            ]
+            return [{"document": "Test knowledge content", "metadata": {"source": "test_source"}}]
+    
     store.contextual_search = AsyncMock(side_effect=mock_search)
+    
     return store
 
 @pytest.fixture
 def local_processor(mock_ollama_client, mock_conversation_manager, mock_knowledge_store):
-    """Create a local processor with mocked dependencies."""
+    """Create a LocalProcessor instance for testing."""
     return LocalProcessor(
         ollama_client=mock_ollama_client,
         conversation_manager=mock_conversation_manager,
@@ -88,15 +94,13 @@ def local_processor(mock_ollama_client, mock_conversation_manager, mock_knowledg
 
 @pytest.fixture
 def test_request():
-    """Create a test request."""
+    """Create a test request for testing."""
     return NPCRequest(
         request_id="test_request",
         player_input="Hello",
         game_context=GameContext(
             player_id="test_player",
-            player_location="main_entrance",
-            current_objective="test",
-            nearby_npcs=["npc1"],
+            npc_id=NPCProfileType.STATION_ATTENDANT,
             language_proficiency={"japanese": 0.5, "english": 1.0}
         ),
         processing_tier=ProcessingTier.LOCAL,
@@ -126,13 +130,14 @@ async def test_local_processor_process_request(local_processor, test_request, mo
     mock_ollama_client.generate.assert_called_once()
     
     # Verify conversation history was updated
-    mock_conversation_manager.add_to_history.assert_called_once_with(
-        conversation_id="test_conversation",
-        user_query="Hello",
-        response=result["response_text"],
-        npc_id=None,  # Not set in test request
-        player_id="test_player"
-    )
+    mock_conversation_manager.add_to_history.assert_called_once()
+    call_args = mock_conversation_manager.add_to_history.call_args
+    assert call_args.kwargs["conversation_id"] == "test_conversation"
+    assert call_args.kwargs["user_query"] == "Hello"
+    assert call_args.kwargs["response"] == result["response_text"]
+    assert call_args.kwargs["player_id"] == "test_player"
+    assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
+    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_error_handling(local_processor, test_request, mock_ollama_client):
@@ -175,13 +180,14 @@ async def test_local_processor_with_history(local_processor, test_request, mock_
     assert "Previous response" in call_args
     
     # Verify conversation history was updated
-    mock_conversation_manager.add_to_history.assert_called_once_with(
-        conversation_id="test_conversation",
-        user_query="Hello",
-        response=result["response_text"],
-        npc_id=None,  # Not set in test request
-        player_id="test_player"
-    )
+    mock_conversation_manager.add_to_history.assert_called_once()
+    call_args = mock_conversation_manager.add_to_history.call_args
+    assert call_args.kwargs["conversation_id"] == "test_conversation"
+    assert call_args.kwargs["user_query"] == "Hello"
+    assert call_args.kwargs["response"] == result["response_text"]
+    assert call_args.kwargs["player_id"] == "test_player"
+    assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
+    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_without_conversation_manager(mock_ollama_client, mock_knowledge_store):
@@ -218,7 +224,6 @@ async def test_local_processor_history_in_prompt(local_processor, test_request, 
     """Test that conversation history is correctly included in the generated prompt."""
     # Create a test request with a conversation ID
     test_request.additional_params["conversation_id"] = "test_conversation"
-    test_request.game_context.npc_id = "test_npc"  # Add NPC ID for history
     
     # Process the request
     result = await local_processor.process(test_request)
@@ -246,13 +251,14 @@ async def test_local_processor_history_in_prompt(local_processor, test_request, 
     assert result["debug_info"]["history_count"] == 1
     
     # Verify conversation history was updated with the new exchange
-    mock_conversation_manager.add_to_history.assert_called_once_with(
-        conversation_id="test_conversation",
-        user_query="Hello",
-        response=result["response_text"],
-        npc_id="test_npc",
-        player_id="test_player"
-    )
+    mock_conversation_manager.add_to_history.assert_called_once()
+    call_args = mock_conversation_manager.add_to_history.call_args
+    assert call_args.kwargs["conversation_id"] == "test_conversation"
+    assert call_args.kwargs["user_query"] == "Hello"
+    assert call_args.kwargs["response"] == result["response_text"]
+    assert call_args.kwargs["player_id"] == "test_player"
+    assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
+    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_multiple_history_exchanges(local_processor, test_request, mock_ollama_client, mock_conversation_manager):
@@ -275,7 +281,6 @@ async def test_local_processor_multiple_history_exchanges(local_processor, test_
     
     # Set the conversation ID
     test_request.additional_params["conversation_id"] = "test_conversation"
-    test_request.game_context.npc_id = "test_npc"
     
     # Process the request
     result = await local_processor.process(test_request)
@@ -298,6 +303,13 @@ async def test_local_processor_multiple_history_exchanges(local_processor, test_
     
     # Verify conversation history was updated with the new exchange
     mock_conversation_manager.add_to_history.assert_called_once()
+    call_args = mock_conversation_manager.add_to_history.call_args
+    assert call_args.kwargs["conversation_id"] == "test_conversation"
+    assert call_args.kwargs["user_query"] == "Hello"
+    assert call_args.kwargs["response"] == result["response_text"]
+    assert call_args.kwargs["player_id"] == "test_player"
+    assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
+    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_multiple_conversations(
@@ -309,7 +321,7 @@ async def test_local_processor_multiple_conversations(
     """Test that different conversations for the same player with different NPCs are handled correctly."""
     # First conversation with NPC1
     test_request.additional_params["conversation_id"] = "conversation_with_npc1"
-    test_request.game_context.npc_id = "npc1"
+    test_request.game_context.npc_id = NPCProfileType.STATION_ATTENDANT
     
     # Mock the conversation history for NPC1
     mock_conversation_manager.get_player_history.return_value = [
@@ -335,7 +347,7 @@ async def test_local_processor_multiple_conversations(
     
     # Second conversation with NPC2
     test_request.additional_params["conversation_id"] = "conversation_with_npc2"
-    test_request.game_context.npc_id = "npc2"
+    test_request.game_context.npc_id = NPCProfileType.COMPANION_DOG
     
     # Mock the conversation history for NPC2
     mock_conversation_manager.get_player_history.return_value = [
@@ -369,7 +381,6 @@ async def test_local_processor_empty_history(
     """Test that the processor correctly handles empty conversation history."""
     # Set the conversation ID but return empty history
     test_request.additional_params["conversation_id"] = "test_conversation"
-    test_request.game_context.npc_id = "test_npc"
     mock_conversation_manager.get_player_history.return_value = []
     
     # Process the request
@@ -389,6 +400,13 @@ async def test_local_processor_empty_history(
     
     # Verify conversation history was updated with the new exchange (first entry)
     mock_conversation_manager.add_to_history.assert_called_once()
+    call_args = mock_conversation_manager.add_to_history.call_args
+    assert call_args.kwargs["conversation_id"] == "test_conversation"
+    assert call_args.kwargs["user_query"] == "Hello"
+    assert call_args.kwargs["response"] == result["response_text"]
+    assert call_args.kwargs["player_id"] == "test_player"
+    assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
+    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_long_history(
@@ -412,7 +430,6 @@ async def test_local_processor_long_history(
     
     mock_conversation_manager.get_player_history.return_value = long_history
     test_request.additional_params["conversation_id"] = "test_conversation"
-    test_request.game_context.npc_id = "test_npc"
     
     # Process the request
     result = await local_processor.process(test_request)
@@ -431,7 +448,17 @@ async def test_local_processor_long_history(
     
     # History optimization should keep more recent conversations, check for the most recent ones
     assert "Message 19" in call_args
-    assert "Response 19" in call_args 
+    assert "Response 19" in call_args
+    
+    # Verify conversation history was updated with the new exchange
+    mock_conversation_manager.add_to_history.assert_called_once()
+    call_args = mock_conversation_manager.add_to_history.call_args
+    assert call_args.kwargs["conversation_id"] == "test_conversation"
+    assert call_args.kwargs["user_query"] == "Hello"
+    assert call_args.kwargs["response"] == result["response_text"]
+    assert call_args.kwargs["player_id"] == "test_player"
+    assert hasattr(call_args.kwargs["npc_id"], "value")  # Should be an enum
+    assert call_args.kwargs["npc_id"].value == "station_attendant"  # With correct value
 
 @pytest.mark.asyncio
 async def test_local_processor_close(local_processor, mock_ollama_client):

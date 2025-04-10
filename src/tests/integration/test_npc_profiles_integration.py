@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 
 from src.ai.npc import process_request
-from src.ai.npc.core.models import NPCRequest, GameContext, ProcessingTier
+from src.ai.npc.core.models import NPCRequest, GameContext, ProcessingTier, NPCProfileType
 from src.ai.npc.core.profile.profile import NPCProfile
 from src.ai.npc.core.profile.profile_loader import ProfileLoader
 from src.ai.npc.local.local_processor import LocalProcessor
@@ -105,7 +105,7 @@ def test_game_context():
 def station_attendant_request(test_game_context):
     """Create a request for the station attendant."""
     # Add NPC ID to the game context
-    test_game_context.npc_id = "station_attendant"
+    test_game_context.npc_id = NPCProfileType.STATION_ATTENDANT
     
     # Create the request
     return NPCRequest(
@@ -120,7 +120,7 @@ def station_attendant_request(test_game_context):
 def hachiko_request(test_game_context):
     """Create a request for Hachiko (companion dog)."""
     # Add NPC ID to the game context
-    test_game_context.npc_id = "companion_dog"
+    test_game_context.npc_id = NPCProfileType.COMPANION_DOG
     
     # Create the request
     return NPCRequest(
@@ -333,7 +333,7 @@ async def test_different_npcs_have_different_prompts(mock_profile_loader):
         player_location="tokyo_station",
         current_objective="Navigate the station",
         language_proficiency={"japanese": 0.3, "english": 0.9},
-        npc_id="station_attendant"  # Set NPC ID directly here
+        npc_id=NPCProfileType.STATION_ATTENDANT  # Set NPC ID directly here
     )
     
     station_request = NPCRequest(
@@ -350,7 +350,7 @@ async def test_different_npcs_have_different_prompts(mock_profile_loader):
         player_location="tokyo_station",
         current_objective="Navigate the station",
         language_proficiency={"japanese": 0.3, "english": 0.9},
-        npc_id="companion_dog"  # Set NPC ID directly here
+        npc_id=NPCProfileType.COMPANION_DOG  # Set NPC ID directly here
     )
     
     hachiko_request = NPCRequest(

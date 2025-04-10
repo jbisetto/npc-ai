@@ -15,7 +15,8 @@ from src.ai.npc.core.models import (
     ClassifiedRequest,
     GameContext,
     ProcessingTier,
-    NPCRequest
+    NPCRequest,
+    NPCProfileType
 )
 from src.ai.npc.hosted.hosted_processor import HostedProcessor
 from src.ai.npc.hosted.bedrock_client import BedrockClient, BedrockError
@@ -117,7 +118,7 @@ def test_request():
             player_location="main_entrance",
             current_objective="test",
             nearby_npcs=["npc1"],
-            npc_id="test_npc",
+            npc_id=NPCProfileType.STATION_ATTENDANT,
             language_proficiency={"japanese": 0.5, "english": 1.0}
         ),
         processing_tier=ProcessingTier.HOSTED,
@@ -154,13 +155,13 @@ async def test_hosted_processor_process_request(
     mock_bedrock_client.generate.assert_called_once()
     
     # Verify conversation history was updated
-    mock_conversation_manager.add_to_history.assert_called_once_with(
-        conversation_id="test_conversation",
-        user_query="Hello",
-        response="Test response from Bedrock",
-        npc_id="test_npc",
-        player_id="test_player"
-    )
+    mock_conversation_manager.add_to_history.assert_called_once()
+    call_args = mock_conversation_manager.add_to_history.call_args
+    assert call_args.kwargs["conversation_id"] == "test_conversation"
+    assert call_args.kwargs["user_query"] == "Hello"
+    assert call_args.kwargs["response"] == "Test response from Bedrock"
+    assert call_args.kwargs["player_id"] == "test_player"
+    assert call_args.kwargs["npc_id"] == "station_attendant"  # With string value
 
 @pytest.mark.asyncio
 async def test_hosted_processor_quota_error(hosted_processor, test_request, mock_bedrock_client):
@@ -266,13 +267,13 @@ async def test_hosted_processor_history_in_prompt(hosted_processor, test_request
     assert result["debug_info"]["history_count"] == 1
     
     # Verify conversation history was updated with the new exchange
-    mock_conversation_manager.add_to_history.assert_called_once_with(
-        conversation_id="test_conversation",
-        user_query="Hello",
-        response="Test response from Bedrock",
-        npc_id="test_npc",
-        player_id="test_player"
-    )
+    mock_conversation_manager.add_to_history.assert_called_once()
+    call_args = mock_conversation_manager.add_to_history.call_args
+    assert call_args.kwargs["conversation_id"] == "test_conversation"
+    assert call_args.kwargs["user_query"] == "Hello"
+    assert call_args.kwargs["response"] == "Test response from Bedrock"
+    assert call_args.kwargs["player_id"] == "test_player"
+    assert call_args.kwargs["npc_id"] == "station_attendant"  # With string value
 
 @pytest.mark.asyncio
 async def test_hosted_processor_multiple_history_exchanges(hosted_processor, test_request, mock_bedrock_client, mock_conversation_manager):

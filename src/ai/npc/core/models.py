@@ -5,7 +5,7 @@ This module defines the data models used by the AI system.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 from enum import Enum, auto
 import datetime
 from pydantic import BaseModel
@@ -21,6 +21,24 @@ class ProcessingTier(Enum):
     HOSTED = "hosted"
 
 
+class NPCProfileType(Enum):
+    """Enum of available NPC profiles in the game."""
+    STATION_ATTENDANT = "station_attendant"
+    STATION_ATTENDANT_KYOTO = "station_attendant_kyoto"
+    STATION_ATTENDANT_ODAWARA = "station_attendant_odawara"
+    INFORMATION_BOOTH_ATTENDANT = "information_booth_attendant"
+    TICKET_BOOTH_ATTENDANT = "ticket_booth_attendant"
+    COMPANION_DOG = "companion_dog"  # Hachiko
+    
+    @classmethod
+    def from_string(cls, value: str):
+        """Convert string to enum value, with fallback to original string."""
+        try:
+            return cls(value)
+        except ValueError:
+            return None
+
+
 class GameContext(BaseModel):
     """Context information from the game."""
     player_id: str
@@ -29,19 +47,27 @@ class GameContext(BaseModel):
     player_location: Optional[str] = None
     current_objective: Optional[str] = None
     nearby_npcs: Optional[List[str]] = None
-    npc_id: Optional[str] = None
+    npc_id: Optional[Union[NPCProfileType, str]] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        return {
+        result = {
             "player_id": self.player_id,
             "language_proficiency": self.language_proficiency,
             "conversation_history": self.conversation_history,
             "player_location": self.player_location,
             "current_objective": self.current_objective,
-            "nearby_npcs": self.nearby_npcs,
-            "npc_id": self.npc_id
+            "nearby_npcs": self.nearby_npcs
         }
+        
+        # Convert enum to string if needed
+        if self.npc_id is not None:
+            if isinstance(self.npc_id, NPCProfileType):
+                result["npc_id"] = self.npc_id.value
+            else:
+                result["npc_id"] = self.npc_id
+        
+        return result
 
 
 class NPCRequest(BaseModel):

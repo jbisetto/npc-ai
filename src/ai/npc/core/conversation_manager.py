@@ -9,10 +9,13 @@ import json
 import logging
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, TYPE_CHECKING
 
 from src.ai.npc.core.adapters import ConversationHistoryEntry
 from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
+
+if TYPE_CHECKING:
+    from src.ai.npc.core.models import NPCProfileType
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +93,7 @@ class ConversationManager:
         conversation_id: str, 
         user_query: str, 
         response: str,
-        npc_id: str,
+        npc_id: Union[str, 'NPCProfileType'],
         player_id: str,
         session_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
@@ -102,7 +105,7 @@ class ConversationManager:
             conversation_id: The conversation ID
             user_query: The user's query
             response: The NPC's response
-            npc_id: Identifier for the NPC that provided the response
+            npc_id: Identifier for the NPC that provided the response (string or NPCProfileType)
             player_id: The ID of the player in this conversation
             session_id: Optional session ID
             metadata: Optional additional metadata (e.g., language_level)
@@ -122,6 +125,10 @@ class ConversationManager:
             player_data["conversations"][conversation_id] = {
                 "entries": []
             }
+        
+        # Convert npc_id to string if it's an enum
+        if hasattr(npc_id, 'value'):
+            npc_id = npc_id.value
         
         # Create the entry with both standard and legacy fields
         entry = {

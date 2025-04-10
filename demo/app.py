@@ -12,6 +12,7 @@ import logging
 import json
 import shutil
 from pathlib import Path
+from datetime import datetime
 
 # Add the src directory to the Python path
 parent_dir = str(Path(__file__).resolve().parent.parent)
@@ -28,7 +29,12 @@ logging.getLogger('src.ai.npc').setLevel(logging.DEBUG)
 
 # Import from src
 from src.ai.npc import process_request
-from src.ai.npc.core.models import NPCRequest, GameContext, ProcessingTier
+from src.ai.npc.core.models import NPCRequest, GameContext, ProcessingTier, NPCProfileType
+from src.ai.npc.core.utils.json_utils import json_dumps
+from src.ai.npc.local.local_processor import LocalProcessor
+from src.ai.npc.core.conversation_manager import ConversationManager
+from src.ai.npc.core.knowledge_store import KnowledgeStore
+from src.ai.npc.network.ollama_client import OllamaClient
 
 # Define preset player IDs
 preset_player_ids = [
@@ -111,7 +117,7 @@ async def process_message(message, selected_npc, player_id, session_id=None):
         },
         player_location="station",  # Generic location
         current_objective="Buy ticket to Odawara",
-        npc_id=npc_data["profile_id"]  # Use the correct profile_id for the backend
+        npc_id=NPCProfileType.from_string(npc_data["profile_id"]) or npc_data["profile_id"]  # Use enum if available
     )
     
     # Create a dictionary of additional parameters - we'll track this but it's not directly passed

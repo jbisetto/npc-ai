@@ -25,6 +25,7 @@ from src.ai.npc.core.constants import (
     INTENT_VOCABULARY_HELP,
     INTENT_DIRECTION_GUIDANCE
 )
+from src.ai.npc.core.models import NPCProfileType
 
 # Configure logging for tests
 logging.basicConfig(level=logging.DEBUG)
@@ -93,7 +94,7 @@ def sample_request():
         player_location="Tokyo Station",
         current_objective="Find the main entrance",
         nearby_npcs=["Station Master"],
-        npc_id="hachiko"
+        npc_id=NPCProfileType.COMPANION_DOG
     )
     return ClassifiedRequest(
         request_id="test_request",

@@ -98,6 +98,10 @@ class LocalProcessor(Processor):
                 npc_id = request.game_context.npc_id
                 self.logger.debug(f"Loading profile for NPC ID: {npc_id}")
                 try:
+                    # Convert enum to string value if it's an enum
+                    if hasattr(npc_id, 'value'):
+                        npc_id = npc_id.value
+                        
                     profile = self.profile_registry.get_profile(npc_id, as_object=True)
                     if profile:
                         self.logger.debug(f"Loaded profile for {profile.name}, role: {profile.role}")
@@ -109,7 +113,15 @@ class LocalProcessor(Processor):
             # Get relevant knowledge from the knowledge store in standardized format
             try:
                 self.logger.debug(f"Retrieving knowledge context for: '{request.player_input}'")
-                self.logger.debug(f"Knowledge store collection has {self.knowledge_store.collection.count()} documents")
+                try:
+                    # Handle the count method which could be async or not
+                    if hasattr(self.knowledge_store.collection.count, '__await__'):
+                        doc_count = await self.knowledge_store.collection.count()
+                    else:
+                        doc_count = self.knowledge_store.collection.count()
+                    self.logger.debug(f"Knowledge store collection has {doc_count} documents")
+                except Exception as e:
+                    self.logger.debug(f"Could not get document count: {str(e)}")
                 
                 knowledge_context = await self.knowledge_store.contextual_search(
                     request,
