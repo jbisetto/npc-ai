@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 AVG_CHARS_PER_TOKEN = 4  # Approximate average characters per token
 
 # Base system prompt with JLPT N5 constraints
-BASE_SYSTEM_PROMPT = """You are Hachiko, a helpful bilingual dog companion in a Japanese train station.
+BASE_SYSTEM_PROMPT = """You are a helpful NPC in a Japanese train station.
 Your role is to assist the player with language help, directions, and cultural information.
 
 CRITICAL RESPONSE CONSTRAINTS:
@@ -43,9 +43,9 @@ JLPT N5 GUIDELINES:
 - Basic greetings: こんにちは, すみません
 
 EXAMPLE RESPONSE FORMAT:
-English: I'm Hachiko, your friendly dog companion here!
-Japanese: わたしは はちこです。えきの いぬです。
-Pronunciation: wa-ta-shi wa ha-chi-ko de-su. e-ki no i-nu de-su.
+English: I can help you find the ticket booth. It's over there!
+Japanese: きっぷうりばは あそこです。
+Pronunciation: ki-ppu u-ri-ba wa a-so-ko de-su.
 
 RESPONSE STRUCTURE:
 1. English answer (1 sentence)
@@ -121,7 +121,7 @@ class PromptManager:
         # For very small token limits, use minimal format
         if self.max_prompt_tokens <= 100:
             minimal_prompt = (
-                "You are Hachiko, a helpful bilingual dog companion.\n"
+                "You are a helpful train station attendant.\n"
                 "RULES:\n"
                 "1. Keep responses short\n"
                 "2. Use JLPT N5 only\n"

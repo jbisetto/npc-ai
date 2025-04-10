@@ -53,7 +53,7 @@ class LocalProcessor(Processor):
         self.conversation_manager = conversation_manager
         self.response_parser = ResponseParser()
         self.prompt_manager = PromptManager()
-        self.profile_registry = ProfileLoader(profiles_dir)
+        self.profile_registry = ProfileLoader(profiles_directory=profiles_dir)
         
         # Initialize adapters
         self.history_adapter = DefaultConversationHistoryAdapter()
@@ -83,7 +83,8 @@ class LocalProcessor(Processor):
                     self.logger.debug(f"Retrieving conversation history for player_id: {player_id}")
                     history = await self.conversation_manager.get_player_history(
                         player_id,
-                        standardized_format=True
+                        standardized_format=True,
+                        npc_id=request.game_context.npc_id
                     )
                     self.logger.debug(f"Retrieved {len(history)} conversation history entries")
                 except Exception as e:

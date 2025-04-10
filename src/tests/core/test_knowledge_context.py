@@ -5,6 +5,7 @@ Tests for knowledge context functionality in processors.
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
 from typing import Dict, Any
+from datetime import datetime
 
 from src.ai.npc.core.models import (
     ClassifiedRequest,
@@ -12,8 +13,8 @@ from src.ai.npc.core.models import (
     ProcessingTier
 )
 from src.ai.npc.local.local_processor import LocalProcessor
+from src.ai.npc.local.ollama_client import OllamaClient, OllamaError
 from src.ai.npc.hosted.hosted_processor import HostedProcessor
-from src.ai.npc.local.ollama_client import OllamaClient
 from src.ai.npc.hosted.bedrock_client import BedrockClient
 from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 
@@ -115,20 +116,27 @@ async def test_hosted_processor_knowledge_context(mock_knowledge_store, mock_bed
 async def test_knowledge_context_optimization(mock_knowledge_store, mock_ollama_client, test_request):
     """Test that knowledge context is properly included in prompts."""
     # Create processor with mock knowledge store
-    processor = LocalProcessor(
-        ollama_client=mock_ollama_client,
-        knowledge_store=mock_knowledge_store
-    )
-    
-    # Process request
-    result = await processor.process(test_request)
-    
-    # Verify knowledge store was used with standardized_format=True
-    mock_knowledge_store.contextual_search.assert_called_once_with(test_request, standardized_format=True)
-    
-    # Verify prompt includes knowledge context
-    prompt_args = mock_ollama_client.generate.call_args[0][0]
-    assert "Test knowledge context" in prompt_args
+    with patch('src.ai.npc.core.prompt_manager.get_config') as mock_config:
+        # Mock the prompt configuration to ensure knowledge context is included
+        mock_config.return_value = {
+            'include_knowledge_context': True,
+            'include_conversation_history': True
+        }
+        
+        processor = LocalProcessor(
+            ollama_client=mock_ollama_client,
+            knowledge_store=mock_knowledge_store
+        )
+        
+        # Process request
+        result = await processor.process(test_request)
+        
+        # Verify knowledge store was used with standardized_format=True
+        mock_knowledge_store.contextual_search.assert_called_once_with(test_request, standardized_format=True)
+        
+        # Verify prompt includes knowledge context
+        prompt_args = mock_ollama_client.generate.call_args[0][0]
+        assert "Test knowledge context" in prompt_args
 
 @pytest.mark.asyncio
 async def test_empty_knowledge_context(mock_ollama_client, test_request):
@@ -162,17 +170,24 @@ async def test_empty_knowledge_context(mock_ollama_client, test_request):
 async def test_knowledge_context_metadata(mock_knowledge_store, mock_ollama_client, test_request):
     """Test that knowledge context metadata is properly handled."""
     # Create processor with mock knowledge store
-    processor = LocalProcessor(
-        ollama_client=mock_ollama_client,
-        knowledge_store=mock_knowledge_store
-    )
-    
-    # Process request
-    result = await processor.process(test_request)
-    
-    # Verify knowledge store was used with standardized_format=True
-    mock_knowledge_store.contextual_search.assert_called_once_with(test_request, standardized_format=True)
-    
-    # Verify prompt includes metadata
-    prompt_args = mock_ollama_client.generate.call_args[0][0]
-    assert "test_source" in prompt_args 
+    with patch('src.ai.npc.core.prompt_manager.get_config') as mock_config:
+        # Mock the prompt configuration to ensure knowledge context is included
+        mock_config.return_value = {
+            'include_knowledge_context': True,
+            'include_conversation_history': True
+        }
+        
+        processor = LocalProcessor(
+            ollama_client=mock_ollama_client,
+            knowledge_store=mock_knowledge_store
+        )
+        
+        # Process request
+        result = await processor.process(test_request)
+        
+        # Verify knowledge store was used with standardized_format=True
+        mock_knowledge_store.contextual_search.assert_called_once_with(test_request, standardized_format=True)
+        
+        # Verify prompt includes metadata
+        prompt_args = mock_ollama_client.generate.call_args[0][0]
+        assert "test_source" in prompt_args 

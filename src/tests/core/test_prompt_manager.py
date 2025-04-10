@@ -126,7 +126,7 @@ def test_prompt_optimization(prompt_manager, sample_request):
     prompt = small_manager.create_prompt(sample_request)
     
     # Check that the prompt is optimized to the minimal form
-    expected_start = "You are Hachiko, a helpful bilingual dog companion."
+    expected_start = "You are a helpful train station attendant."
     expected_rules = "RULES:\n1. Keep responses short\n2. Use JLPT N5 only\n3. Include Japanese and English"
     
     assert prompt.startswith(expected_start)
@@ -223,7 +223,7 @@ def test_long_player_input(prompt_manager):
     prompt = small_manager.create_prompt(request)
     
     # Check that the prompt is optimized to the minimal form
-    expected_start = "You are Hachiko, a helpful bilingual dog companion."
+    expected_start = "You are a helpful train station attendant."
     expected_rules = "RULES:\n1. Keep responses short\n2. Use JLPT N5 only\n3. Include Japanese and English"
     
     assert prompt.startswith(expected_start)

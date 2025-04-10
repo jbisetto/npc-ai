@@ -44,7 +44,8 @@ class ConversationManager:
         self, 
         player_id: str, 
         max_entries: int = 10,
-        standardized_format: bool = True
+        standardized_format: bool = True,
+        npc_id: Optional[Union[str, 'NPCProfileType']] = None
     ) -> Union[List[Dict[str, Any]], List[ConversationHistoryEntry]]:
         """
         Get the conversation history for a specific player.
@@ -54,10 +55,15 @@ class ConversationManager:
             max_entries: Maximum number of recent entries to return
             standardized_format: If True, returns entries in standardized format
                                with 'user' and 'assistant' keys
+            npc_id: Optional NPC ID to filter conversations by specific NPC
             
         Returns:
             List of conversation entries in standard or legacy format
         """
+        # Convert npc_id from enum to string if needed
+        if npc_id is not None and hasattr(npc_id, 'value'):
+            npc_id = npc_id.value
+            
         # Load player history if not in cache
         if player_id not in self.player_histories:
             self._load_player_history(player_id)
@@ -68,6 +74,11 @@ class ConversationManager:
         for conv_id, conversation in player_data["conversations"].items():
             # Add conversation_id to each entry for reference
             entries = [{**entry, "conversation_id": conv_id} for entry in conversation["entries"]]
+            
+            # Filter by NPC ID if specified
+            if npc_id is not None:
+                entries = [entry for entry in entries if entry.get("npc_id") == npc_id]
+                
             all_entries.extend(entries)
         
         # Sort by timestamp and get most recent

@@ -170,7 +170,8 @@ async def test_local_processor_with_history(local_processor, test_request, mock_
     # Verify history was retrieved
     mock_conversation_manager.get_player_history.assert_called_once_with(
         test_request.game_context.player_id,
-        standardized_format=True
+        standardized_format=True,
+        npc_id=test_request.game_context.npc_id
     )
     
     # Verify the Ollama client was called with history
@@ -231,7 +232,8 @@ async def test_local_processor_history_in_prompt(local_processor, test_request, 
     # Verify conversation history was retrieved
     mock_conversation_manager.get_player_history.assert_called_once_with(
         test_request.game_context.player_id,
-        standardized_format=True
+        standardized_format=True,
+        npc_id=test_request.game_context.npc_id
     )
     
     # Verify the Ollama client was called

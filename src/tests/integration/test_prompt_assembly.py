@@ -78,46 +78,60 @@ class TestPromptAssembly:
     
     def test_prompt_manager_with_standard_formats(self, classified_request, standard_history, standard_knowledge):
         """Test PromptManager directly with standardized formats."""
-        prompt_manager = PromptManager()
-        
-        # Create prompt with standardized formats
-        prompt = prompt_manager.create_prompt(
-            request=classified_request,
-            history=standard_history,
-            knowledge_context=standard_knowledge
-        )
-        
-        # Check that the prompt contains all expected components
-        assert "Yamanote Line platforms are on the east side" in prompt
-        assert "Human: Hello, who are you?" in prompt
-        assert "Assistant: I'm Hachiko" in prompt
-        assert "CURRENT REQUEST" in prompt
-        assert "Human: Where can I find the Yamanote Line?" in prompt
+        with patch('src.ai.npc.core.prompt_manager.get_config') as mock_config:
+            # Mock the prompt configuration to ensure knowledge context is included
+            mock_config.return_value = {
+                'include_knowledge_context': True,
+                'include_conversation_history': True
+            }
+            
+            prompt_manager = PromptManager()
+            
+            # Create prompt with standardized formats
+            prompt = prompt_manager.create_prompt(
+                request=classified_request,
+                history=standard_history,
+                knowledge_context=standard_knowledge
+            )
+            
+            # Check that the prompt contains all expected components
+            assert "Yamanote Line platforms are on the east side" in prompt
+            assert "Human: Hello, who are you?" in prompt
+            assert "Assistant: I'm Hachiko" in prompt
+            assert "CURRENT REQUEST" in prompt
+            assert "Human: Where can I find the Yamanote Line?" in prompt
     
     def test_prompt_manager_with_mixed_formats(self, classified_request, standard_history):
         """Test PromptManager with mixed formats (standard history, legacy knowledge)."""
-        prompt_manager = PromptManager()
-        
-        # Create legacy format knowledge
-        legacy_knowledge = [
-            {
-                "document": "The Yamanote Line platforms are on the east side of Tokyo Station.",
-                "metadata": {"type": "location", "importance": "high"},
-                "id": "doc_1"
+        with patch('src.ai.npc.core.prompt_manager.get_config') as mock_config:
+            # Mock the prompt configuration to ensure knowledge context is included
+            mock_config.return_value = {
+                'include_knowledge_context': True,
+                'include_conversation_history': True
             }
-        ]
-        
-        # Create prompt with mixed formats
-        prompt = prompt_manager.create_prompt(
-            request=classified_request,
-            history=standard_history,
-            knowledge_context=legacy_knowledge
-        )
-        
-        # Check that the prompt contains all expected components
-        assert "Yamanote Line platforms are on the east side" in prompt
-        assert "Human: Hello, who are you?" in prompt
-        assert "CURRENT REQUEST" in prompt
+            
+            prompt_manager = PromptManager()
+            
+            # Create legacy format knowledge
+            legacy_knowledge = [
+                {
+                    "document": "The Yamanote Line platforms are on the east side of Tokyo Station.",
+                    "metadata": {"type": "location", "importance": "high"},
+                    "id": "doc_1"
+                }
+            ]
+            
+            # Create prompt with mixed formats
+            prompt = prompt_manager.create_prompt(
+                request=classified_request,
+                history=standard_history,
+                knowledge_context=legacy_knowledge
+            )
+            
+            # Check that the prompt contains all expected components
+            assert "Yamanote Line platforms are on the east side" in prompt
+            assert "Human: Hello, who are you?" in prompt
+            assert "CURRENT REQUEST" in prompt
     
     @pytest.mark.asyncio
     async def test_local_processor_end_to_end(self, classified_request, standard_history, standard_knowledge):

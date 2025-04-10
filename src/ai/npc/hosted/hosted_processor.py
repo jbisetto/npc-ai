@@ -29,6 +29,7 @@ from src.ai.npc.core.conversation_manager import ConversationManager
 from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
 from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
+from src.ai.npc.core.profile.profile_loader import ProfileLoader
 from src.ai.npc.core.models import NPCRequest
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,9 @@ class HostedProcessor(Processor):
         # Initialize adapters
         self.history_adapter = DefaultConversationHistoryAdapter()
         self.knowledge_adapter = DefaultKnowledgeContextAdapter()
+        
+        # Initialize profile registry
+        self.profile_registry = ProfileLoader(profiles_directory="src/data/profiles")
         
         # Initialize storage
         self.conversation_histories = {}
@@ -130,11 +134,30 @@ class HostedProcessor(Processor):
                 # Get history in standardized format
                 history = await self.conversation_manager.get_player_history(
                     request.game_context.player_id,
-                    standardized_format=True
+                    standardized_format=True,
+                    npc_id=request.game_context.npc_id
                 )
                 self.logger.debug(f"Retrieved {len(history)} conversation history entries")
             else:
                 self.logger.debug(f"No conversation history retrieved. conversation_id: {conversation_id}")
+
+            # Load profile if NPC ID is available
+            profile = None
+            if hasattr(request.game_context, 'npc_id') and request.game_context.npc_id:
+                npc_id = request.game_context.npc_id
+                self.logger.debug(f"Loading profile for NPC ID: {npc_id}")
+                try:
+                    # Convert enum to string value if it's an enum
+                    if hasattr(npc_id, 'value'):
+                        npc_id = npc_id.value
+                        
+                    profile = self.profile_registry.get_profile(npc_id, as_object=True)
+                    if profile:
+                        self.logger.debug(f"Loaded profile for {profile.name}, role: {profile.role}")
+                    else:
+                        self.logger.warning(f"No profile found for NPC ID: {npc_id}")
+                except Exception as e:
+                    self.logger.error(f"Error loading NPC profile: {e}", exc_info=True)
 
             # Get relevant knowledge from the knowledge store in standardized format
             try:
@@ -168,11 +191,12 @@ class HostedProcessor(Processor):
                 self.logger.error(f"Error retrieving knowledge context: {str(e)}", exc_info=True)
                 knowledge_context = []
 
-            # Create prompt with standardized knowledge context and history
+            # Create prompt with standardized knowledge context, history, and profile
             self.logger.debug(f"Creating prompt with {len(history)} history entries and {len(knowledge_context)} knowledge items")
             prompt = self.prompt_manager.create_prompt(
                 request,
                 history=history,
+                profile=profile,
                 knowledge_context=knowledge_context
             )
             self.logger.debug(f"Created prompt with {self.prompt_manager.estimate_tokens(prompt)} tokens")

@@ -3,7 +3,7 @@ general:
   log_level: DEBUG
   prompt:
     include_conversation_history: true
-    include_knowledge_context: true
+    include_knowledge_context: false
 local:
   enabled: true
   ollama:
