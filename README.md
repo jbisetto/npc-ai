@@ -87,6 +87,7 @@ This step is required before starting the demo to ensure the knowledge store is 
 ```bash
 python demo/app.py
 ```
+<img src="demo/docs/images/ai-demo.png" alt="AI Demo Screenshot" width="600"/>
 
 ## Known Issues and Future Enhancements
 

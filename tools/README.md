@@ -29,6 +29,7 @@ The Prompt Inspector tool helps you visualize what prompts will be generated for
    ```
    python prompt_inspector.py
    ```
+<img src="docs/images/prompt_inspector.png" alt="Prompt Inspector Screenshot" width="600"/>
 
 3. A Gradio interface will launch in your browser at http://localhost:7861 where you can:
    - Select an NPC from the dropdown (populated from NPCProfileType enum)

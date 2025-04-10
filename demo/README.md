@@ -46,6 +46,8 @@ python app.py
 
 The app will be available at http://localhost:7860 (or another port if 7860 is in use).
 
+<img src="demo/docs/images/ai-demo.png" alt="AI Demo Screenshot" width="600"/>
+
 ## Usage
 
 1. Select an NPC from the dropdown menu
