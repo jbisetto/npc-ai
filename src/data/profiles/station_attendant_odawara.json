@@ -2,6 +2,7 @@
   "profile_id": "station_attendant_odawara",
   "name": "Nakamura",
   "role": "Station Information Assistant",
+  "npc": true,
   "extends": ["base_station_staff"],
   "gender": "female",
   "personality_traits": {

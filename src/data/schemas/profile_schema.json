@@ -13,6 +13,11 @@
       "type": "string",
       "description": "NPC's role in the game (e.g., 'Station Attendant')"
     },
+    "npc": {
+      "type": "boolean",
+      "description": "Whether this profile represents an actual NPC character (true) or is a base profile for extension (false)",
+      "default": false
+    },
     "extends": {
       "type": "array", 
       "items": {"type": "string"},

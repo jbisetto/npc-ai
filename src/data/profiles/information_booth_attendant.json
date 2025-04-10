@@ -2,6 +2,7 @@
   "profile_id": "information_booth_attendant",
   "name": "Suzuki",
   "role": "Information Booth Attendant",
+  "npc": true,
   "extends": ["base_japanese_npc"],
   "gender": "female",
   "personality_traits": {

@@ -2,6 +2,7 @@
   "profile_id": "station_attendant_kyoto",
   "name": "Tanaka",
   "role": "Station Information Assistant",
+  "npc": true,
   "extends": ["base_station_staff"],
   "gender": "male",
   "personality_traits": {

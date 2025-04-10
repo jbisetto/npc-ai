@@ -2,6 +2,7 @@
   "profile_id": "station_attendant",
   "name": "Yamada",
   "role": "Station Information Assistant",
+  "npc": true,
   "extends": ["base_station_staff"],
   "personality_traits": {
     "helpfulness": 0.9,

@@ -2,6 +2,7 @@
   "profile_id": "ticket_booth_attendant",
   "name": "Sato",
   "role": "Ticket Booth Attendant",
+  "npc": true,
   "extends": ["base_japanese_npc"],
   "gender": "female",
   "personality_traits": {
