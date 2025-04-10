@@ -152,46 +152,43 @@ class OllamaClient:
         Raises:
             OllamaError: If an error occurs during the request.
         """
+        # Create a new session for this request
         try:
-            # Create session if needed
-            if self.session is None or self.session.closed:
-                self.logger.debug("Creating new aiohttp session")
-                self.session = aiohttp.ClientSession()
+            # Use a session only for this request
+            async with aiohttp.ClientSession() as session:
+                # Send request
+                url = f"{self.base_url}/api/{endpoint}"
+                self.logger.debug(f"Sending request to {url}")
+                
+                try:
+                    async with session.post(url, json=data, timeout=60) as response:
+                        # Check status code
+                        if response.status != 200:
+                            error_text = await response.text()
+                            raise OllamaError(
+                                f"HTTP {response.status}: {error_text}",
+                                OllamaError.CONNECTION_ERROR
+                            )
 
-            # Send request
-            url = f"{self.base_url}/api/{endpoint}"
-            self.logger.debug(f"Sending request to {url}")
-            
-            async with self.session.post(url, json=data, timeout=60) as response:
-                # Check status code
-                if response.status != 200:
-                    error_text = await response.text()
-                    raise OllamaError(
-                        f"HTTP {response.status}: {error_text}",
-                        OllamaError.CONNECTION_ERROR
-                    )
-
-                # Parse response
-                response_data = await response.json()
-                return response_data
-
+                        # Parse response
+                        response_data = await response.json()
+                        return response_data
+                        
+                except aiohttp.ClientError as e:
+                    self.logger.error(f"Connection error: {e}")
+                    raise OllamaError(f"Connection error: {e}", OllamaError.CONNECTION_ERROR)
+                except asyncio.TimeoutError as e:
+                    self.logger.error(f"Request timeout: {e}")
+                    raise OllamaError(f"Request timeout: {e}", OllamaError.TIMEOUT_ERROR)
+                
         except aiohttp.ClientError as e:
             self.logger.error(f"Connection error: {e}")
-            # Try to close and reset the session on connection errors
-            await self._reset_session()
             raise OllamaError(f"Connection error: {e}", OllamaError.CONNECTION_ERROR)
-        except asyncio.TimeoutError as e:
-            self.logger.error(f"Request timeout: {e}")
-            # Try to close and reset the session on timeouts
-            await self._reset_session()
-            raise OllamaError(f"Request timeout: {e}", OllamaError.TIMEOUT_ERROR)
         except json.JSONDecodeError as e:
             self.logger.error(f"Invalid JSON response: {e}")
             raise OllamaError(f"Invalid JSON response: {e}", OllamaError.INVALID_RESPONSE)
         except Exception as e:
             self.logger.error(f"Error sending request: {e}")
-            # Try to close and reset the session on general errors
-            await self._reset_session()
             raise OllamaError(f"Error sending request: {e}", OllamaError.CONNECTION_ERROR)
             
     async def _reset_session(self):
