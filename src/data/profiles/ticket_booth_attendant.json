@@ -3,7 +3,7 @@
   "name": "Sato",
   "role": "Ticket Booth Attendant",
   "npc": true,
-  "extends": ["base_japanese_npc"],
+  "extends": ["base_station_staff"],
   "gender": "female",
   "personality_traits": {
     "efficiency": 0.9,
@@ -14,12 +14,6 @@
   },
   "knowledge_areas": [
     "Ticket types and pricing",
-    "Rail pass information",
-    "Reservation systems",
-    "Payment methods",
-    "Discount options",
-    "Schedule changes",
-    "Refund policies",
     "Basic route information"
   ],
   "backstory": "Sato is a precise and efficient ticket booth attendant at Tokyo Station. She processes ticket transactions quickly while maintaining perfect accuracy. Though sometimes appearing serious due to her focus on her work, she's always willing to explain ticket options and help travelers find the most cost-effective routes. She has worked at the station for three years and takes pride in her detailed knowledge of the ticketing system.",
