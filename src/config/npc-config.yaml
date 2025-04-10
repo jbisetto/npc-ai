@@ -1,13 +1,6 @@
 general:
   data_dir: src/data
   log_level: DEBUG
-retry:
-  backoff_factor: 2.0
-  base_delay: 1.0
-  jitter: true
-  jitter_factor: 0.25
-  max_delay: 60.0
-  max_retries: 3
 local:
   enabled: true
   ollama:

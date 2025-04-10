@@ -1,7 +1,7 @@
 {
   "profile_id": "base_japanese_npc",
   "name": "Japanese NPC",
-  "role": "Japanese Language Assistant",
+  "role": "Japanese Character",
   "personality_traits": {
     "politeness": 0.8,
     "helpfulness": 0.7,

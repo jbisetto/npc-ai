@@ -2,7 +2,7 @@
 
 ## Current Challenges and Analysis
 
-As a senior developer with AI expertise, I've identified several critical issues with our current NPC dialogue system that pose risks to the educational integrity and immersion of our language learning game:
+I've identified several critical issues with our current NPC dialogue system that pose risks to the educational integrity and immersion of our language learning game:
 
 ### 1. Knowledge Boundary Problems
 

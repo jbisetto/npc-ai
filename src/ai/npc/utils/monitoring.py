@@ -23,7 +23,7 @@ class ProcessorMonitor:
     Monitor for tracking processor performance and behavior.
     
     This class provides methods for tracking metrics related to the processor's
-    performance, including request counts, error counts, retry counts, and
+    performance, including request counts, error counts, and
     fallback counts. It also provides methods for generating reports and
     persisting metrics to disk.
 
@@ -64,7 +64,6 @@ class ProcessorMonitor:
         self._metrics = {
             'requests': Counter(),
             'errors': Counter(),
-            'retries': Counter(),
             'fallbacks': Counter(),
             'response_times': defaultdict(list),
             'success_counts': Counter(),  # Count of successful responses
@@ -105,19 +104,6 @@ class ProcessorMonitor:
             self._metrics['last_errors'][error_key] = errors[-10:]  # Keep only the last 10
             
             logger.debug(f"Tracked error from {processor_name}: {error_type} - {error_message}")
-    
-    def track_retry(self, processor_name: str, retry_count: int):
-        """
-        Track a retry attempt from a processor.
-        
-        Args:
-            processor_name: The name of the processor (e.g., 'tier1', 'tier2')
-            retry_count: The number of retries attempted
-        """
-        with self._lock:
-            retry_key = f"{processor_name}:retry_{retry_count}"
-            self._metrics['retries'][retry_key] += 1
-            logger.debug(f"Tracked retry from {processor_name}: {retry_count}")
     
     def track_fallback(self, processor_name: str, fallback_type: str):
         """
@@ -171,7 +157,6 @@ class ProcessorMonitor:
             metrics = {
                 'requests': dict(self._metrics['requests']),
                 'errors': dict(self._metrics['errors']),
-                'retries': dict(self._metrics['retries']),
                 'fallbacks': dict(self._metrics['fallbacks']),
                 'success_counts': dict(self._metrics['success_counts']),
                 'last_errors': dict(self._metrics['last_errors']),
@@ -222,7 +207,6 @@ class ProcessorMonitor:
                 metrics = {
                     'requests': dict(self._metrics['requests']),
                     'errors': dict(self._metrics['errors']),
-                    'retries': dict(self._metrics['retries']),
                     'fallbacks': dict(self._metrics['fallbacks']),
                     'success_counts': dict(self._metrics['success_counts']),
                     'last_errors': dict(self._metrics['last_errors']),
@@ -256,105 +240,47 @@ class ProcessorMonitor:
                             avg_response_times[f"{processor}_p99"] = times_sorted[p99_index] if p99_index < len(times) else times_sorted[-1]
                 
                 metrics['avg_response_time_ms'] = avg_response_times
+                
+                # Write to disk
+                file_path = os.path.join(self._metrics_dir, f"metrics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+                with open(file_path, 'w') as f:
+                    json.dump(metrics, f, indent=2, default=str)
+                
+                logger.info(f"Saved metrics to {file_path}")
             finally:
-                # Always release the lock
                 self._lock.release()
                 
-            # Save metrics to disk (outside the lock)
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = os.path.join(self._metrics_dir, f'metrics_{timestamp}.json')
-            
-            with open(filename, 'w') as f:
-                json.dump(metrics, f, indent=2)
-            
-            logger.info(f"Saved metrics to {filename}")
-            
         except Exception as e:
-            logger.error(f"Error saving metrics: {e}")
+            logger.error(f"Error saving metrics: {e}", exc_info=True)
     
     def log_metrics_summary(self):
         """Log a summary of the current metrics."""
-        # Get metrics with a timeout to avoid deadlocks
         try:
-            # Try to acquire the lock with a timeout
-            if not self._lock.acquire(timeout=1.0):
-                logger.warning("Could not acquire lock for logging metrics summary, skipping")
-                return
-                
-            try:
-                # Calculate metrics while holding the lock
-                metrics = {
-                    'requests': dict(self._metrics['requests']),
-                    'errors': dict(self._metrics['errors']),
-                    'retries': dict(self._metrics['retries']),
-                    'fallbacks': dict(self._metrics['fallbacks']),
-                    'success_counts': dict(self._metrics['success_counts']),
-                    'last_errors': dict(self._metrics['last_errors']),
-                    'uptime_seconds': (datetime.now() - self._start_time).total_seconds()
-                }
-                
-                # Calculate success rates
-                success_rates = {}
-                for processor, count in metrics['requests'].items():
-                    if count > 0:
-                        success_count = metrics['success_counts'].get(processor, 0)
-                        success_rates[processor] = success_count / count
-                    else:
-                        success_rates[processor] = 0.0
-                
-                metrics['success_rate'] = success_rates
-                
-                # Calculate average response times
-                avg_response_times = {}
-                for processor, times in self._metrics['response_times'].items():
-                    if times:
-                        avg_response_times[processor] = sum(times) / len(times)
-                        
-                        # Only calculate percentiles if we have enough data
-                        if len(times) >= 10:
-                            # Also include p95 and p99 response times
-                            times_sorted = sorted(times)
-                            p95_index = int(len(times) * 0.95)
-                            p99_index = int(len(times) * 0.99)
-                            avg_response_times[f"{processor}_p95"] = times_sorted[p95_index] if p95_index < len(times) else times_sorted[-1]
-                            avg_response_times[f"{processor}_p99"] = times_sorted[p99_index] if p99_index < len(times) else times_sorted[-1]
-                
-                metrics['avg_response_time_ms'] = avg_response_times
-            finally:
-                # Always release the lock
-                self._lock.release()
+            metrics = self.get_metrics()
             
-            # Log metrics summary (outside the lock)
-            logger.info("=== Processor Metrics Summary ===")
+            logger.info("=== Metrics Summary ===")
             logger.info(f"Uptime: {timedelta(seconds=int(metrics['uptime_seconds']))}")
             
+            logger.info("Requests:")
             for processor, count in metrics['requests'].items():
-                logger.info(f"{processor.upper()} Requests: {count}")
+                success_rate = metrics['success_rate'].get(processor, 0.0)
+                logger.info(f"  {processor}: {count} requests, {success_rate:.2%} success rate")
             
-            logger.info("Success Counts:")
-            for processor, count in metrics['success_counts'].items():
-                logger.info(f"  {processor}: {count}")
+            logger.info("Errors:")
+            for error, count in metrics['errors'].items():
+                logger.info(f"  {error}: {count}")
             
-            logger.info("Success Rates:")
-            for processor, rate in metrics['success_rate'].items():
-                logger.info(f"  {processor}: {rate:.2%}")
-            
-            logger.info("Error Counts:")
-            for error_key, count in metrics['errors'].items():
-                logger.info(f"  {error_key}: {count}")
-            
-            logger.info("Fallback Counts:")
-            for fallback_key, count in metrics['fallbacks'].items():
-                logger.info(f"  {fallback_key}: {count}")
+            logger.info("Fallbacks:")
+            for fallback, count in metrics['fallbacks'].items():
+                logger.info(f"  {fallback}: {count}")
             
             logger.info("Average Response Times (ms):")
             for processor, time_ms in metrics.get('avg_response_time_ms', {}).items():
                 if not processor.endswith('_p95') and not processor.endswith('_p99'):
-                    p95 = metrics['avg_response_time_ms'].get(f"{processor}_p95", 0)
-                    p99 = metrics['avg_response_time_ms'].get(f"{processor}_p99", 0)
-                    logger.info(f"  {processor}: avg={time_ms:.2f}, p95={p95:.2f}, p99={p99:.2f}")
-            
-            logger.info("=================================")
-            
+                    p95 = metrics.get('avg_response_time_ms', {}).get(f"{processor}_p95", 'N/A')
+                    p99 = metrics.get('avg_response_time_ms', {}).get(f"{processor}_p99", 'N/A')
+                    logger.info(f"  {processor}: avg={time_ms:.2f}ms, p95={p95 if isinstance(p95, str) else f'{p95:.2f}ms'}, p99={p99 if isinstance(p99, str) else f'{p99:.2f}ms'}")
+                    
+            logger.info("======================")
         except Exception as e:
-            logger.error(f"Error logging metrics summary: {e}") 
+            logger.error(f"Error logging metrics summary: {e}", exc_info=True) 
