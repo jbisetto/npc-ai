@@ -14,6 +14,7 @@ from src.ai.npc.core.constants import (
     RESPONSE_FORMAT_DEFAULT,
     RESPONSE_FORMAT_GREETING
 )
+import logging
 
 class NPCProfile:
     """NPC Profile class for managing NPC personalities and behavior."""
@@ -27,7 +28,8 @@ class NPCProfile:
         knowledge_areas: List[str],
         backstory: str,
         extends: Optional[List[str]] = None,
-        response_formats: Optional[Dict[str, str]] = None
+        response_formats: Optional[Dict[str, str]] = None,
+        language_profile: Optional[Dict[str, Any]] = None
     ):
         """Initialize an NPC profile.
         
@@ -40,6 +42,7 @@ class NPCProfile:
             backstory: NPC's background story
             extends: Optional list of base profile IDs to extend
             response_formats: Optional dictionary of response format templates
+            language_profile: Optional language settings including default_language
         """
         self.profile_id = profile_id
         self.name = name
@@ -51,6 +54,9 @@ class NPCProfile:
         self.response_formats = response_formats or {
             RESPONSE_FORMAT_DEFAULT: "{name}: {response}",
             RESPONSE_FORMAT_GREETING: "Hello! {name} here: {response}"
+        }
+        self.language_profile = language_profile or {
+            "default_language": "english"
         }
     
     @classmethod
@@ -71,7 +77,8 @@ class NPCProfile:
             knowledge_areas=data["knowledge_areas"],
             backstory=data["backstory"],
             extends=data.get("extends"),
-            response_formats=data.get("response_formats")
+            response_formats=data.get("response_formats"),
+            language_profile=data.get("language_profile")
         )
     
     def to_dict(self) -> Dict[str, Any]:
@@ -88,7 +95,8 @@ class NPCProfile:
             "knowledge_areas": self.knowledge_areas,
             "backstory": self.backstory,
             "extends": self.extends,
-            "response_formats": self.response_formats
+            "response_formats": self.response_formats,
+            "language_profile": self.language_profile
         }
     
     def get_system_prompt(self) -> str:
@@ -97,6 +105,8 @@ class NPCProfile:
         Returns:
             System prompt string
         """
+        logger = logging.getLogger(__name__)
+        
         prompt = f"""You are {self.name}, a {self.role}. {self.backstory}
 
 Your personality traits are:
@@ -105,6 +115,56 @@ Your personality traits are:
             prompt += f"- {trait}: {value}\n"
             
         prompt += f"\nYou are knowledgeable about: {', '.join(self.knowledge_areas)}"
+        
+        # Add language instructions if available
+        default_language = self.language_profile.get("default_language") if self.language_profile else None
+        
+        # Debug logging
+        logger.info(f"[LANGUAGE DEBUG] Profile {self.name}, language_profile: {self.language_profile}")
+        logger.info(f"[LANGUAGE DEBUG] Default language: {default_language}")
+        
+        if default_language:
+            if default_language == "japanese":
+                logger.info(f"[LANGUAGE DEBUG] Adding Japanese language instructions")
+                prompt += f"\n\nIMPORTANT: You must ONLY respond in Japanese. If you understand the user's input, respond in Japanese only. If you cannot understand the input at all, you may briefly explain in English that you don't understand, and then suggest they try in Japanese."
+            elif default_language == "english":
+                logger.info(f"[LANGUAGE DEBUG] Adding English language instructions")
+                prompt += f"\n\nIMPORTANT: You must ONLY respond in English. If the user speaks to you in another language and you understand it, always respond in English only."
+            elif default_language == "bilingual":
+                # Enhanced instructions for language instructors
+                role_is_instructor = "instructor" in self.role.lower() or "teacher" in self.role.lower() or "learning" in self.role.lower()
+                
+                logger.info(f"[LANGUAGE DEBUG] Bilingual mode, role_is_instructor: {role_is_instructor}, role: {self.role}")
+                
+                if role_is_instructor:
+                    logger.info(f"[LANGUAGE DEBUG] Adding enhanced bilingual language instructions for instructor")
+                    prompt += f"""
+
+IMPORTANT LANGUAGE INSTRUCTIONS:
+You are a language instructor who should help users learn Japanese. Use a bilingual approach:
+1. If the user speaks in English:
+   - Respond primarily in Japanese with English translations in parentheses
+   - Start with simple Japanese phrases then gradually introduce more complex ones
+   - Include helpful explanations about grammar or vocabulary in English
+
+2. If the user speaks in Japanese:
+   - Respond primarily in Japanese with some English support as needed
+   - Compliment their Japanese and gently correct any mistakes
+   - Provide English translations for advanced words or grammar points
+
+3. Always adjust to the user's perceived language level:
+   - Use JLPT N5 level Japanese for beginners
+   - If they seem more advanced, gradually increase complexity
+
+4. Format your responses with Japanese first, followed by English translation when appropriate:
+   「こんにちは！何かお手伝いできますか？」(Hello! How can I help you?)
+
+IMPORTANT: You should respond in the same language the user addresses you in. If they speak Japanese, respond in Japanese. If they speak English, respond in English.
+"""
+                else:
+                    # Standard bilingual instructions for non-instructors
+                    logger.info(f"[LANGUAGE DEBUG] Adding standard bilingual language instructions")
+                    prompt += f"\n\nIMPORTANT: You should respond in the same language the user addresses you in. If they speak Japanese, respond in Japanese. If they speak English, respond in English."
         
         return prompt
     

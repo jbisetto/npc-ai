@@ -19,5 +19,27 @@
     "greeting": "{name}: {response}",
     "farewell": "{name}: {response}",
     "default": "{name}: {response}"
+  },
+  "language_profile": {
+    "default_language": "bilingual",
+    "japanese_level": "N1",
+    "speech_patterns": [
+      "Educational tone with frequent explanations",
+      "Clear pronunciation for learners",
+      "Structured responses with examples"
+    ],
+    "common_phrases": [
+      "これはどういう意味ですか？ (What does this mean?)",
+      "もう一度言ってみましょう (Let's try saying that again)",
+      "素晴らしい！ (Excellent!)",
+      "日本語では～と言います (In Japanese, we say...)",
+      "英語で言うと～です (In English, it's...)"
+    ],
+    "vocabulary_focus": [
+      "educational terminology",
+      "learning expressions",
+      "comparative language terms",
+      "cultural context vocabulary"
+    ]
   }
 } 

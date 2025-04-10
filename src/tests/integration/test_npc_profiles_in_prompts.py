@@ -62,6 +62,15 @@ class TestNPCProfilesInPrompts:
             backstory="A knowledgeable station staff member dedicated to helping travelers.",
             response_formats={
                 "default": "{name}: {response}"
+            },
+            language_profile={
+                "default_language": "japanese",
+                "japanese_level": "native",
+                "speech_patterns": [
+                    "Polite formal speech",
+                    "Clear pronunciation",
+                    "Standard Tokyo dialect"
+                ]
             }
         )
     
@@ -87,6 +96,15 @@ class TestNPCProfilesInPrompts:
             backstory="A friendly Akita dog who helps tourists navigate Tokyo Station and learn basic Japanese.",
             response_formats={
                 "default": "{name}: {response}"
+            },
+            language_profile={
+                "default_language": "bilingual",
+                "japanese_level": "N1",
+                "speech_patterns": [
+                    "Enthusiastic and friendly tone",
+                    "Clear pronunciation for learners",
+                    "Educational explanations"
+                ]
             }
         )
     
@@ -382,4 +400,306 @@ def test_real_profiles_work_with_prompt_manager(profile_loader):
     logger.info(f"Profile name: {profile.name}, role: {profile.role}")
     
     # Verify backstory is included
-    assert profile.backstory in prompt, f"Backstory not found in prompt" 
+    assert profile.backstory in prompt, f"Backstory not found in prompt"
+
+def test_language_profile_instructions_in_prompt(profile_loader):
+    """Test that language_profile configurations produce appropriate language instructions in the prompt."""
+    # Create a prompt manager
+    prompt_manager = PromptManager()
+    
+    # Create profiles with different language settings
+    japanese_npc = NPCProfile(
+        profile_id="japanese_test_npc",
+        name="Tanaka",
+        role="Station Attendant",
+        personality_traits={"politeness": 0.9, "helpfulness": 0.8},
+        knowledge_areas=["Train schedules", "Station layout"],
+        backstory="A helpful station attendant at Tokyo Station.",
+        language_profile={
+            "default_language": "japanese",
+            "japanese_level": "native"
+        }
+    )
+    
+    english_npc = NPCProfile(
+        profile_id="english_test_npc",
+        name="Smith",
+        role="Tourist Guide",
+        personality_traits={"friendliness": 0.9, "knowledge": 0.8},
+        knowledge_areas=["Tokyo attractions", "Transportation"],
+        backstory="An English-speaking guide helping tourists in Tokyo.",
+        language_profile={
+            "default_language": "english"
+        }
+    )
+    
+    bilingual_npc = NPCProfile(
+        profile_id="bilingual_test_npc",
+        name="Hachiko",
+        role="Companion Dog",
+        personality_traits={"friendliness": 0.9, "patience": 1.0},
+        knowledge_areas=["Japanese basics", "Station layout"],
+        backstory="A friendly companion helping tourists learn Japanese.",
+        language_profile={
+            "default_language": "bilingual",
+            "japanese_level": "N1"
+        }
+    )
+    
+    # Create a basic game context
+    game_context = GameContext(
+        player_id="test_player",
+        language_proficiency={"japanese": 0.3, "english": 0.9}
+    )
+    
+    # Create a request using the game context
+    request = ClassifiedRequest(
+        request_id="test_request",
+        player_input="Where is the ticket counter?",
+        game_context=game_context,
+        processing_tier=ProcessingTier.LOCAL
+    )
+    
+    # Generate prompts for each profile
+    japanese_prompt = prompt_manager.create_prompt(request=request, profile=japanese_npc)
+    english_prompt = prompt_manager.create_prompt(request=request, profile=english_npc)
+    bilingual_prompt = prompt_manager.create_prompt(request=request, profile=bilingual_npc)
+    
+    # Verify language-specific instructions in each prompt
+    # Japanese NPC should have instructions to respond only in Japanese
+    assert "IMPORTANT: You must ONLY respond in Japanese" in japanese_prompt
+    assert "If you understand the user's input, respond in Japanese only" in japanese_prompt
+    
+    # English NPC should have instructions to respond only in English
+    assert "IMPORTANT: You must ONLY respond in English" in english_prompt
+    assert "always respond in English only" in english_prompt
+    
+    # Bilingual NPC should have instructions to respond in the same language as the input
+    assert "IMPORTANT: You should respond in the same language the user addresses you in" in bilingual_prompt
+    assert "If they speak Japanese, respond in Japanese" in bilingual_prompt
+    assert "If they speak English, respond in English" in bilingual_prompt
+
+
+def test_language_profile_from_real_profiles(profile_loader):
+    """Test that real profiles from the system include language instructions in their prompts."""
+    # Get the Japanese NPC base profile
+    japanese_npc_profile = profile_loader.get_profile("base_japanese_npc", as_object=True)
+    
+    # Skip if the profile doesn't exist
+    if not japanese_npc_profile:
+        pytest.skip("Japanese NPC profile not found")
+    
+    # Create a prompt manager
+    prompt_manager = PromptManager()
+    
+    # Create a game context
+    game_context = GameContext(
+        player_id="test_player",
+        language_proficiency={"japanese": 0.3, "english": 0.9}
+    )
+    
+    # Create requests with different languages
+    english_request = ClassifiedRequest(
+        request_id="english_test",
+        player_input="Where is the ticket counter?",
+        game_context=game_context,
+        processing_tier=ProcessingTier.LOCAL
+    )
+    
+    japanese_request = ClassifiedRequest(
+        request_id="japanese_test",
+        player_input="切符売り場はどこですか？",
+        game_context=game_context,
+        processing_tier=ProcessingTier.LOCAL
+    )
+    
+    # Generate prompts for each request
+    prompt_en = prompt_manager.create_prompt(request=english_request, profile=japanese_npc_profile)
+    prompt_ja = prompt_manager.create_prompt(request=japanese_request, profile=japanese_npc_profile)
+    
+    # Verify Japanese language instructions in both prompts
+    assert "IMPORTANT: You must ONLY respond in Japanese" in prompt_en
+    assert "If you understand the user's input, respond in Japanese only" in prompt_en
+    
+    assert "IMPORTANT: You must ONLY respond in Japanese" in prompt_ja
+    assert "If you understand the user's input, respond in Japanese only" in prompt_ja
+    
+    # The prompts should be almost identical except for the user input part
+    prompt_en_without_input = prompt_en.replace(english_request.player_input, "")
+    prompt_ja_without_input = prompt_ja.replace(japanese_request.player_input, "")
+    assert prompt_en_without_input == prompt_ja_without_input
+    
+    # Check that language profile settings are included
+    assert japanese_npc_profile.language_profile["default_language"] == "japanese"
+
+def test_hachiko_bilingual_language_profile(profile_loader):
+    """Test that Hachiko's bilingual language profile works correctly."""
+    # Get the Hachiko profile
+    hachiko_profile = profile_loader.get_profile("companion_dog", as_object=True)
+    
+    # Skip if the profile doesn't exist
+    if not hachiko_profile:
+        pytest.skip("Hachiko profile not found")
+    
+    # Create a prompt manager
+    prompt_manager = PromptManager()
+    
+    # Create a game context
+    game_context = GameContext(
+        player_id="test_player",
+        language_proficiency={"japanese": 0.5, "english": 0.9}
+    )
+    
+    # Create requests in different languages
+    english_request = ClassifiedRequest(
+        request_id="english_test",
+        player_input="Can you help me learn some basic Japanese phrases?",
+        game_context=game_context,
+        processing_tier=ProcessingTier.LOCAL
+    )
+    
+    japanese_request = ClassifiedRequest(
+        request_id="japanese_test",
+        player_input="日本語を少し教えてくれませんか？",
+        game_context=game_context,
+        processing_tier=ProcessingTier.LOCAL
+    )
+    
+    # Generate prompts for each request
+    prompt_en = prompt_manager.create_prompt(request=english_request, profile=hachiko_profile)
+    prompt_ja = prompt_manager.create_prompt(request=japanese_request, profile=hachiko_profile)
+    
+    # Verify bilingual instructions in both prompts
+    bilingual_instruction = "IMPORTANT: You should respond in the same language the user addresses you in"
+    assert bilingual_instruction in prompt_en
+    assert bilingual_instruction in prompt_ja
+    
+    # Verify language switching instructions
+    language_switching = "If they speak Japanese, respond in Japanese. If they speak English, respond in English."
+    assert language_switching in prompt_en
+    assert language_switching in prompt_ja
+    
+    # Verify the language profile is set to bilingual
+    assert hachiko_profile.language_profile["default_language"] == "bilingual"
+    
+    # Hachiko should have a high Japanese level (N1)
+    assert hachiko_profile.language_profile["japanese_level"] == "N1"
+
+def test_language_profile_fallback_for_incomprehensible_input(profile_loader):
+    """Test that language profiles include appropriate fallback instructions for when the NPC cannot understand input."""
+    # Create a prompt manager
+    prompt_manager = PromptManager()
+    
+    # Create a Japanese NPC profile
+    japanese_npc = NPCProfile(
+        profile_id="japanese_test_npc",
+        name="Tanaka",
+        role="Station Attendant",
+        personality_traits={"politeness": 0.9, "helpfulness": 0.8},
+        knowledge_areas=["Train schedules", "Station layout"],
+        backstory="A helpful station attendant at Tokyo Station.",
+        language_profile={
+            "default_language": "japanese",
+            "japanese_level": "native"
+        }
+    )
+    
+    # Create a game context with very low Japanese proficiency (to simulate complex English input)
+    game_context = GameContext(
+        player_id="test_player",
+        language_proficiency={"japanese": 0.1, "english": 0.9}
+    )
+    
+    # Create a request with complex or uncommon English that might be difficult to understand
+    complex_request = ClassifiedRequest(
+        request_id="complex_test",
+        player_input="Could you elucidate the most expeditious route to the shinkansen platform?",
+        game_context=game_context,
+        processing_tier=ProcessingTier.LOCAL
+    )
+    
+    # Generate prompt for the complex request
+    prompt = prompt_manager.create_prompt(request=complex_request, profile=japanese_npc)
+    
+    # Verify fallback instructions for when the NPC cannot understand
+    assert "If you cannot understand the input at all, you may briefly explain in English" in prompt
+    assert "then suggest they try in Japanese" in prompt
+    
+    # The language profile should still instruct to primarily respond in Japanese
+    assert "You must ONLY respond in Japanese" in prompt
+    
+    # Get a real Japanese NPC profile if available
+    japanese_npc_profile = profile_loader.get_profile("base_japanese_npc", as_object=True)
+    if japanese_npc_profile:
+        # Check the real profile also has the fallback instructions
+        real_prompt = prompt_manager.create_prompt(request=complex_request, profile=japanese_npc_profile)
+        assert "If you cannot understand the input at all, you may briefly explain in English" in real_prompt
+        assert "then suggest they try in Japanese" in real_prompt 
+
+def test_debug_japanese_npc_language_instructions(profile_loader):
+    """Debug test to print the language instructions in a Japanese NPC prompt."""
+    # Create a prompt manager
+    prompt_manager = PromptManager()
+    
+    # Create a Japanese NPC profile
+    japanese_npc = NPCProfile(
+        profile_id="japanese_test_npc",
+        name="Tanaka",
+        role="Station Attendant",
+        personality_traits={"politeness": 0.9, "helpfulness": 0.8},
+        knowledge_areas=["Train schedules", "Station layout"],
+        backstory="A helpful station attendant at Tokyo Station.",
+        language_profile={
+            "default_language": "japanese",
+            "japanese_level": "native"
+        }
+    )
+    
+    # Create a game context
+    game_context = GameContext(
+        player_id="test_player",
+        language_proficiency={"japanese": 0.3, "english": 0.9}
+    )
+    
+    # Create a request
+    request = ClassifiedRequest(
+        request_id="test_request",
+        player_input="Where is the ticket counter?",
+        game_context=game_context,
+        processing_tier=ProcessingTier.LOCAL
+    )
+    
+    # Generate prompt
+    prompt = prompt_manager.create_prompt(request=request, profile=japanese_npc)
+    
+    # Print important information for debugging
+    print("\n============ DEBUG INFO ============")
+    print(f"Profile default language: {japanese_npc.language_profile.get('default_language')}")
+    
+    # Find the language instruction sections
+    if "IMPORTANT: You must ONLY respond in Japanese" in prompt:
+        print("Found instruction to respond in Japanese ✓")
+    else:
+        print("Japanese instruction NOT found ✗")
+        
+    if "IMPORTANT: You must ONLY respond in English" in prompt:
+        print("Found instruction to respond in English ✗")
+    else:
+        print("English instruction NOT found ✓")
+    
+    # Find the actual language section
+    language_section_start = prompt.find("IMPORTANT: You must ONLY respond in")
+    if language_section_start != -1:
+        # Extract about 100 characters around this point
+        start_idx = max(0, language_section_start - 20)
+        end_idx = min(len(prompt), language_section_start + 150)
+        language_context = prompt[start_idx:end_idx]
+        print(f"\nLanguage Context: \n{language_context}\n")
+    else:
+        print("\nNo language section found")
+    
+    print("============ END DEBUG ============\n")
+    
+    # Verify correct language instruction
+    assert "IMPORTANT: You must ONLY respond in Japanese" in prompt, "Japanese instruction missing"
+    assert "IMPORTANT: You must ONLY respond in English" not in prompt, "English instruction found" 
