@@ -41,22 +41,16 @@ preset_player_ids = [
 
 # Define NPC profiles
 npc_profiles = {
-    "Hachi (Dog Companion)": {
+    "Hachiko (Dog Companion)": {
+        "profile_id": "companion_dog",
         "role": "companion",
         "personality": "helpful_bilingual_dog",
     },
-    "Station Staff": {
+    "Yamada (Station Staff)": {
+        "profile_id": "station_attendant",
         "role": "staff",
         "personality": "professional_helpful",
     },
-    "Ticket Vendor": {
-        "role": "vendor",
-        "personality": "busy_efficient",
-    },
-    "Fellow Tourist": {
-        "role": "tourist",
-        "personality": "confused_friendly",
-    }
 }
 
 # Store conversation IDs for user sessions
@@ -117,7 +111,7 @@ async def process_message(message, selected_npc, player_id, session_id=None):
         },
         player_location="station",  # Generic location
         current_objective="Buy ticket to Odawara",
-        npc_id=selected_npc  # Associate the NPC with the request
+        npc_id=npc_data["profile_id"]  # Use the correct profile_id for the backend
     )
     
     # Create a dictionary of additional parameters - we'll track this but it's not directly passed
@@ -282,7 +276,7 @@ def create_demo():
             # NPC Selection
             npc_selector = gr.Dropdown(
                 choices=list(npc_profiles.keys()),
-                value="Hachi (Dog Companion)",
+                value="Hachiko (Dog Companion)",
                 label="Select NPC to interact with"
             )
         

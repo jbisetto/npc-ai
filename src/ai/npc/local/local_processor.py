@@ -20,6 +20,7 @@ from src.ai.npc.core.processor_framework import Processor
 from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
 from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
+from src.ai.npc.core.profile.profile_loader import ProfileLoader
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,8 @@ class LocalProcessor(Processor):
         self,
         ollama_client: OllamaClient,
         conversation_manager: Optional[ConversationManager] = None,
-        knowledge_store: Optional[KnowledgeStore] = None
+        knowledge_store: Optional[KnowledgeStore] = None,
+        profiles_dir: str = "src/data/profiles"
     ):
         """
         Initialize the local processor.
@@ -42,6 +44,7 @@ class LocalProcessor(Processor):
             ollama_client: Client for interacting with Ollama
             conversation_manager: Optional manager for conversation history
             knowledge_store: Optional knowledge store instance to pass to base class
+            profiles_dir: Directory containing NPC profile definitions
         """
         # Initialize base class
         super().__init__(knowledge_store=knowledge_store)
@@ -50,6 +53,7 @@ class LocalProcessor(Processor):
         self.conversation_manager = conversation_manager
         self.response_parser = ResponseParser()
         self.prompt_manager = PromptManager()
+        self.profile_registry = ProfileLoader(profiles_dir)
         
         # Initialize adapters
         self.history_adapter = DefaultConversationHistoryAdapter()
@@ -88,6 +92,20 @@ class LocalProcessor(Processor):
             else:
                 self.logger.debug(f"No conversation history retrieved. conversation_id: {conversation_id}")
 
+            # Get NPC profile if NPC ID is available
+            profile = None
+            if hasattr(request.game_context, 'npc_id') and request.game_context.npc_id:
+                npc_id = request.game_context.npc_id
+                self.logger.debug(f"Loading profile for NPC ID: {npc_id}")
+                try:
+                    profile = self.profile_registry.get_profile(npc_id, as_object=True)
+                    if profile:
+                        self.logger.debug(f"Loaded profile for {profile.name}, role: {profile.role}")
+                    else:
+                        self.logger.warning(f"No profile found for NPC ID: {npc_id}")
+                except Exception as e:
+                    self.logger.error(f"Error loading NPC profile: {e}", exc_info=True)
+
             # Get relevant knowledge from the knowledge store in standardized format
             try:
                 self.logger.debug(f"Retrieving knowledge context for: '{request.player_input}'")
@@ -112,11 +130,12 @@ class LocalProcessor(Processor):
                 self.logger.error(f"Error retrieving knowledge context: {str(e)}", exc_info=True)
                 knowledge_context = []
 
-            # Create prompt with standardized knowledge context and history
+            # Create prompt with standardized knowledge context, history, and profile
             self.logger.debug(f"Creating prompt with {len(history)} history entries and {len(knowledge_context)} knowledge items")
             prompt = self.prompt_manager.create_prompt(
                 request,
                 history=history,
+                profile=profile,
                 knowledge_context=knowledge_context
             )
             self.logger.debug(f"Created prompt with {self.prompt_manager.estimate_tokens(prompt)} tokens")
@@ -215,10 +234,26 @@ class LocalProcessor(Processor):
         This method should be called when the processor is no longer needed
         to ensure proper cleanup of resources.
         """
-        logger.debug("Closing local processor and releasing resources")
-        try:
-            if hasattr(self, 'ollama_client') and self.ollama_client is not None:
+        logger.info("Closing local processor and releasing resources")
+        
+        # Close the Ollama client if it exists and has a close method
+        if hasattr(self, 'ollama_client') and self.ollama_client is not None:
+            try:
                 await self.ollama_client.close()
                 logger.debug("Successfully closed Ollama client")
-        except Exception as e:
-            logger.error(f"Error closing Ollama client: {e}", exc_info=True) 
+            except Exception as e:
+                logger.error(f"Error closing Ollama client: {e}", exc_info=True)
+        
+        # Close the knowledge store if it exists and has a close method
+        if hasattr(self, 'knowledge_store') and self.knowledge_store is not None:
+            try:
+                if hasattr(self.knowledge_store, 'clear'):
+                    await self.knowledge_store.clear()
+                    logger.debug("Successfully cleared knowledge store")
+                
+                # If there's a more specific close method, call that too
+                if hasattr(self.knowledge_store, 'close'):
+                    await self.knowledge_store.close()
+                    logger.debug("Successfully closed knowledge store")
+            except Exception as e:
+                logger.error(f"Error closing knowledge store: {e}", exc_info=True) 

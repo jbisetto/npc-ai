@@ -522,6 +522,27 @@ class TokyoKnowledgeStore(KnowledgeStore):
         except Exception as e:
             self.logger.error(f"Error clearing knowledge store: {e}")
             raise
+            
+    async def close(self) -> None:
+        """
+        Close the knowledge store and release resources.
+        
+        This method should be called when the store is no longer needed
+        to ensure proper cleanup of resources.
+        """
+        try:
+            # First clear the cache
+            self._cache = {}
+            
+            # If using a persistent client, we might need to explicitly close it
+            if hasattr(self, 'client') and self.client is not None:
+                if hasattr(self.client, 'close') and callable(self.client.close):
+                    self.client.close()
+                    
+            self.logger.info("Closed knowledge store")
+        except Exception as e:
+            self.logger.error(f"Error closing knowledge store: {e}")
+            raise
 
 class DummyEmbeddingFunction:
     """A dummy embedding function that returns random vectors. Only for testing."""
