@@ -14,6 +14,7 @@ from pathlib import Path
 
 from src.ai.npc import process_request
 from src.ai.npc.core.models import NPCRequest, GameContext, ProcessingTier
+from src.ai.npc.core.profile.profile import NPCProfile
 from src.ai.npc.core.profile.profile_loader import ProfileLoader
 from src.ai.npc.local.local_processor import LocalProcessor
 from src.ai.npc.local.ollama_client import OllamaClient
@@ -22,21 +23,80 @@ from src.ai.npc.local.ollama_client import OllamaClient
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-@pytest.fixture
-def profile_loader():
-    """Create a ProfileLoader instance for testing."""
-    profiles_dir = os.path.join(Path(__file__).resolve().parent.parent.parent, "data", "profiles")
-    return ProfileLoader(profiles_dir)
+# Create mock profile data
+HACHIKO_PROFILE = {
+    "profile_id": "companion_dog",
+    "name": "Hachiko",
+    "role": "Companion Dog",
+    "personality_traits": {
+        "friendliness": 0.9,
+        "enthusiasm": 0.8,
+        "patience": 1.0,
+        "playfulness": 0.7,
+        "loyalty": 1.0
+    },
+    "knowledge_areas": [
+        "Japanese language basics",
+        "Tokyo Station",
+        "Japanese culture",
+        "Daily life in Japan"
+    ],
+    "backstory": "Hachiko is a friendly AI dog companion stationed at Tokyo Station."
+}
+
+STATION_ATTENDANT_PROFILE = {
+    "profile_id": "station_attendant",
+    "name": "Yamada",
+    "role": "Station Information Assistant",
+    "personality_traits": {
+        "helpfulness": 0.9,
+        "patience": 0.9,
+        "efficiency": 0.9,
+        "politeness": 0.9,
+        "friendliness": 0.7
+    },
+    "knowledge_areas": [
+        "Tokyo Station layout",
+        "Train schedules",
+        "Ticket information",
+        "Station facilities",
+        "Emergency procedures",
+        "Local attractions"
+    ],
+    "backstory": "Yamada is a dedicated station attendant at Tokyo Station."
+}
 
 @pytest.fixture
-def available_profile_ids(profile_loader):
-    """Get a list of available profile IDs in the backend."""
-    profile_ids = list(profile_loader.profiles.keys())
-    # Skip base profiles
-    return [pid for pid in profile_ids if not pid.startswith("base_")]
+def mock_profile_loader():
+    """Create a mocked profile loader with predefined profiles."""
+    loader = MagicMock(spec=ProfileLoader)
+    
+    # Setup the profiles dictionary
+    loader.profiles = {
+        "companion_dog": HACHIKO_PROFILE,
+        "station_attendant": STATION_ATTENDANT_PROFILE
+    }
+    
+    # Setup the get_profile method
+    def get_profile_mock(profile_id, as_object=False):
+        profile_data = loader.profiles.get(profile_id)
+        if not profile_data:
+            return None
+        if as_object:
+            return NPCProfile.from_dict(profile_data)
+        return profile_data
+    
+    loader.get_profile.side_effect = get_profile_mock
+    
+    return loader
+
+@pytest.fixture
+def available_profile_ids(mock_profile_loader):
+    """Get a list of available profile IDs."""
+    return list(mock_profile_loader.profiles.keys())
 
 @pytest.mark.asyncio
-async def test_profile_included_in_prompt(available_profile_ids):
+async def test_profile_included_in_prompt(available_profile_ids, mock_profile_loader):
     """
     Test that when a request specifies an NPC ID, the corresponding profile
     is loaded and included in the generated prompt.
@@ -70,6 +130,9 @@ async def test_profile_included_in_prompt(available_profile_ids):
         knowledge_store=mock_knowledge_store
     )
     mock_processor.process = AsyncMock()
+    
+    # Patch the profile_registry
+    mock_processor.profile_registry = mock_profile_loader
     
     # Create a request with the selected profile ID
     game_context = GameContext(
@@ -106,6 +169,9 @@ async def test_profile_included_in_prompt(available_profile_ids):
             knowledge_store=mock_knowledge_store
         )
         
+        # Patch the profile_registry on the real processor
+        real_processor.profile_registry = mock_profile_loader
+        
         # Process the request directly
         await real_processor.process(request)
         
@@ -115,11 +181,8 @@ async def test_profile_included_in_prompt(available_profile_ids):
         # Get the generated prompt
         generated_prompt = mock_client.generate.call_args[0][0]
         
-        # Check that the profile information is included in the prompt
-        # Load the profile to know what to look for
-        profiles_dir = os.path.join(Path(__file__).resolve().parent.parent.parent, "data", "profiles")
-        loader = ProfileLoader(profiles_dir)
-        profile = loader.get_profile(profile_id, as_object=True)
+        # Get the profile to check
+        profile = mock_profile_loader.get_profile(profile_id, as_object=True)
         
         # Verify profile details in prompt
         assert profile.name in generated_prompt, f"Profile name '{profile.name}' not found in prompt"
@@ -134,7 +197,7 @@ async def test_profile_included_in_prompt(available_profile_ids):
             assert area in generated_prompt, f"Knowledge area '{area}' not found in prompt"
 
 @pytest.mark.asyncio
-async def test_different_profiles_produce_different_prompts(available_profile_ids):
+async def test_different_profiles_produce_different_prompts(available_profile_ids, mock_profile_loader):
     """
     Test that different NPC IDs result in different prompts with profile-specific content.
     """
@@ -174,6 +237,9 @@ async def test_different_profiles_produce_different_prompts(available_profile_id
         knowledge_store=mock_knowledge_store
     )
     
+    # Patch the profile_registry
+    processor.profile_registry = mock_profile_loader
+    
     # Create and process first request
     game_context_1 = GameContext(
         player_id="test_player",
@@ -212,12 +278,9 @@ async def test_different_profiles_produce_different_prompts(available_profile_id
     # Verify the prompts are different
     assert prompts[0] != prompts[1], "Prompts are identical despite different profiles"
     
-    # Load the profiles for verification
-    profiles_dir = os.path.join(Path(__file__).resolve().parent.parent.parent, "data", "profiles")
-    loader = ProfileLoader(profiles_dir)
-    
-    profile_1 = loader.get_profile(profile_id_1, as_object=True)
-    profile_2 = loader.get_profile(profile_id_2, as_object=True)
+    # Get the profiles for verification
+    profile_1 = mock_profile_loader.get_profile(profile_id_1, as_object=True)
+    profile_2 = mock_profile_loader.get_profile(profile_id_2, as_object=True)
     
     # Verify each prompt contains profile-specific information
     assert profile_1.name in prompts[0], f"Profile 1 name not found in first prompt"

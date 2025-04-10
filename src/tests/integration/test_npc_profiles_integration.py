@@ -24,6 +24,73 @@ from src.ai.npc.local.ollama_client import OllamaClient
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Create mock profile data
+HACHIKO_PROFILE = {
+    "profile_id": "companion_dog",
+    "name": "Hachiko",
+    "role": "Companion Dog",
+    "personality_traits": {
+        "friendliness": 0.9,
+        "enthusiasm": 0.8,
+        "patience": 1.0,
+        "playfulness": 0.7,
+        "loyalty": 1.0
+    },
+    "knowledge_areas": [
+        "Japanese language basics",
+        "Tokyo Station",
+        "Japanese culture",
+        "Daily life in Japan"
+    ],
+    "backstory": "Hachiko is a friendly AI dog companion stationed at Tokyo Station.",
+}
+
+STATION_ATTENDANT_PROFILE = {
+    "profile_id": "station_attendant",
+    "name": "Yamada",
+    "role": "Station Information Assistant",
+    "personality_traits": {
+        "helpfulness": 0.9,
+        "patience": 0.9,
+        "efficiency": 0.9,
+        "politeness": 0.9,
+        "friendliness": 0.7
+    },
+    "knowledge_areas": [
+        "Tokyo Station layout",
+        "Train schedules",
+        "Ticket information",
+        "Station facilities",
+        "Emergency procedures",
+        "Local attractions"
+    ],
+    "backstory": "Yamada is a dedicated station attendant at Tokyo Station."
+}
+
+@pytest.fixture
+def mock_profile_loader():
+    """Create a mocked profile loader with predefined profiles."""
+    loader = MagicMock(spec=ProfileLoader)
+    
+    # Setup the profiles dictionary
+    loader.profiles = {
+        "companion_dog": HACHIKO_PROFILE,
+        "station_attendant": STATION_ATTENDANT_PROFILE
+    }
+    
+    # Setup the get_profile method
+    def get_profile_mock(profile_id, as_object=False):
+        profile_data = loader.profiles.get(profile_id)
+        if not profile_data:
+            return None
+        if as_object:
+            return NPCProfile.from_dict(profile_data)
+        return profile_data
+    
+    loader.get_profile.side_effect = get_profile_mock
+    
+    return loader
+
 @pytest.fixture
 def test_game_context():
     """Create a game context for testing."""
@@ -86,7 +153,7 @@ class MockOllamaClient:
         pass
 
 @pytest.mark.asyncio
-async def test_station_attendant_profile_in_prompt(station_attendant_request):
+async def test_station_attendant_profile_in_prompt(station_attendant_request, mock_profile_loader):
     """
     Test that the station attendant profile is included in the prompt.
     
@@ -109,9 +176,6 @@ async def test_station_attendant_profile_in_prompt(station_attendant_request):
     mock_knowledge_store.collection.count = MagicMock(return_value=10)
     mock_knowledge_store.close = AsyncMock()
     
-    # Create a mock profile loader with the correct path
-    mock_profile_loader = ProfileLoader("src/data/profiles")
-    
     # Create a custom LocalProcessor directly with our mocks
     processor = LocalProcessor(
         ollama_client=mock_client,
@@ -119,13 +183,15 @@ async def test_station_attendant_profile_in_prompt(station_attendant_request):
         knowledge_store=mock_knowledge_store
     )
     
+    # Patch the profile_registry
+    processor.profile_registry = mock_profile_loader
+    
     # Patch the get_local_processor function to return our processor
     # and patch the process_request function to use our mock components
     with patch('src.ai.npc.get_local_processor', return_value=processor), \
          patch('src.ai.npc.get_knowledge_store', return_value=mock_knowledge_store), \
          patch('src.ai.npc.get_conversation_manager', return_value=mock_conv_manager), \
-         patch('src.ai.npc.config.get_full_config', return_value={'local': {'enabled': True}}), \
-         patch('src.ai.npc.local.local_processor.ProfileLoader', return_value=mock_profile_loader):
+         patch('src.ai.npc.config.get_full_config', return_value={'local': {'enabled': True}}):
         
         # Process the request
         print(f"Processing request: {station_attendant_request.request_id}")
@@ -158,7 +224,7 @@ async def test_station_attendant_profile_in_prompt(station_attendant_request):
             # Check for each expected string pair - at least one pair should be found
             profile_found = False
             for expected_strings in expected_pairs:
-                if any(all(expected in prompt for expected in expected_strings) for expected_strings in expected_pairs):
+                if all(expected in prompt for expected in expected_strings):
                     profile_found = True
                     break
             
@@ -172,7 +238,7 @@ async def test_station_attendant_profile_in_prompt(station_attendant_request):
             assert response["processing_tier"] == ProcessingTier.LOCAL
 
 @pytest.mark.asyncio
-async def test_hachiko_profile_in_prompt(hachiko_request):
+async def test_hachiko_profile_in_prompt(hachiko_request, mock_profile_loader):
     """
     Test that Hachiko's profile is included in the prompt.
     
@@ -195,9 +261,6 @@ async def test_hachiko_profile_in_prompt(hachiko_request):
     mock_knowledge_store.collection.count = MagicMock(return_value=10)
     mock_knowledge_store.close = AsyncMock()
     
-    # Create a mock profile loader with the correct path
-    mock_profile_loader = ProfileLoader("src/data/profiles")
-
     # Create a custom LocalProcessor directly with our mocks
     processor = LocalProcessor(
         ollama_client=mock_client,
@@ -205,13 +268,15 @@ async def test_hachiko_profile_in_prompt(hachiko_request):
         knowledge_store=mock_knowledge_store
     )
     
+    # Patch the profile_registry
+    processor.profile_registry = mock_profile_loader
+    
     # Patch the get_local_processor function to return our processor
     # and patch the process_request function to use our mock components
     with patch('src.ai.npc.get_local_processor', return_value=processor), \
          patch('src.ai.npc.get_knowledge_store', return_value=mock_knowledge_store), \
          patch('src.ai.npc.get_conversation_manager', return_value=mock_conv_manager), \
-         patch('src.ai.npc.config.get_full_config', return_value={'local': {'enabled': True}}), \
-         patch('src.ai.npc.local.local_processor.ProfileLoader', return_value=mock_profile_loader):
+         patch('src.ai.npc.config.get_full_config', return_value={'local': {'enabled': True}}):
         
         # Process the request
         print(f"Processing request: {hachiko_request.request_id}")
@@ -238,7 +303,7 @@ async def test_hachiko_profile_in_prompt(hachiko_request):
             # Check for each expected string pair - at least one pair should be found
             profile_found = False
             for expected_strings in expected_pairs:
-                if any(all(expected in prompt for expected in expected_strings) for expected_strings in expected_pairs):
+                if all(expected in prompt for expected in expected_strings):
                     profile_found = True
                     break
             
@@ -252,7 +317,7 @@ async def test_hachiko_profile_in_prompt(hachiko_request):
             assert response["processing_tier"] == ProcessingTier.LOCAL
 
 @pytest.mark.asyncio
-async def test_different_npcs_have_different_prompts():
+async def test_different_npcs_have_different_prompts(mock_profile_loader):
     """
     Test that different NPC IDs result in different prompts.
     
@@ -310,9 +375,6 @@ async def test_different_npcs_have_different_prompts():
     mock_knowledge_store.collection.count = MagicMock(return_value=10)
     mock_knowledge_store.close = AsyncMock()
     
-    # Create a mock profile loader with the correct path
-    mock_profile_loader = ProfileLoader("src/data/profiles")
-    
     # Create a custom LocalProcessor directly with our mocks
     processor = LocalProcessor(
         ollama_client=mock_client,
@@ -320,13 +382,15 @@ async def test_different_npcs_have_different_prompts():
         knowledge_store=mock_knowledge_store
     )
     
+    # Patch the profile_registry
+    processor.profile_registry = mock_profile_loader
+    
     # Patch the get_local_processor function to return our processor
     # and patch the process_request function to use our mock components
     with patch('src.ai.npc.get_local_processor', return_value=processor), \
          patch('src.ai.npc.get_knowledge_store', return_value=mock_knowledge_store), \
          patch('src.ai.npc.get_conversation_manager', return_value=mock_conv_manager), \
-         patch('src.ai.npc.config.get_full_config', return_value={'local': {'enabled': True}}), \
-         patch('src.ai.npc.local.local_processor.ProfileLoader', return_value=mock_profile_loader):
+         patch('src.ai.npc.config.get_full_config', return_value={'local': {'enabled': True}}):
         
         # Process the first request
         print(f"Processing station request: {station_request.request_id}")
@@ -361,9 +425,10 @@ async def test_different_npcs_have_different_prompts():
         # The prompts should be different
         assert station_prompt != hachiko_prompt, "Station and Hachiko prompts should be different"
         
-        # Check for specific NPC characteristics in each prompt
-        assert "Yamada" in station_prompt, "Station prompt should contain 'Yamada'"
-        assert "Station Information Assistant" in station_prompt, "Station prompt should contain 'Station Information Assistant'"
+        # Station prompt should contain station attendant characteristics
+        assert "Yamada" in station_prompt, "Station prompt doesn't contain 'Yamada'"
+        assert "Station Information Assistant" in station_prompt, "Station prompt doesn't contain role"
         
-        assert "Hachiko" in hachiko_prompt, "Hachiko prompt should contain 'Hachiko'"
-        assert "Companion Dog" in hachiko_prompt, "Hachiko prompt should contain 'Companion Dog'" 
+        # Hachiko prompt should contain Hachiko characteristics
+        assert "Hachiko" in hachiko_prompt, "Hachiko prompt doesn't contain 'Hachiko'"
+        assert "Companion Dog" in hachiko_prompt, "Hachiko prompt doesn't contain role" 
