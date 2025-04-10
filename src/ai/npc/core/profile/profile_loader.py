@@ -226,4 +226,80 @@ class ProfileLoader:
         if as_object:
             return NPCProfile.from_dict(profile)
         
-        return profile 
+        return profile
+        
+    def get_knowledge_areas_with_sources(self, profile_id: str) -> List[Dict[str, str]]:
+        """
+        Get knowledge areas with their source profiles for a given profile.
+        
+        Args:
+            profile_id: The ID of the profile to get knowledge areas for
+            
+        Returns:
+            List of dictionaries with 'area' and 'source' keys
+        """
+        profile = self.profiles.get(profile_id)
+        if not profile:
+            logger.warning(f"Profile not found: {profile_id}")
+            return []
+            
+        # Get base knowledge areas
+        base_knowledge = {}
+        extends = profile.get("extends", [])
+        
+        # Process immediate base profiles
+        for base_id in extends:
+            base_profile = self.base_profiles.get(base_id)
+            if not base_profile:
+                continue
+                
+            # Get knowledge areas from this base profile
+            for area in base_profile.get("knowledge_areas", []):
+                if area not in base_knowledge:
+                    base_knowledge[area] = base_id
+            
+            # Also check if this base profile extends other base profiles
+            self._add_inherited_knowledge_areas(base_profile, base_knowledge, base_id)
+        
+        # Combine with profile's own knowledge areas
+        result = []
+        for area in profile.get("knowledge_areas", []):
+            if area in base_knowledge:
+                result.append({
+                    "area": area,
+                    "source": base_knowledge[area]
+                })
+            else:
+                result.append({
+                    "area": area,
+                    "source": "original"
+                })
+                
+        return result
+        
+    def _add_inherited_knowledge_areas(self, profile, knowledge_dict, direct_source):
+        """
+        Helper method to recursively add knowledge areas from base profiles.
+        
+        Args:
+            profile: The profile to get inherited knowledge areas from
+            knowledge_dict: Dictionary to add knowledge areas to
+            direct_source: The direct source profile that inherits from others
+        """
+        # Check if this profile extends other profiles
+        extends = profile.get("extends", [])
+        if not extends:
+            return
+            
+        for base_id in extends:
+            base_profile = self.base_profiles.get(base_id)
+            if not base_profile:
+                continue
+                
+            # Add knowledge areas, marking as inherited through direct_source
+            for area in base_profile.get("knowledge_areas", []):
+                if area not in knowledge_dict:
+                    knowledge_dict[area] = f"{direct_source} (from {base_id})"
+            
+            # Recursively add from deeper base profiles
+            self._add_inherited_knowledge_areas(base_profile, knowledge_dict, direct_source) 
