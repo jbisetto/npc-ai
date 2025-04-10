@@ -2,6 +2,7 @@
   "profile_id": "companion_dog",
   "name": "Hachiko",
   "role": "Companion Dog",
+  "npc": true,
   "extends": ["base_language_instructor"],
   "personality_traits": {
     "friendliness": 0.9,

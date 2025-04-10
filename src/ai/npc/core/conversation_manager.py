@@ -9,10 +9,13 @@ import json
 import logging
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, TYPE_CHECKING
 
 from src.ai.npc.core.adapters import ConversationHistoryEntry
 from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
+
+if TYPE_CHECKING:
+    from src.ai.npc.core.models import NPCProfileType
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +44,8 @@ class ConversationManager:
         self, 
         player_id: str, 
         max_entries: int = 10,
-        standardized_format: bool = True
+        standardized_format: bool = True,
+        npc_id: Optional[Union[str, 'NPCProfileType']] = None
     ) -> Union[List[Dict[str, Any]], List[ConversationHistoryEntry]]:
         """
         Get the conversation history for a specific player.
@@ -51,10 +55,15 @@ class ConversationManager:
             max_entries: Maximum number of recent entries to return
             standardized_format: If True, returns entries in standardized format
                                with 'user' and 'assistant' keys
+            npc_id: Optional NPC ID to filter conversations by specific NPC
             
         Returns:
             List of conversation entries in standard or legacy format
         """
+        # Convert npc_id from enum to string if needed
+        if npc_id is not None and hasattr(npc_id, 'value'):
+            npc_id = npc_id.value
+            
         # Load player history if not in cache
         if player_id not in self.player_histories:
             self._load_player_history(player_id)
@@ -65,6 +74,11 @@ class ConversationManager:
         for conv_id, conversation in player_data["conversations"].items():
             # Add conversation_id to each entry for reference
             entries = [{**entry, "conversation_id": conv_id} for entry in conversation["entries"]]
+            
+            # Filter by NPC ID if specified
+            if npc_id is not None:
+                entries = [entry for entry in entries if entry.get("npc_id") == npc_id]
+                
             all_entries.extend(entries)
         
         # Sort by timestamp and get most recent
@@ -90,7 +104,7 @@ class ConversationManager:
         conversation_id: str, 
         user_query: str, 
         response: str,
-        npc_id: str,
+        npc_id: Union[str, 'NPCProfileType'],
         player_id: str,
         session_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
@@ -102,7 +116,7 @@ class ConversationManager:
             conversation_id: The conversation ID
             user_query: The user's query
             response: The NPC's response
-            npc_id: Identifier for the NPC that provided the response
+            npc_id: Identifier for the NPC that provided the response (string or NPCProfileType)
             player_id: The ID of the player in this conversation
             session_id: Optional session ID
             metadata: Optional additional metadata (e.g., language_level)
@@ -122,6 +136,10 @@ class ConversationManager:
             player_data["conversations"][conversation_id] = {
                 "entries": []
             }
+        
+        # Convert npc_id to string if it's an enum
+        if hasattr(npc_id, 'value'):
+            npc_id = npc_id.value
         
         # Create the entry with both standard and legacy fields
         entry = {

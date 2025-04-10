@@ -14,7 +14,8 @@ from src.ai.npc.core.models import (
     CompanionRequest,
     ClassifiedRequest,
     CompanionResponse,
-    ConversationContext
+    ConversationContext,
+    NPCProfileType
 )
 from src.tests.utils.factories import (
     create_test_request,
@@ -234,4 +235,50 @@ def test_conversation_context_multiple_interactions():
     assert len(context.request_history) == 3
     assert len(context.response_history) == 3
     assert context.request_history[0].player_input == "Question 0"
-    assert context.response_history[2].response_text == "Answer 2" 
+    assert context.response_history[2].response_text == "Answer 2"
+
+
+# NPCProfileType Tests
+def test_npc_profile_type_enum():
+    """Test NPCProfileType enum values."""
+    # Test enum values
+    assert NPCProfileType.YAMADA.value == "station_attendant_osaka"
+    assert NPCProfileType.TANAKA.value == "station_attendant_kyoto"
+    assert NPCProfileType.NAKAMURA.value == "station_attendant_odawara"
+    assert NPCProfileType.SUZUKI.value == "information_booth_attendant"
+    assert NPCProfileType.SATO.value == "ticket_booth_attendant"
+    assert NPCProfileType.HACHIKO.value == "companion_dog"
+
+
+def test_npc_profile_type_from_string():
+    """Test NPCProfileType.from_string method."""
+    # Test valid profile IDs
+    assert NPCProfileType.from_string("station_attendant_osaka") == NPCProfileType.YAMADA
+    assert NPCProfileType.from_string("companion_dog") == NPCProfileType.HACHIKO
+    
+    # Test invalid profile ID
+    assert NPCProfileType.from_string("nonexistent_profile") is None
+
+
+def test_game_context_with_npc_profile_type():
+    """Test creating GameContext with NPCProfileType."""
+    # Create with enum
+    context1 = GameContext(
+        player_id="test1",
+        language_proficiency={"english": 1.0},
+        npc_id=NPCProfileType.YAMADA
+    )
+    assert context1.npc_id == NPCProfileType.YAMADA
+    
+    # Test to_dict conversion
+    context_dict = context1.to_dict()
+    assert context_dict["npc_id"] == "station_attendant_osaka"
+    
+    # Create with string
+    context2 = GameContext(
+        player_id="test2",
+        language_proficiency={"english": 1.0},
+        npc_id="station_attendant_osaka"
+    )
+    assert isinstance(context2.npc_id, str)
+    assert context2.npc_id == "station_attendant_osaka" 

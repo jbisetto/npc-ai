@@ -43,38 +43,16 @@ async def test_generate_success():
 @pytest.mark.asyncio
 async def test_consecutive_requests():
     """Test that multiple requests create new sessions each time."""
-    # Create two mock responses
-    mock_response1 = MagicMock()
-    mock_response1.status = 200
-    mock_response1.json = AsyncMock(return_value={"response": "Response 1"})
+    # Create a simple mock for the _send_request method
+    async def mock_send_request(self, endpoint, data):
+        # Return different responses based on the prompt
+        if data['prompt'] == "Prompt 1":
+            return {"response": "Response 1"}
+        else:
+            return {"response": "Response 2"}
     
-    mock_response2 = MagicMock()
-    mock_response2.status = 200
-    mock_response2.json = AsyncMock(return_value={"response": "Response 2"})
-    
-    # Create mocks for post context managers
-    mock_post_cm1 = AsyncMock()
-    mock_post_cm1.__aenter__.return_value = mock_response1
-    
-    mock_post_cm2 = AsyncMock()
-    mock_post_cm2.__aenter__.return_value = mock_response2
-    
-    # Create mock sessions with post methods
-    mock_session1 = MagicMock()
-    mock_session1.post.return_value = mock_post_cm1
-    
-    mock_session2 = MagicMock()
-    mock_session2.post.return_value = mock_post_cm2
-    
-    # Create mocks for ClientSession context managers
-    mock_client_session_cm1 = AsyncMock()
-    mock_client_session_cm1.__aenter__.return_value = mock_session1
-    
-    mock_client_session_cm2 = AsyncMock()
-    mock_client_session_cm2.__aenter__.return_value = mock_session2
-    
-    # Set up the ClientSession mock to return our context managers in sequence
-    with patch('aiohttp.ClientSession', side_effect=[mock_client_session_cm1, mock_client_session_cm2]):
+    # Patch the internal _send_request method
+    with patch.object(OllamaClient, '_send_request', new=mock_send_request):
         client = OllamaClient()
         
         # Make first request
@@ -90,15 +68,12 @@ async def test_consecutive_requests():
 @pytest.mark.asyncio
 async def test_generate_error():
     """Test error handling during generation."""
-    # Create a mock session that raises an exception
-    mock_session = MagicMock()
-    mock_session.post = MagicMock(side_effect=aiohttp.ClientError("Connection error"))
+    # Create a simple mock for the _send_request method that raises an error
+    async def mock_send_request_error(self, endpoint, data):
+        raise aiohttp.ClientError("Connection error")
     
-    # Create a mock context manager that returns our mock session
-    mock_client_session_cm = AsyncMock()
-    mock_client_session_cm.__aenter__.return_value = mock_session
-    
-    with patch('aiohttp.ClientSession', return_value=mock_client_session_cm):
+    # Patch the internal _send_request method
+    with patch.object(OllamaClient, '_send_request', new=mock_send_request_error):
         client = OllamaClient()
         
         # Should raise OllamaError

@@ -15,6 +15,7 @@ from src.ai.npc.core.profile.profile import NPCProfile
 from src.ai.npc.core.adapters import ConversationHistoryEntry, KnowledgeDocument
 from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
 from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
+from src.ai.npc.config import get_config
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 AVG_CHARS_PER_TOKEN = 4  # Approximate average characters per token
 
 # Base system prompt with JLPT N5 constraints
-BASE_SYSTEM_PROMPT = """You are Hachiko, a helpful bilingual dog companion in a Japanese train station.
+BASE_SYSTEM_PROMPT = """You are a helpful NPC in a Japanese train station.
 Your role is to assist the player with language help, directions, and cultural information.
 
 CRITICAL RESPONSE CONSTRAINTS:
@@ -42,9 +43,9 @@ JLPT N5 GUIDELINES:
 - Basic greetings: こんにちは, すみません
 
 EXAMPLE RESPONSE FORMAT:
-English: I'm Hachiko, your friendly dog companion here!
-Japanese: わたしは はちこです。えきの いぬです。
-Pronunciation: wa-ta-shi wa ha-chi-ko de-su. e-ki no i-nu de-su.
+English: I can help you find the ticket booth. It's over there!
+Japanese: きっぷうりばは あそこです。
+Pronunciation: ki-ppu u-ri-ba wa a-so-ko de-su.
 
 RESPONSE STRUCTURE:
 1. English answer (1 sentence)
@@ -75,6 +76,11 @@ class PromptManager:
         self.max_prompt_tokens = max_prompt_tokens
         self.tier_specific_config = tier_specific_config or {}
         self.logger = logging.getLogger(__name__)
+        
+        # Load prompt configuration from npc-config.yaml
+        prompt_config = get_config('general', {}).get('prompt', {})
+        self.include_conversation_history = prompt_config.get('include_conversation_history', True)
+        self.include_knowledge_context = prompt_config.get('include_knowledge_context', True)
         
         # Initialize adapters for format conversion
         self.history_adapter = DefaultConversationHistoryAdapter()
@@ -115,7 +121,7 @@ class PromptManager:
         # For very small token limits, use minimal format
         if self.max_prompt_tokens <= 100:
             minimal_prompt = (
-                "You are Hachiko, a helpful bilingual dog companion.\n"
+                "You are a helpful train station attendant.\n"
                 "RULES:\n"
                 "1. Keep responses short\n"
                 "2. Use JLPT N5 only\n"
@@ -131,24 +137,31 @@ class PromptManager:
         # Add NPC profile if available
         if profile:
             try:
+                self.logger.info(f"[PROFILE DEBUG] Using profile in prompt generation: {profile.name}, {profile.role}")
                 profile_prompt = profile.get_system_prompt()
                 if profile_prompt and profile_prompt.strip():
+                    self.logger.info(f"[PROFILE DEBUG] Generated profile prompt: {profile_prompt[:100]}...")
                     prompt_parts.append(profile_prompt)
+                else:
+                    self.logger.warning(f"[PROFILE DEBUG] Profile returned empty prompt")
             except Exception as e:
-                self.logger.warning(f"Failed to get profile prompt: {e}")
+                self.logger.warning(f"[PROFILE DEBUG] Failed to get profile prompt: {e}")
+        else:
+            self.logger.warning(f"[PROFILE DEBUG] No profile provided, using BASE_SYSTEM_PROMPT")
 
         # Add base system prompt if no profile or profile prompt is empty
         if not prompt_parts:
+            self.logger.warning(f"[PROFILE DEBUG] Adding BASE_SYSTEM_PROMPT as fallback")
             prompt_parts.append(BASE_SYSTEM_PROMPT)
 
-        # Add knowledge context if available
-        if knowledge_context:
+        # Add knowledge context if available and enabled in config
+        if knowledge_context and self.include_knowledge_context:
             knowledge_text = self._format_knowledge_context(knowledge_context)
             if knowledge_text.strip():  # Only add if not empty
                 prompt_parts.append(knowledge_text)
 
-        # Add conversation history if available and has entries
-        if history:
+        # Add conversation history if available, has entries, and enabled in config
+        if history and self.include_conversation_history:
             history_text = self._format_conversation_history(history)
             if history_text.strip():  # Only add if not empty
                 prompt_parts.append(history_text)
@@ -209,19 +222,21 @@ class PromptManager:
             system_prompt = sections[0]  # First section is system prompt
             current_request = sections[-1]  # Last section is current request
             
-            # Find knowledge context section if it exists
+            # Find knowledge context section if it exists and is enabled
             knowledge_section = None
-            for section in sections:
-                if section.startswith("Relevant information:"):
-                    knowledge_section = section
-                    break
+            if self.include_knowledge_context:
+                for section in sections:
+                    if section.startswith("Relevant information:"):
+                        knowledge_section = section
+                        break
             
-            # Find history section if it exists
+            # Find history section if it exists and is enabled
             history_section = None
-            for section in sections:
-                if section.startswith("Previous conversation:"):
-                    history_section = section
-                    break
+            if self.include_conversation_history:
+                for section in sections:
+                    if section.startswith("Previous conversation:"):
+                        history_section = section
+                        break
             
             # If we have history, keep the most recent entries that fit
             if history_section:

@@ -6,6 +6,7 @@ This module implements the local processor using Ollama.
 
 import logging
 import asyncio
+import os
 from typing import Dict, Any, Optional, List
 
 from src.ai.npc.core.models import (
@@ -49,11 +50,24 @@ class LocalProcessor(Processor):
         # Initialize base class
         super().__init__(knowledge_store=knowledge_store)
         
+        self.logger.info(f"[PROFILE DEBUG] Initializing LocalProcessor with profiles_dir: {profiles_dir}")
+        self.logger.info(f"[PROFILE DEBUG] Current working directory: {os.getcwd()}")
+        
+        # Convert to absolute path if it's a relative path
+        if not os.path.isabs(profiles_dir):
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../'))
+            profiles_dir = os.path.join(base_dir, profiles_dir)
+            self.logger.info(f"[PROFILE DEBUG] Using absolute profiles directory: {profiles_dir}")
+        
         self.ollama_client = ollama_client
         self.conversation_manager = conversation_manager
         self.response_parser = ResponseParser()
         self.prompt_manager = PromptManager()
-        self.profile_registry = ProfileLoader(profiles_dir)
+        
+        # Initialize profile registry
+        self.logger.info(f"[PROFILE DEBUG] Creating ProfileLoader with profiles_directory: {profiles_dir}")
+        self.profile_registry = ProfileLoader(profiles_directory=profiles_dir)
+        self.logger.info(f"[PROFILE DEBUG] ProfileLoader created, profiles loaded: {len(self.profile_registry.profiles)}")
         
         # Initialize adapters
         self.history_adapter = DefaultConversationHistoryAdapter()
@@ -83,7 +97,8 @@ class LocalProcessor(Processor):
                     self.logger.debug(f"Retrieving conversation history for player_id: {player_id}")
                     history = await self.conversation_manager.get_player_history(
                         player_id,
-                        standardized_format=True
+                        standardized_format=True,
+                        npc_id=request.game_context.npc_id
                     )
                     self.logger.debug(f"Retrieved {len(history)} conversation history entries")
                 except Exception as e:
@@ -98,6 +113,10 @@ class LocalProcessor(Processor):
                 npc_id = request.game_context.npc_id
                 self.logger.debug(f"Loading profile for NPC ID: {npc_id}")
                 try:
+                    # Convert enum to string value if it's an enum
+                    if hasattr(npc_id, 'value'):
+                        npc_id = npc_id.value
+                        
                     profile = self.profile_registry.get_profile(npc_id, as_object=True)
                     if profile:
                         self.logger.debug(f"Loaded profile for {profile.name}, role: {profile.role}")
@@ -109,7 +128,15 @@ class LocalProcessor(Processor):
             # Get relevant knowledge from the knowledge store in standardized format
             try:
                 self.logger.debug(f"Retrieving knowledge context for: '{request.player_input}'")
-                self.logger.debug(f"Knowledge store collection has {self.knowledge_store.collection.count()} documents")
+                try:
+                    # Handle the count method which could be async or not
+                    if hasattr(self.knowledge_store.collection.count, '__await__'):
+                        doc_count = await self.knowledge_store.collection.count()
+                    else:
+                        doc_count = self.knowledge_store.collection.count()
+                    self.logger.debug(f"Knowledge store collection has {doc_count} documents")
+                except Exception as e:
+                    self.logger.debug(f"Could not get document count: {str(e)}")
                 
                 knowledge_context = await self.knowledge_store.contextual_search(
                     request,

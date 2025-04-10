@@ -12,6 +12,8 @@ import logging
 import json
 import shutil
 from pathlib import Path
+from datetime import datetime
+from enum import Enum  # Add this import
 
 # Add the src directory to the Python path
 parent_dir = str(Path(__file__).resolve().parent.parent)
@@ -28,7 +30,11 @@ logging.getLogger('src.ai.npc').setLevel(logging.DEBUG)
 
 # Import from src
 from src.ai.npc import process_request
-from src.ai.npc.core.models import NPCRequest, GameContext, ProcessingTier
+from src.ai.npc.core.models import NPCRequest, GameContext, ProcessingTier, NPCProfileType
+from src.ai.npc.local.local_processor import LocalProcessor
+from src.ai.npc.core.conversation_manager import ConversationManager
+from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
+from src.ai.npc.local.ollama_client import OllamaClient
 
 # Define preset player IDs
 preset_player_ids = [
@@ -42,20 +48,47 @@ preset_player_ids = [
 # Define NPC profiles
 npc_profiles = {
     "Hachiko (Dog Companion)": {
-        "profile_id": "companion_dog",
+        "profile_id": NPCProfileType.HACHIKO,
         "role": "companion",
         "personality": "helpful_bilingual_dog",
     },
     "Yamada (Station Staff)": {
-        "profile_id": "station_attendant",
+        "profile_id": NPCProfileType.YAMADA,
         "role": "staff",
         "personality": "professional_helpful",
+    },
+    "Tanaka (Kyoto Station Staff)": {
+        "profile_id": NPCProfileType.TANAKA,
+        "role": "staff",
+        "personality": "formal_helpful",
+    },
+    "Nakamura (Odawara Station Staff)": {
+        "profile_id": NPCProfileType.NAKAMURA,
+        "role": "staff",
+        "personality": "local_helpful",
+    },
+    "Suzuki (Information Booth)": {
+        "profile_id": NPCProfileType.SUZUKI,
+        "role": "information",
+        "personality": "knowledgeable_patient",
+    },
+    "Sato (Ticket Booth)": {
+        "profile_id": NPCProfileType.SATO,
+        "role": "ticketing",
+        "personality": "efficient_helpful",
     },
 }
 
 # Store conversation IDs for user sessions
 # Key: player_id -> NPC -> conversation_id mappings
 conversation_sessions = {}
+
+# Custom JSON encoder to handle Enum values
+class EnumEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        return super().default(obj)
 
 # Simple processing function
 async def process_message(message, selected_npc, player_id, session_id=None):
@@ -111,7 +144,7 @@ async def process_message(message, selected_npc, player_id, session_id=None):
         },
         player_location="station",  # Generic location
         current_objective="Buy ticket to Odawara",
-        npc_id=npc_data["profile_id"]  # Use the correct profile_id for the backend
+        npc_id=npc_data["profile_id"]  # Now directly using the enum
     )
     
     # Create a dictionary of additional parameters - we'll track this but it's not directly passed
@@ -131,7 +164,13 @@ async def process_message(message, selected_npc, player_id, session_id=None):
     
     # Create a JSON representation of the request (for debugging display)
     request_dict = request.model_dump()
-    raw_request_json = json.dumps(request_dict, indent=2)
+    
+    # Convert enum values to strings for JSON serialization
+    if 'game_context' in request_dict and request_dict['game_context'] and 'npc_id' in request_dict['game_context']:
+        if isinstance(request_dict['game_context']['npc_id'], NPCProfileType):
+            request_dict['game_context']['npc_id'] = request_dict['game_context']['npc_id'].value
+    
+    raw_request_json = json.dumps(request_dict, indent=2, cls=EnumEncoder)
     
     try:
         # Process using the AI components
@@ -139,7 +178,7 @@ async def process_message(message, selected_npc, player_id, session_id=None):
         
         # Add more detailed logging before processing
         logger.debug(f"Request details: player_id={player_id}, conversation_id={conversation_id}")
-        logger.debug(f"NPC data: {json.dumps(npc_data, indent=2)}")
+        logger.debug(f"NPC data: {json.dumps(npc_data, indent=2, cls=EnumEncoder)}")
         
         # Process the request with NPCRequest
         response = await process_request(request)
@@ -169,7 +208,7 @@ async def process_message(message, selected_npc, player_id, session_id=None):
             "confidence": confidence,
             "debug_info": debug_info
         }
-        raw_response_json = json.dumps(response_dict, indent=2)
+        raw_response_json = json.dumps(response_dict, indent=2, cls=EnumEncoder)
         
         # Include conversation diagnostics in response
         if debug_info:

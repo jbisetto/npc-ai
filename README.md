@@ -87,6 +87,7 @@ This step is required before starting the demo to ensure the knowledge store is 
 ```bash
 python demo/app.py
 ```
+<img src="demo/docs/images/ai-demo.png" alt="AI Demo Screenshot" width="600"/>
 
 ## Known Issues and Future Enhancements
 
@@ -155,6 +156,37 @@ This project uses environment variables for configuration, particularly for AWS 
 cd src
 ./run_tests.sh
 ```
+
+### Development Tools
+
+#### Prompt Inspector
+
+The Prompt Inspector is a GUI tool that helps visualize how prompts are generated for different NPCs without making actual API calls.
+
+<img src="tools/docs/images/prompt_inspector.png" alt="Prompt Inspector Screenshot" width="600"/>
+
+To use the Prompt Inspector:
+
+1. Install the required dependencies:
+   ```bash
+   pip install -r tools/prompt_inspector_requirements.txt
+   ```
+
+2. Run the tool:
+   ```bash
+   python tools/prompt_inspector.py
+   ```
+
+3. Access the interface at http://localhost:7861
+
+Key features:
+- View detailed NPC profile information
+- See which knowledge areas are inherited from base profiles
+- Visualize personality traits with graphical indicators
+- Preview the complete AI prompt for any NPC
+- Explore base profile inheritance chains
+
+The Prompt Inspector helps with debugging and understanding how profiles are composed without modifying any source code.
 
 ### Project Structure
 

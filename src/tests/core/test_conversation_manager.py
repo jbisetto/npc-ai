@@ -208,4 +208,45 @@ async def test_multiple_players(conversation_manager):
         assert len(history) == 1
         assert history[0].user == f"Hello from {player_id}"
         assert history[0].assistant == f"Hi {player_id}!"
-        assert history[0].conversation_id == f"conv_{player_id}" 
+        assert history[0].conversation_id == f"conv_{player_id}"
+
+@pytest.mark.asyncio
+async def test_get_history_by_npc_id(conversation_manager):
+    """Test filtering conversation history by NPC ID."""
+    # Add entries for different NPCs
+    for npc_id in ["npc1", "npc2", "npc3"]:
+        for i in range(2):  # 2 entries per NPC
+            await conversation_manager.add_to_history(
+                conversation_id=f"conv_{npc_id}_{i}",
+                user_query=f"Hello {npc_id} - {i}",
+                response=f"Hi from {npc_id} - {i}!",
+                npc_id=npc_id,
+                player_id="test_player"
+            )
+    
+    # Verify we can filter by NPC ID
+    for npc_id in ["npc1", "npc2", "npc3"]:
+        history = await conversation_manager.get_player_history(
+            player_id="test_player", 
+            npc_id=npc_id
+        )
+        assert len(history) == 2
+        for entry in history:
+            assert f"Hello {npc_id}" in entry.user
+            assert f"Hi from {npc_id}" in entry.assistant
+    
+    # Also test with an enum-like object that has a 'value' attribute
+    class MockEnum:
+        def __init__(self, value):
+            self.value = value
+    
+    # Test with a mock enum
+    mock_enum = MockEnum("npc2")
+    history = await conversation_manager.get_player_history(
+        player_id="test_player", 
+        npc_id=mock_enum
+    )
+    assert len(history) == 2
+    for entry in history:
+        assert "Hello npc2" in entry.user
+        assert "Hi from npc2" in entry.assistant 

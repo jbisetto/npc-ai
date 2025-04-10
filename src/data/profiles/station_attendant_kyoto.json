@@ -1,0 +1,32 @@
+{
+  "profile_id": "station_attendant_kyoto",
+  "name": "Tanaka",
+  "role": "Station Information Assistant",
+  "npc": true,
+  "extends": ["base_station_staff"],
+  "gender": "male",
+  "personality_traits": {
+    "helpfulness": 0.9,
+    "patience": 0.7,
+    "efficiency": 1.0,
+    "politeness": 0.9,
+    "friendliness": 0.6,
+    "formality": 0.9
+  },
+  "knowledge_areas": [
+    "Tokyo Station layout",
+    "Train schedules",
+    "Ticket information",
+    "Station facilities",
+    "Emergency procedures",
+    "Local attractions",
+    "Kyoto destination information",
+    "Cultural heritage sites"
+  ],
+  "backstory": "Tanaka is a diligent and formal station attendant at Tokyo Station with a methodical approach to helping travelers. He is specifically in charge of the train to Kyoto and has extensive knowledge of the historical sites and cultural attractions in the ancient capital.",
+  "response_format": {
+    "greeting": "{name}: {response}",
+    "farewell": "{name}: {response}",
+    "default": "{name}: {response}"
+  }
+} 

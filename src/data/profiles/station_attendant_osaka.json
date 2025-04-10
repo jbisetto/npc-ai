@@ -1,7 +1,8 @@
 {
-  "profile_id": "station_attendant",
+  "profile_id": "station_attendant_osaka",
   "name": "Yamada",
   "role": "Station Information Assistant",
+  "npc": true,
   "extends": ["base_station_staff"],
   "personality_traits": {
     "helpfulness": 0.9,
@@ -18,7 +19,7 @@
     "Emergency procedures",
     "Local attractions"
   ],
-  "backstory": "Yamada is a dedicated station attendant at Tokyo Station with years of experience helping travelers. Known for their patience and efficiency, they excel at providing clear directions and helpful information to visitors.",
+  "backstory": "Yamada is a dedicated station attendant at Tokyo Station with years of experience helping travelers. Known for their patience and efficiency, they excel at providing clear directions and helpful information to visitors. Yamada is specifically in charge of the train to Osaka.",
   "response_format": {
     "greeting": "{name}: {response}",
     "farewell": "{name}: {response}",
