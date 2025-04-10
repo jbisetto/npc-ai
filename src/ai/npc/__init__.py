@@ -34,7 +34,16 @@ def get_prompt_manager():
     global _prompt_manager
     if _prompt_manager is None:
         from .core.prompt_manager import PromptManager
-        _prompt_manager = PromptManager()
+        from .config import get_config
+        
+        # Get prompt optimizer configuration from hosted section if enabled
+        hosted_config = get_config('hosted', {})
+        if hosted_config.get('enabled', False) and 'prompt_optimizer' in hosted_config:
+            optimizer_config = hosted_config['prompt_optimizer']
+            max_tokens = optimizer_config.get('max_prompt_tokens', 800)
+            _prompt_manager = PromptManager(max_prompt_tokens=max_tokens)
+        else:
+            _prompt_manager = PromptManager()
     return _prompt_manager
 
 def get_storage_manager():

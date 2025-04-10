@@ -15,6 +15,7 @@ from src.ai.npc.core.profile.profile import NPCProfile
 from src.ai.npc.core.adapters import ConversationHistoryEntry, KnowledgeDocument
 from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
 from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
+from src.ai.npc.config import get_config
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -75,6 +76,11 @@ class PromptManager:
         self.max_prompt_tokens = max_prompt_tokens
         self.tier_specific_config = tier_specific_config or {}
         self.logger = logging.getLogger(__name__)
+        
+        # Load prompt configuration from npc-config.yaml
+        prompt_config = get_config('general', {}).get('prompt', {})
+        self.include_conversation_history = prompt_config.get('include_conversation_history', True)
+        self.include_knowledge_context = prompt_config.get('include_knowledge_context', True)
         
         # Initialize adapters for format conversion
         self.history_adapter = DefaultConversationHistoryAdapter()
@@ -141,14 +147,14 @@ class PromptManager:
         if not prompt_parts:
             prompt_parts.append(BASE_SYSTEM_PROMPT)
 
-        # Add knowledge context if available
-        if knowledge_context:
+        # Add knowledge context if available and enabled in config
+        if knowledge_context and self.include_knowledge_context:
             knowledge_text = self._format_knowledge_context(knowledge_context)
             if knowledge_text.strip():  # Only add if not empty
                 prompt_parts.append(knowledge_text)
 
-        # Add conversation history if available and has entries
-        if history:
+        # Add conversation history if available, has entries, and enabled in config
+        if history and self.include_conversation_history:
             history_text = self._format_conversation_history(history)
             if history_text.strip():  # Only add if not empty
                 prompt_parts.append(history_text)
@@ -209,19 +215,21 @@ class PromptManager:
             system_prompt = sections[0]  # First section is system prompt
             current_request = sections[-1]  # Last section is current request
             
-            # Find knowledge context section if it exists
+            # Find knowledge context section if it exists and is enabled
             knowledge_section = None
-            for section in sections:
-                if section.startswith("Relevant information:"):
-                    knowledge_section = section
-                    break
+            if self.include_knowledge_context:
+                for section in sections:
+                    if section.startswith("Relevant information:"):
+                        knowledge_section = section
+                        break
             
-            # Find history section if it exists
+            # Find history section if it exists and is enabled
             history_section = None
-            for section in sections:
-                if section.startswith("Previous conversation:"):
-                    history_section = section
-                    break
+            if self.include_conversation_history:
+                for section in sections:
+                    if section.startswith("Previous conversation:"):
+                        history_section = section
+                        break
             
             # If we have history, keep the most recent entries that fit
             if history_section:

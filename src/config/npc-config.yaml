@@ -1,6 +1,9 @@
 general:
   data_dir: src/data
   log_level: DEBUG
+  prompt:
+    include_conversation_history: true
+    include_knowledge_context: true
 local:
   enabled: true
   ollama:
