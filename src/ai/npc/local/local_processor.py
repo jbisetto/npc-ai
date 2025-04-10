@@ -65,17 +65,26 @@ class LocalProcessor(Processor):
         Returns:
             Dict containing response text and metadata
         """
+        self.logger.info(f"Processing request {request.request_id} with player input: '{request.player_input}'")
         try:
             # Get conversation history if available
             history = []
             conversation_id = request.additional_params.get('conversation_id')
+            self.logger.debug(f"Conversation ID from request: {conversation_id}")
+            
             if conversation_id and self.conversation_manager:
                 # Get history in standardized format
-                history = await self.conversation_manager.get_player_history(
-                    request.game_context.player_id,
-                    standardized_format=True
-                )
-                self.logger.debug(f"Retrieved {len(history)} conversation history entries")
+                try:
+                    player_id = request.game_context.player_id
+                    self.logger.debug(f"Retrieving conversation history for player_id: {player_id}")
+                    history = await self.conversation_manager.get_player_history(
+                        player_id,
+                        standardized_format=True
+                    )
+                    self.logger.debug(f"Retrieved {len(history)} conversation history entries")
+                except Exception as e:
+                    self.logger.error(f"Error retrieving conversation history: {e}", exc_info=True)
+                    history = []
             else:
                 self.logger.debug(f"No conversation history retrieved. conversation_id: {conversation_id}")
 
@@ -116,7 +125,13 @@ class LocalProcessor(Processor):
             self.ollama_client.request_id = request.request_id
 
             # Generate response
-            response_text = await self.ollama_client.generate(prompt)
+            self.logger.debug(f"Sending prompt to Ollama with {len(prompt)} characters")
+            try:
+                response_text = await self.ollama_client.generate(prompt)
+                self.logger.debug(f"Received response from Ollama with {len(response_text)} characters")
+            except Exception as e:
+                self.logger.error(f"Error generating response: {e}", exc_info=True)
+                raise
 
             # Clear request_id after generation
             self.ollama_client.request_id = None
@@ -126,13 +141,19 @@ class LocalProcessor(Processor):
 
             # Update conversation history if needed
             if conversation_id and self.conversation_manager:
-                await self.conversation_manager.add_to_history(
-                    conversation_id=conversation_id,
-                    user_query=request.player_input,
-                    response=result['response_text'],
-                    npc_id=request.game_context.npc_id,
-                    player_id=request.game_context.player_id
-                )
+                try:
+                    self.logger.debug(f"Adding interaction to conversation history: {conversation_id}")
+                    self.logger.debug(f"Player ID: {request.game_context.player_id}, NPC ID: {request.game_context.npc_id}")
+                    await self.conversation_manager.add_to_history(
+                        conversation_id=conversation_id,
+                        user_query=request.player_input,
+                        response=result['response_text'],
+                        npc_id=request.game_context.npc_id,
+                        player_id=request.game_context.player_id
+                    )
+                    self.logger.debug("Successfully added interaction to conversation history")
+                except Exception as e:
+                    self.logger.error(f"Error updating conversation history: {e}", exc_info=True)
 
             # Add diagnostic information
             if not result.get('debug_info'):
@@ -185,4 +206,19 @@ class LocalProcessor(Processor):
                 'error': str(error),
                 'error_type': type(error).__name__
             }
-        } 
+        }
+
+    async def close(self):
+        """
+        Close the processor and release any resources.
+        
+        This method should be called when the processor is no longer needed
+        to ensure proper cleanup of resources.
+        """
+        logger.debug("Closing local processor and releasing resources")
+        try:
+            if hasattr(self, 'ollama_client') and self.ollama_client is not None:
+                await self.ollama_client.close()
+                logger.debug("Successfully closed Ollama client")
+        except Exception as e:
+            logger.error(f"Error closing Ollama client: {e}", exc_info=True) 

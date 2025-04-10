@@ -153,7 +153,7 @@ async def process_request(request: NPCRequest, profile: Optional['NPCProfile'] =
     Returns:
         The processed response
     """
-    logger.info(f"Processing request: {request.request_id}")
+    logger.info(f"Processing request: {request.request_id} with input: '{request.player_input}'")
     
     # Load config
     from src.ai.npc.config import get_full_config
@@ -162,8 +162,10 @@ async def process_request(request: NPCRequest, profile: Optional['NPCProfile'] =
     # Determine processing tier based on configuration
     if config.get('hosted', {}).get('enabled', False):
         processing_tier = ProcessingTier.HOSTED
+        logger.info(f"Using HOSTED processing tier for request: {request.request_id}")
     elif config.get('local', {}).get('enabled', False):
         processing_tier = ProcessingTier.LOCAL
+        logger.info(f"Using LOCAL processing tier for request: {request.request_id}")
     else:
         raise ValueError("No processing tier enabled in config")
     
@@ -171,9 +173,27 @@ async def process_request(request: NPCRequest, profile: Optional['NPCProfile'] =
     request.processing_tier = processing_tier
     
     # Process based on tier
-    if processing_tier == ProcessingTier.LOCAL:
-        response = await get_local_processor().process(request)
-    else:
-        response = await get_hosted_processor().process(request)
+    try:
+        if processing_tier == ProcessingTier.LOCAL:
+            processor = get_local_processor()
+            response = await processor.process(request)
+        else:
+            processor = get_hosted_processor()
+            response = await processor.process(request)
         
-    return response 
+        logger.info(f"Successfully processed request: {request.request_id}")
+        return response
+    except Exception as e:
+        logger.error(f"Error processing request {request.request_id}: {str(e)}", exc_info=True)
+        # Return a fallback response
+        return {
+            'response_text': (
+                "I apologize, but I'm having trouble processing your request right now. "
+                "Could you try rephrasing your question or asking something else?"
+            ),
+            'processing_tier': processing_tier,
+            'debug_info': {
+                'error': str(e),
+                'error_type': type(e).__name__
+            }
+        } 

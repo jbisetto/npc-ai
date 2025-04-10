@@ -10,6 +10,7 @@ import sys
 import os
 import logging
 import json
+import shutil
 from pathlib import Path
 
 # Add the src directory to the Python path
@@ -211,6 +212,42 @@ async def process_message(message, selected_npc, player_id, session_id=None):
         logger.error(f"Error processing request: {str(e)}", exc_info=True)
         return f"Error processing request: {str(e)}", "ERROR", raw_request_json, "{}", ""
 
+# Function to clear conversation history for a player
+def clear_player_history(player_id):
+    """
+    Clear the conversation history for a specific player.
+    
+    Args:
+        player_id: The ID of the player whose conversation history should be cleared
+        
+    Returns:
+        A message indicating whether the history was cleared
+    """
+    if not player_id or player_id == "Custom...":
+        return "Please select a valid player ID first."
+    
+    # Construct the path to the player's conversation history file
+    conversation_file = os.path.join(parent_dir, "data", "conversations", f"{player_id}.json")
+    
+    if os.path.exists(conversation_file):
+        try:
+            # Create a backup file
+            backup_file = f"{conversation_file}.bak"
+            shutil.copy2(conversation_file, backup_file)
+            
+            # Delete the original file
+            os.remove(conversation_file)
+            
+            # Clear in-memory conversation sessions
+            if player_id in conversation_sessions:
+                conversation_sessions.pop(player_id)
+            
+            return f"✅ Conversation history for {player_id} has been cleared. A backup was saved as {os.path.basename(backup_file)}"
+        except Exception as e:
+            return f"❌ Error clearing history: {str(e)}"
+    else:
+        return f"No history file found for {player_id}."
+
 # Create Gradio interface
 def create_demo():
     """Create and configure the Gradio demo interface."""
@@ -234,6 +271,12 @@ def create_demo():
                 label="Select or Enter Player ID",
                 allow_custom_value=True
             )
+            
+            # Clear History Button
+            clear_history_btn = gr.Button("🗑️ Clear History", variant="secondary")
+        
+        # Status message for clear operation
+        clear_status = gr.Markdown("")
         
         with gr.Row():
             # NPC Selection
@@ -368,6 +411,13 @@ def create_demo():
             outputs=[message_input] + submit_outputs
         )
         
+        # Connect the clear history button
+        clear_history_btn.click(
+            fn=clear_player_history,
+            inputs=[player_id_dropdown],
+            outputs=[clear_status]
+        )
+        
     return demo
 
 # Launch the demo
@@ -378,3 +428,15 @@ if __name__ == "__main__":
         demo.launch(show_error=True)
     except Exception as e:
         logger.error(f"Error launching demo: {str(e)}", exc_info=True) 
+    finally:
+        # Cleanup resources
+        logger.info("Shutting down demo and cleaning up resources")
+        try:
+            # Close the local processor if it was initialized
+            from src.ai.npc import _local_processor
+            if _local_processor is not None:
+                logger.info("Closing local processor")
+                asyncio.run(_local_processor.close())
+                logger.info("Local processor closed successfully")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {str(e)}", exc_info=True) 

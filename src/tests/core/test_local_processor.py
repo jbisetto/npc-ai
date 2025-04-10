@@ -432,3 +432,15 @@ async def test_local_processor_long_history(
     # History optimization should keep more recent conversations, check for the most recent ones
     assert "Message 19" in call_args
     assert "Response 19" in call_args 
+
+@pytest.mark.asyncio
+async def test_local_processor_close(local_processor, mock_ollama_client):
+    """Test that the close method properly closes the Ollama client."""
+    # Setup the close method as an AsyncMock
+    mock_ollama_client.close = AsyncMock()
+    
+    # Call the close method
+    await local_processor.close()
+    
+    # Verify that the Ollama client's close method was called exactly once
+    mock_ollama_client.close.assert_called_once() 
