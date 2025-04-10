@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any, Optional, List
 
 from src.ai.npc.core.models import (
-    ClassifiedRequest,
+    NPCRequest,
     ProcessingTier
 )
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class SpecializedHandler:
     """Base class for specialized request handlers."""
     
-    def can_handle(self, request: ClassifiedRequest) -> bool:
+    def can_handle(self, request: NPCRequest) -> bool:
         """
         Check if this handler can process the request.
         
@@ -30,7 +30,7 @@ class SpecializedHandler:
         """
         return False
         
-    def handle(self, request: ClassifiedRequest) -> Dict[str, Any]:
+    def handle(self, request: NPCRequest) -> Dict[str, Any]:
         """
         Process a request.
         
@@ -46,11 +46,11 @@ class SpecializedHandler:
 class LocalHandler(SpecializedHandler):
     """Handler for local processing requests."""
     
-    def can_handle(self, request: ClassifiedRequest) -> bool:
+    def can_handle(self, request: NPCRequest) -> bool:
         """Check if this handler can process the request."""
         return request.processing_tier == ProcessingTier.LOCAL
         
-    def handle(self, request: ClassifiedRequest) -> Dict[str, Any]:
+    def handle(self, request: NPCRequest) -> Dict[str, Any]:
         """Process a local request."""
         # Basic local processing logic
         response = f"I understand you said: {request.player_input}"
@@ -60,11 +60,11 @@ class LocalHandler(SpecializedHandler):
 class HostedHandler(SpecializedHandler):
     """Handler for hosted processing requests."""
     
-    def can_handle(self, request: ClassifiedRequest) -> bool:
+    def can_handle(self, request: NPCRequest) -> bool:
         """Check if this handler can process the request."""
         return request.processing_tier == ProcessingTier.HOSTED
         
-    def handle(self, request: ClassifiedRequest) -> Dict[str, Any]:
+    def handle(self, request: NPCRequest) -> Dict[str, Any]:
         """Process a hosted request."""
         # Basic hosted processing logic
         response = f"Processing your request: {request.player_input}"
@@ -95,7 +95,7 @@ class HandlerRegistry:
         self._handlers[tier] = handler
         logger.debug(f"Registered handler for tier: {tier}")
         
-    def get_handler(self, request: ClassifiedRequest) -> Optional[SpecializedHandler]:
+    def get_handler(self, request: NPCRequest) -> Optional[SpecializedHandler]:
         """
         Get the appropriate handler for a request.
         

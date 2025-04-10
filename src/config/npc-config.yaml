@@ -9,7 +9,7 @@ retry:
   max_delay: 60.0
   max_retries: 3
 local:
-  enabled: false
+  enabled: true
   ollama:
     base_url: http://localhost:11434
     cache_dir: null
@@ -30,7 +30,7 @@ hosted:
     region_name: us-east-1
     temperature: 0.7
     timeout: 30
-  enabled: true
+  enabled: false
   prompt_optimizer:
     avg_chars_per_token: 4
     enabled: true

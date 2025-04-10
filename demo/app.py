@@ -10,6 +10,7 @@ import sys
 import os
 import logging
 import json
+import shutil
 from pathlib import Path
 
 # Add the src directory to the Python path
@@ -20,39 +21,52 @@ sys.path.append(parent_dir)
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Set module-specific logging levels
+logging.getLogger('src.ai.npc.core').setLevel(logging.DEBUG)
+logging.getLogger('src.ai.npc.local').setLevel(logging.DEBUG)
+logging.getLogger('src.ai.npc').setLevel(logging.DEBUG)
+
 # Import from src
 from src.ai.npc import process_request
-from src.ai.npc.core.models import CompanionRequest, GameContext, ClassifiedRequest
-from src.ai.npc.core.models import ProcessingTier
+from src.ai.npc.core.models import NPCRequest, GameContext, ProcessingTier
+
+# Define preset player IDs
+preset_player_ids = [
+    "player_1", 
+    "player_2", 
+    "visitor_jp", 
+    "tourist_en", 
+    "Custom..."
+]
 
 # Define NPC profiles
 npc_profiles = {
-    "Hachi (Dog Companion)": {
+    "Hachiko (Dog Companion)": {
+        "profile_id": "companion_dog",
         "role": "companion",
         "personality": "helpful_bilingual_dog",
     },
-    "Station Staff": {
+    "Yamada (Station Staff)": {
+        "profile_id": "station_attendant",
         "role": "staff",
         "personality": "professional_helpful",
     },
-    "Ticket Vendor": {
-        "role": "vendor",
-        "personality": "busy_efficient",
-    },
-    "Fellow Tourist": {
-        "role": "tourist",
-        "personality": "confused_friendly",
-    }
 }
 
+# Store conversation IDs for user sessions
+# Key: player_id -> NPC -> conversation_id mappings
+conversation_sessions = {}
+
 # Simple processing function
-async def process_message(message, selected_npc):
+async def process_message(message, selected_npc, player_id, session_id=None):
     """
     Process a user message through the AI components.
     
     Args:
         message: The user's message
         selected_npc: The selected NPC to interact with
+        player_id: The ID of the player/user
+        session_id: Optional session identifier for tracking conversations
         
     Returns:
         response_text: The AI's response
@@ -64,40 +78,70 @@ async def process_message(message, selected_npc):
     if not message.strip():
         return "Please enter a message.", "", "", "", ""
     
-    logger.info(f"Processing message for NPC: {selected_npc}")
+    # If no session_id provided, generate one
+    if not session_id:
+        session_id = str(uuid.uuid4())
+        
+    logger.info(f"Processing message for Player: {player_id}, NPC: {selected_npc}, Session: {session_id}")
     
-    # Create a unique request ID
+    # Create or retrieve conversation ID for this player-NPC pair
+    if player_id not in conversation_sessions:
+        conversation_sessions[player_id] = {}
+        
+    if selected_npc not in conversation_sessions[player_id]:
+        # First conversation with this NPC, create a new conversation ID
+        conversation_sessions[player_id][selected_npc] = str(uuid.uuid4())
+        
+    # Get the conversation ID for this player-NPC pair
+    conversation_id = conversation_sessions[player_id][selected_npc]
+    logger.debug(f"Using conversation_id: {conversation_id} for player {player_id}")
+    
+    # Create a unique request ID 
     request_id = str(uuid.uuid4())
     
     # Get NPC data
     npc_data = npc_profiles[selected_npc]
     
-    # Create minimal request
-    request = CompanionRequest(
+    # Create game context with NPC ID
+    game_context = GameContext(
+        player_id=player_id,
+        language_proficiency={
+            "en": 0.8,  # English proficiency
+            "ja": 0.3   # Japanese proficiency
+        },
+        player_location="station",  # Generic location
+        current_objective="Buy ticket to Odawara",
+        npc_id=npc_data["profile_id"]  # Use the correct profile_id for the backend
+    )
+    
+    # Create a dictionary of additional parameters - we'll track this but it's not directly passed
+    additional_params = {
+        'conversation_id': conversation_id,
+        'npc_role': npc_data.get('role', 'companion'),
+        'npc_personality': npc_data.get('personality', 'helpful')
+    }
+    
+    # Create request with all necessary fields
+    request = NPCRequest(
         request_id=request_id,
         player_input=message,
-        game_context=GameContext(
-            player_id="demo_player",
-            language_proficiency={
-                "en": 0.8,  # English proficiency
-                "ja": 0.3   # Japanese proficiency
-            },
-            player_location="station",  # Generic location
-            current_objective="Buy ticket to Odawara"
-        )
+        game_context=game_context,
+        additional_params=additional_params
     )
     
     # Create a JSON representation of the request (for debugging display)
-    request_dict = {
-        "request_id": request.request_id,
-        "player_input": request.player_input,
-        "game_context": request.game_context.to_dict() if request.game_context else None
-    }
+    request_dict = request.model_dump()
     raw_request_json = json.dumps(request_dict, indent=2)
     
     try:
         # Process using the AI components
         logger.info(f"Sending request to AI components")
+        
+        # Add more detailed logging before processing
+        logger.debug(f"Request details: player_id={player_id}, conversation_id={conversation_id}")
+        logger.debug(f"NPC data: {json.dumps(npc_data, indent=2)}")
+        
+        # Process the request with NPCRequest
         response = await process_request(request)
         
         logger.info(f"Response received - tier: {response.get('processing_tier', 'unknown')}")
@@ -127,34 +171,121 @@ async def process_message(message, selected_npc):
         }
         raw_response_json = json.dumps(response_dict, indent=2)
         
+        # Include conversation diagnostics in response
+        if debug_info:
+            history_count = debug_info.get('history_count', 0)
+            knowledge_count = debug_info.get('knowledge_count', 0)
+            logger.info(f"Conversation included {history_count} history entries and {knowledge_count} knowledge items")
+            
+            # Add debug information about prompt creation to the prompt display
+            prompt_display = prompt
+            if not prompt_display:
+                prompt_display = "No prompt available in debug info."
+            else:
+                # Analyze the prompt to check for relevant sections
+                sections = []
+                if "Relevant information:" in prompt_display:
+                    sections.append("✅ Knowledge context included")
+                else:
+                    sections.append("❌ No knowledge context found")
+                
+                if "Previous conversation:" in prompt_display:
+                    sections.append("✅ Conversation history included")
+                else:
+                    sections.append("❌ No conversation history found")
+                
+                # Add section analysis as a header
+                prompt_display = "\n".join(sections) + "\n\n" + prompt_display
+            
+            raw_prompt_display = prompt_display
+        
         # Return debug information
-        return response_text, processing_tier.value, raw_request_json, raw_response_json, prompt
+        return response_text, processing_tier.value, raw_request_json, raw_response_json, raw_prompt_display
             
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}", exc_info=True)
         return f"Error processing request: {str(e)}", "ERROR", raw_request_json, "{}", ""
 
+# Function to clear conversation history for a player
+def clear_player_history(player_id):
+    """
+    Clear the conversation history for a specific player.
+    
+    Args:
+        player_id: The ID of the player whose conversation history should be cleared
+        
+    Returns:
+        A message indicating whether the history was cleared
+    """
+    if not player_id or player_id == "Custom...":
+        return "Please select a valid player ID first."
+    
+    # Construct the path to the player's conversation history file
+    conversation_file = os.path.join(parent_dir, "data", "conversations", f"{player_id}.json")
+    
+    if os.path.exists(conversation_file):
+        try:
+            # Create a backup file
+            backup_file = f"{conversation_file}.bak"
+            shutil.copy2(conversation_file, backup_file)
+            
+            # Delete the original file
+            os.remove(conversation_file)
+            
+            # Clear in-memory conversation sessions
+            if player_id in conversation_sessions:
+                conversation_sessions.pop(player_id)
+            
+            return f"✅ Conversation history for {player_id} has been cleared. A backup was saved as {os.path.basename(backup_file)}"
+        except Exception as e:
+            return f"❌ Error clearing history: {str(e)}"
+    else:
+        return f"No history file found for {player_id}."
+
 # Create Gradio interface
 def create_demo():
     """Create and configure the Gradio demo interface."""
     with gr.Blocks(title="Tokyo Train Station Adventure Demo", theme=gr.themes.Soft()) as demo:
+        # Store the session ID for this Gradio instance
+        session_id = str(uuid.uuid4())
+        
         gr.Markdown(
             """
             # AI Demo
             
-            Select an NPC to talk to and type your message in English, Japanese, or a mix of both!
+            Select a player ID and an NPC to talk to, then type your message in English, Japanese, or a mix of both!
             """
         )
+        
+        with gr.Row():
+            # Player ID Selection
+            player_id_dropdown = gr.Dropdown(
+                choices=preset_player_ids,
+                value="player_1",
+                label="Select or Enter Player ID",
+                allow_custom_value=True
+            )
+            
+            # Clear History Button
+            clear_history_btn = gr.Button("🗑️ Clear History", variant="secondary")
+        
+        # Status message for clear operation
+        clear_status = gr.Markdown("")
         
         with gr.Row():
             # NPC Selection
             npc_selector = gr.Dropdown(
                 choices=list(npc_profiles.keys()),
-                value="Hachi (Dog Companion)",
+                value="Hachiko (Dog Companion)",
                 label="Select NPC to interact with"
             )
         
         with gr.Column():
+            # Display conversation info
+            conversation_info = gr.Markdown(
+                """Conversation ID: None (start a conversation to generate ID)"""
+            )
+            
             # Input Box
             message_input = gr.Textbox(
                 label="Your message (English, Japanese or mixed)",
@@ -205,11 +336,24 @@ def create_demo():
                                     value=None,
                                 )
         
-        # Connect components
-        def process_wrapper(msg, npc):
+        # Updated wrapper to handle player ID
+        def process_wrapper(msg, npc, player_id):
             if not msg.strip():
                 return "Please enter a message.", "", {}, {}, ""
-            result = asyncio.run(process_message(msg, npc))
+            
+            # Handle "Custom..." selection
+            if player_id == "Custom...":
+                player_id = f"custom_player_{str(uuid.uuid4())[:8]}"
+                
+            # Update conversation info display text
+            conv_info_text = "Starting new conversation..."
+            if player_id in conversation_sessions and npc in conversation_sessions[player_id]:
+                conv_id = conversation_sessions[player_id][npc]
+                conv_info_text = f"**Conversation**: Player {player_id} talking to {npc}\n\n**Conversation ID**: {conv_id[:8]}..."
+            
+            # Pass the player ID when processing a message
+            result = asyncio.run(process_message(msg, npc, player_id, session_id))
+            
             # Parse the JSON strings into dictionaries for the JSON components
             try:
                 request_json = json.loads(result[2]) if result[2] != "{}" else {}
@@ -217,26 +361,41 @@ def create_demo():
             except json.JSONDecodeError:
                 request_json = {}
                 response_json = {}
+                
             # Ensure we're returning the prompt from debug_info
             prompt = result[4] if result[4] else ""
-            return result[0], result[1], request_json, response_json, prompt
+            
+            # Check if conversation_id was created during processing
+            if player_id in conversation_sessions and npc in conversation_sessions[player_id]:
+                conv_id = conversation_sessions[player_id][npc]
+                conv_info_text = f"**Conversation**: Player {player_id} talking to {npc}\n\n**Conversation ID**: {conv_id[:8]}..."
+            
+            # Return values including conversation info
+            return result[0], result[1], request_json, response_json, prompt, conv_info_text
         
         def clear_fields():
             """Return empty values for all fields."""
-            return "", "", "", {}, {}, ""
+            return "", "", {}, {}, "", "Conversation ID: None (start a conversation to generate ID)"
             
         # Make all handlers consistent by ensuring the number of outputs matches
-        submit_outputs = [response_display, tier_display, raw_request_json, raw_response_json, raw_prompt_display]
+        submit_outputs = [
+            response_display, 
+            tier_display, 
+            raw_request_json, 
+            raw_response_json, 
+            raw_prompt_display,
+            conversation_info
+        ]
         
         submit_btn.click(
             fn=process_wrapper,
-            inputs=[message_input, npc_selector],
+            inputs=[message_input, npc_selector, player_id_dropdown],
             outputs=submit_outputs
         )
         
         message_input.submit(
             fn=process_wrapper,
-            inputs=[message_input, npc_selector],
+            inputs=[message_input, npc_selector, player_id_dropdown],
             outputs=submit_outputs
         )
         
@@ -244,6 +403,13 @@ def create_demo():
             fn=clear_fields,
             inputs=[],
             outputs=[message_input] + submit_outputs
+        )
+        
+        # Connect the clear history button
+        clear_history_btn.click(
+            fn=clear_player_history,
+            inputs=[player_id_dropdown],
+            outputs=[clear_status]
         )
         
     return demo
@@ -256,3 +422,15 @@ if __name__ == "__main__":
         demo.launch(show_error=True)
     except Exception as e:
         logger.error(f"Error launching demo: {str(e)}", exc_info=True) 
+    finally:
+        # Cleanup resources
+        logger.info("Shutting down demo and cleaning up resources")
+        try:
+            # Close the local processor if it was initialized
+            from src.ai.npc import _local_processor
+            if _local_processor is not None:
+                logger.info("Closing local processor")
+                asyncio.run(_local_processor.close())
+                logger.info("Local processor closed successfully")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {str(e)}", exc_info=True) 

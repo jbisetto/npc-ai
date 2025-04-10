@@ -8,7 +8,7 @@ import logging
 from typing import Dict, Any, Optional, Type
 
 from src.ai.npc.core.models import (
-    ClassifiedRequest,
+    NPCRequest,
     ProcessingTier
 )
 from src.ai.npc.core.constants import (
@@ -34,12 +34,12 @@ class Processor:
         self.logger = logging.getLogger(__name__)
         self.knowledge_store = knowledge_store or get_knowledge_store()
     
-    def process_request(self, request: ClassifiedRequest) -> Dict[str, Any]:
+    def process_request(self, request: NPCRequest) -> Dict[str, Any]:
         """
         Process a request using the appropriate processor.
         
         Args:
-            request: The classified request to process
+            request: The request to process
             
         Returns:
             The processed response
@@ -53,7 +53,7 @@ class Processor:
         else:
             return self._process_hosted(request, intent)
     
-    def _process_local(self, request: ClassifiedRequest, intent: str) -> Dict[str, Any]:
+    def _process_local(self, request: NPCRequest, intent: str) -> Dict[str, Any]:
         """
         Process a request using the local processor.
         
@@ -67,7 +67,7 @@ class Processor:
         # Local processing logic
         pass
     
-    def _process_hosted(self, request: ClassifiedRequest, intent: str) -> Dict[str, Any]:
+    def _process_hosted(self, request: NPCRequest, intent: str) -> Dict[str, Any]:
         """
         Process a request using the hosted processor.
         

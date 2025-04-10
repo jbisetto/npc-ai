@@ -29,6 +29,7 @@ from src.ai.npc.core.conversation_manager import ConversationManager
 from src.ai.npc.core.vector.knowledge_store import KnowledgeStore
 from src.ai.npc.core.history_adapter import DefaultConversationHistoryAdapter
 from src.ai.npc.core.knowledge_adapter import DefaultKnowledgeContextAdapter
+from src.ai.npc.core.models import NPCRequest
 
 logger = logging.getLogger(__name__)
 
@@ -109,12 +110,12 @@ class HostedProcessor(Processor):
             debug_mode=debug_mode
         )
     
-    async def process(self, request: ClassifiedRequest) -> Dict[str, Any]:
+    async def process(self, request: NPCRequest) -> Dict[str, Any]:
         """
-        Process a classified request and generate a response using Amazon Bedrock.
+        Process a request and generate a response using Amazon Bedrock.
         
         Args:
-            request: A classified request
+            request: A request to the NPC AI system
             
         Returns:
             A dictionary containing the response text and processing tier
@@ -131,19 +132,42 @@ class HostedProcessor(Processor):
                     request.game_context.player_id,
                     standardized_format=True
                 )
+                self.logger.debug(f"Retrieved {len(history)} conversation history entries")
+            else:
+                self.logger.debug(f"No conversation history retrieved. conversation_id: {conversation_id}")
 
             # Get relevant knowledge from the knowledge store in standardized format
-            knowledge_context = await self.knowledge_store.contextual_search(
-                request,
-                standardized_format=True
-            )
+            try:
+                self.logger.debug(f"Retrieving knowledge context for: '{request.player_input}'")
+                self.logger.debug(f"Knowledge store collection has {self.knowledge_store.collection.count()} documents")
+                
+                knowledge_context = await self.knowledge_store.contextual_search(
+                    request,
+                    standardized_format=True
+                )
+                self.logger.debug(f"Retrieved {len(knowledge_context)} knowledge context items")
+                
+                # Log the retrieved knowledge items
+                if knowledge_context:
+                    for i, item in enumerate(knowledge_context):
+                        if hasattr(item, 'text') and hasattr(item, 'metadata'):
+                            self.logger.debug(f"Knowledge item {i+1}: {item.text[:100]}... (relevance: {item.metadata.get('relevance_score', 'N/A')})")
+                        else:
+                            self.logger.debug(f"Knowledge item {i+1}: {str(item)[:100]}...")
+                else:
+                    self.logger.debug("No knowledge items found")
+            except Exception as e:
+                self.logger.error(f"Error retrieving knowledge context: {str(e)}", exc_info=True)
+                knowledge_context = []
 
             # Create prompt with standardized knowledge context and history
+            self.logger.debug(f"Creating prompt with {len(history)} history entries and {len(knowledge_context)} knowledge items")
             prompt = self.prompt_manager.create_prompt(
                 request,
                 history=history,
                 knowledge_context=knowledge_context
             )
+            self.logger.debug(f"Created prompt with {self.prompt_manager.estimate_tokens(prompt)} tokens")
 
             # Log the prompt for debugging
             self.logger.debug(f"Generated prompt for request {request.request_id}:\n{prompt}")
@@ -174,6 +198,17 @@ class HostedProcessor(Processor):
             result['debug_info']['knowledge_count'] = len(knowledge_context)
             result['debug_info']['history_count'] = len(history)
             result['debug_info']['prompt_tokens'] = self.prompt_manager.estimate_tokens(prompt)
+            
+            # Add knowledge items to debug info (simplified version)
+            knowledge_items = []
+            for item in knowledge_context:
+                if hasattr(item, 'text') and hasattr(item, 'metadata'):
+                    knowledge_items.append({
+                        'text': item.text,
+                        'source': item.metadata.get('source', 'unknown'),
+                        'score': item.metadata.get('score', 0)
+                    })
+            result['debug_info']['knowledge_items'] = knowledge_items
 
             # Update conversation history if needed
             if conversation_id and self.conversation_manager:
@@ -195,7 +230,7 @@ class HostedProcessor(Processor):
             elapsed_time = time.time() - start_time
             self.logger.info(f"Processed request {request.request_id} in {elapsed_time:.2f}s")
     
-    def _generate_fallback_response(self, request: ClassifiedRequest, error: Any) -> Dict[str, Any]:
+    def _generate_fallback_response(self, request: NPCRequest, error: Any) -> Dict[str, Any]:
         """
         Generate a fallback response when an error occurs.
         

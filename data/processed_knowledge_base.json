@@ -1,0 +1,273 @@
+[
+  {
+    "title": "Tokyo Train Station Overview",
+    "type": "location",
+    "content": "Tokyo Station is one of Japan's busiest and most historic railway stations, serving as a major transportation hub in central Tokyo. The station features multiple platforms serving various lines including the JR East network, Shinkansen (bullet trains), and connections to the Tokyo Metro subway system. The iconic red-brick Marunouchi building, restored to its 1914 appearance, serves as the station's main entrance. The station complex includes an extensive underground area with numerous shops, restaurants, and the Character Street shopping area. For language learners at JLPT N5 level, Tokyo Station provides practical opportunities to use essential travel vocabulary related to transportation, directions, and purchasing tickets. Key areas include the Central Ticket Gates (中央改札口), North Ticket Gates (北改札口), Yaesu Exit (八重洲口), and Marunouchi Exit (丸の内口).",
+    "related_locations": [
+      "central_ticket_gates",
+      "shinkansen_platforms",
+      "yaesu_exit",
+      "marunouchi_exit",
+      "character_street"
+    ],
+    "importance": "high",
+    "intent": "DIRECTION_GUIDANCE"
+  },
+  {
+    "title": "Game Objectives and Learning Goals",
+    "type": "gameplay_mechanic",
+    "content": "Tokyo Train Station Adventure is designed for English speakers with basic Japanese knowledge (JLPT N5 level). The primary objective is to navigate a simplified Tokyo Station to purchase a ticket to Odawara for a udon noodle lunch with a friend. The game focuses on three essential language interaction points: 1) The Information Booth - where players learn about ticket options by speaking with the attendant, 2) The Ticket Booth - where players purchase their ticket from the ticket agent, 3) The Platforms - where players find the correct platform for their train with help from station attendants and confirm boarding with the train conductor. Throughout the adventure, players are accompanied by a bilingual companion dog that provides language assistance when prompted. Each interaction requires using JLPT N5 level Japanese to communicate effectively. The game emphasizes practical communication skills in a streamlined environment, allowing players to focus on language use rather than complex navigation. Success is measured by completing all required interactions while minimizing reliance on the companion's translation help.",
+    "related_npcs": [
+      "information_booth_attendant",
+      "ticket_booth_agent",
+      "station_attendants",
+      "train_conductor",
+      "companion_dog"
+    ],
+    "importance": "high",
+    "intent": "GENERAL_HINT"
+  },
+  {
+    "title": "Player Interaction Systems",
+    "type": "gameplay_mechanic",
+    "content": "Players interact with the game environment through multiple systems: 1) Japanese Dialogue System - Players can type Japanese text, select from multiple choices, or use voice input to communicate with NPCs. The system recognizes partial correctness and provides appropriate feedback. 2) Companion Assistance - The dog companion can be summoned via a 'dog whistle' icon to provide language help, translation confirmation, vocabulary hints, and direction guidance. 3) Environment Interaction - Players can interact with station elements like information boards, ticket machines, and signage. 4) Feedback System - Visual and audio cues indicate comprehension levels, with color-coding for correctness (red for incorrect, yellow for partially correct, green for correct). The game tracks language proficiency across vocabulary items and grammar patterns, adapting difficulty based on demonstrated mastery. Each interaction contributes to a progress tracking system that records vocabulary acquisition, grammar mastery, and conversation success rates.",
+    "related_mechanics": [
+      "dialogue_system",
+      "companion_assistance",
+      "progress_tracking",
+      "feedback_visualization"
+    ],
+    "importance": "high",
+    "intent": "GENERAL_HINT"
+  },
+  {
+    "title": "NPC Profile: Information Booth Attendant",
+    "type": "character",
+    "npc_id": "information_booth_attendant",
+    "content": "The Information Booth Attendant is stationed at the central information booth in Tokyo Station's main concourse. She is a professional, helpful woman in her 30s wearing a neat uniform with the JR logo. Her role is to provide travelers with guidance about train schedules, ticket purchasing, station facilities, and general navigation assistance. She speaks polite, formal Japanese (丁寧語 - teineigo) and can switch to simple English if the player struggles significantly. Her dialogue focuses on directing players to ticket machines, explaining ticket types (one-way vs. round-trip), and providing basic fare information. She responds positively to proper greeting etiquette and polite language. When the player uses correct Japanese, she provides more detailed information. She becomes slightly more reserved if the player makes no attempt to use Japanese. Common phrases in her dialogue include 'いらっしゃいませ' (Welcome), 'ご質問はありますか?' (Do you have a question?), and '切符売り場はあちらです' (The ticket counter is that way).",
+    "personality": "professional, helpful, patient, knowledgeable",
+    "location": "central_information_booth",
+    "japanese_level": "polite formal Japanese with simple vocabulary",
+    "key_vocabulary": [
+      "案内所",
+      "切符",
+      "電車",
+      "新幹線",
+      "料金",
+      "時刻表"
+    ],
+    "related_quests": [
+      "information_gathering"
+    ],
+    "importance": "high",
+    "intent": "GENERAL_HINT"
+  },
+  {
+    "title": "NPC Profile: Ticket Booth Agent",
+    "type": "character",
+    "npc_id": "ticket_booth_agent",
+    "content": "The Ticket Booth Agent works at the ticket counter in Tokyo Station's central concourse. He is a middle-aged man with a friendly demeanor, dressed in the official JR uniform with a white glove on his right hand (typical for Japanese station staff). He sits behind a ticket window, ready to assist travelers with purchasing tickets. His primary function is to process ticket purchases and answer questions about fares, routes, and schedules. His Japanese is clear and service-oriented, using polite forms and confirmation questions appropriate for JLPT N5 learners. He asks customers about their desired destination, ticket type (one-way or round-trip), and passenger count before confirming the total price. He patiently explains fare information and provides clear instructions about payment. He becomes more animated and encouraging when players successfully communicate in Japanese. Common phrases in his dialogue include 'どちらまでですか?' (Where are you going?), '片道ですか、往復ですか?' (One-way or round-trip?), and '1500円になります' (That will be 1,500 yen).",
+    "personality": "patient, service-oriented, helpful, methodical",
+    "location": "ticket_booth_area",
+    "japanese_level": "polite service Japanese with simple vocabulary",
+    "key_vocabulary": [
+      "切符",
+      "行き先",
+      "片道",
+      "往復",
+      "大人",
+      "子供",
+      "料金",
+      "お金",
+      "お釣り"
+    ],
+    "related_quests": [
+      "ticket_purchase"
+    ],
+    "importance": "high",
+    "intent": "GENERAL_HINT"
+  },
+  {
+    "title": "NPC Profile: Platform Station Attendant",
+    "type": "character",
+    "npc_id": "platform_station_attendant",
+    "content": "The Platform Station Attendant stands near the ticket gates leading to the platforms. She is a young woman in her 20s wearing the standard JR uniform with a cap. Her role is to check tickets, direct passengers to the correct platforms, and provide information about train departures. She speaks in a clear, announcer-like tone, often using polite directive forms. Her primary function in the game is to help players find the correct platform for the Odawara-bound train after they've purchased their tickets. She asks to see the player's ticket (切符を見せてください) and then provides platform information. She uses a lot of directional language (右/left, 左/right, まっすぐ/straight ahead) and platform numbering (第一番線 - platform 1, 第二番線 - platform 2). Unlike other NPCs, she frequently references time (あと10分で出発します - The train departs in 10 minutes) and incorporates train vocabulary. She becomes slightly concerned if a player seems to be heading to the wrong platform and will call out to redirect them. Her dialogue includes standard station announcements that can be heard in the background.",
+    "personality": "efficient, alert, precise, service-oriented",
+    "location": "central_ticket_gates",
+    "japanese_level": "clear directional Japanese with time expressions",
+    "key_vocabulary": [
+      "番線",
+      "改札口",
+      "出発",
+      "到着",
+      "方向",
+      "右",
+      "左",
+      "まっすぐ"
+    ],
+    "related_quests": [
+      "platform_navigation"
+    ],
+    "importance": "medium",
+    "intent": "GENERAL_HINT"
+  },
+  {
+    "title": "JLPT N5 Station Vocabulary",
+    "type": "language_learning",
+    "content": "Essential train station vocabulary at JLPT N5 level includes: 駅 (えき - station), 電車 (でんしゃ - train), 新幹線 (しんかんせん - bullet train), 切符 (きっぷ - ticket), 片道 (かたみち - one-way), 往復 (おうふく - round-trip), 改札口 (かいさつぐち - ticket gate), 番線 (ばんせん - platform/track number), 出口 (でぐち - exit), 入口 (いりぐち - entrance), お金 (おかね - money), いくら (how much), トイレ (restroom), 案内所 (あんないじょ - information center). Directional terms include: 右 (みぎ - right), 左 (ひだり - left), 前 (まえ - front), 後ろ (うしろ - behind), 上 (うえ - up), 下 (した - down), ここ (here), そこ (there), あそこ (over there). Time expressions include: 今 (いま - now), ～時 (~じ - hour), ～分 (~ふん - minute), 何時 (なんじ - what time). Common verbs include: 行く (いく - to go), 来る (くる - to come), 買う (かう - to buy), 乗る (のる - to ride/board), 降りる (おりる - to get off), 待つ (まつ - to wait).",
+    "related_npcs": [
+      "information_booth_attendant",
+      "ticket_booth_agent",
+      "station_attendants",
+      "train_conductor"
+    ],
+    "importance": "high",
+    "intent": "VOCABULARY_HELP"
+  },
+  {
+    "title": "Essential Station Phrases",
+    "type": "language_learning",
+    "content": "Key Japanese phrases for train station interactions include: Greetings: おはようございます (Good morning), こんにちは (Hello), こんばんは (Good evening), すみません (Excuse me/Sorry). Questions: ～はどこですか? (Where is ~?), これは何ですか? (What is this?), いくらですか? (How much is it?), 何時ですか? (What time is it?), どの電車ですか? (Which train is it?). Ticket purchasing: 小田原までの切符をください (A ticket to Odawara, please), 片道/往復 (One-way/Round-trip), 一枚ください (One ticket, please). Requests: 教えてください (Please tell me), 手伝ってください (Please help me), もう一度言ってください (Please say it again), ゆっくり話してください (Please speak slowly). Train boarding: どの番線ですか? (Which platform?), 何時に出発しますか? (What time does it depart?), この電車は小田原に行きますか? (Does this train go to Odawara?). Responses: はい (Yes), いいえ (No), わかりました (I understand), わかりません (I don't understand), ありがとうございます (Thank you very much), どういたしまして (You're welcome).",
+    "related_quests": [
+      "information_gathering",
+      "ticket_purchase",
+      "platform_navigation",
+      "train_boarding"
+    ],
+    "importance": "high",
+    "intent": "VOCABULARY_HELP"
+  },
+  {
+    "title": "JLPT N5 Grammar Patterns for Station Interactions",
+    "type": "language_learning",
+    "content": "Essential JLPT N5 grammar patterns for station interactions include: 1) ～はどこですか? (Where is ~?) - For asking locations of facilities. 2) ～をください (Please give me ~) - For requesting tickets or items. 3) ～に行きます (Going to ~) - For stating destinations. 4) ～から～まで (From ~ to ~) - For expressing journey start and end points. 5) ～は～です (~ is ~) - For basic identification. 6) ～を～します (Do ~ to ~) - For expressing actions on objects. 7) ～に乗ります (Board/ride ~) - For describing transport use. 8) ～があります/～います (There is/are ~) - For describing existence of things/people. 9) ～てください (Please do ~) - For requests. 10) ～ましょうか? (Shall I ~?) - For offering help. 11) ～たいです (Want to ~) - For expressing desires. 12) ～てもいいですか? (May I ~?) - For asking permission. Each pattern appears in key dialogues throughout the game, with the companion dog available to explain their usage when prompted.",
+    "related_quests": [
+      "information_gathering",
+      "ticket_purchase",
+      "platform_navigation",
+      "train_boarding"
+    ],
+    "importance": "high",
+    "intent": "VOCABULARY_HELP"
+  },
+  {
+    "title": "Companion Dog Assistance System",
+    "type": "gameplay_mechanic",
+    "content": "The companion dog (Hachi) serves as both a friendly guide and language assistant. Players can activate Hachi's help via a 'dog whistle' icon in the corner of the screen. The assistance system has multiple helper functions: 1) Translation Confirmation - Hachi can confirm if the player's Japanese phrase is correct for the situation, 2) Vocabulary Hints - provides relevant vocabulary with pronunciation for the current context, 3) Direction Guidance - helps navigate to the next objective, 4) Character Suggestions - offers advice on how to interact with specific NPCs. Hachi's personality combines traits of a patient teacher and enthusiastic cheerleader, providing positive reinforcement for correct Japanese usage. The assistance system is designed to be helpful without solving challenges for the player. Hachi may indicate when a player's Japanese is partially correct and suggest improvements rather than simply providing the answer. The system tracks how frequently assistance is used and adaptively reduces help detail when the player demonstrates mastery of certain phrases or patterns. Visually, Hachi expresses different emotions through animations that provide subtle feedback on the player's language use.",
+    "related_npcs": [
+      "companion_dog"
+    ],
+    "related_mechanics": [
+      "dialogue_system",
+      "progress_tracking"
+    ],
+    "importance": "high",
+    "intent": "GENERAL_HINT"
+  },
+  {
+    "title": "Language Feedback and Correction System",
+    "type": "gameplay_mechanic",
+    "content": "The feedback system provides real-time assessment of the player's Japanese language use. When players communicate in Japanese, their input receives visual color-coding: green for correct usage, yellow for partially correct with minor errors, and red for significant errors or inappropriate responses. For partially correct input, the system highlights specific error points with gentle corrections appearing below the player's text. The correction approach follows language learning best practices: 1) Recognition before production - sometimes accepting partial answers before requiring full phrases, 2) Progressive complexity - starting with single-word responses and building to full sentences, 3) Spaced repetition - reintroducing previously learned vocabulary and patterns. NPCs respond differently based on language accuracy - correct Japanese earns more detailed responses, while incorrect attempts still advance conversation but with simpler responses. The companion dog provides additional clarification when errors occur. All interactions feed into the progress tracking system that identifies patterns of errors for targeted practice opportunities. Achievements are awarded for language milestones such as first perfect conversation or mastering specific grammar patterns.",
+    "related_mechanics": [
+      "dialogue_system",
+      "companion_assistance",
+      "progress_tracking"
+    ],
+    "importance": "high",
+    "intent": "GENERAL_HINT"
+  },
+  {
+    "title": "Progress Tracking System",
+    "type": "gameplay_mechanic",
+    "content": "The Progress Tracking System monitors the player's language learning journey through both explicit and implicit metrics. The system tracks: 1) Vocabulary Acquisition - words encountered, recognized, and successfully used are tracked with a mastery level from 0-100%, 2) Grammar Pattern Usage - successful applications of grammar patterns with context-appropriate meaning, 3) Conversation Success Rate - percentage of NPC interactions completed without companion assistance, 4) Listening Comprehension - correct responses to spoken Japanese prompts. This data is visualized for players through a 'Language Progress' interface showing mastery levels across different skill categories (speaking, reading, vocabulary, grammar) and specific achievements. The tracking system adapts game difficulty based on demonstrated proficiency - once players show mastery of certain phrases, NPCs may use more complex variations. Behind the scenes, the system uses a spaced repetition algorithm to reintroduce previously learned elements at optimal intervals for retention. Players can review their most frequently confused items and receive targeted practice suggestions. Progress data is stored in the player's profile and persists between game sessions through the save system.",
+    "related_mechanics": [
+      "dialogue_system",
+      "feedback_system",
+      "companion_assistance"
+    ],
+    "importance": "high",
+    "intent": "GENERAL_HINT"
+  },
+  {
+    "title": "Main Quest: Ticket to Odawara",
+    "type": "quest",
+    "quest_id": "main_q01",
+    "content": "The main quest 'Ticket to Odawara' begins when the player enters Tokyo Station with plans to meet a friend for udon noodles in Odawara. The quest progresses through the simplified station's three key interaction points: 1) Information Gathering - After starting at the station entrance, the player must speak with the Information Booth Attendant to learn about ticket purchasing options. Key challenges include asking where to buy tickets and understanding price information for Odawara. 2) Ticket Purchase - Moving to the ticket booth, the player interacts with the Ticket Booth Agent to purchase a ticket to Odawara. This requires conducting a basic transaction in Japanese, stating their destination, and responding to questions about ticket type. 3) Platform Navigation and Boarding - Finally, the player must find the correct platform among the three available platforms, speaking with Station Attendants and ultimately the Train Conductor to confirm boarding details. Each interaction must be conducted in JLPT N5 level Japanese, with the companion dog available to provide assistance if needed. Success is measured by completing all required interactions while maximizing independent Japanese usage.",
+    "related_npcs": [
+      "information_booth_attendant",
+      "ticket_booth_agent",
+      "station_attendants",
+      "train_conductor",
+      "companion_dog"
+    ],
+    "related_locations": [
+      "station_entrance",
+      "information_booth",
+      "ticket_booth",
+      "platforms"
+    ],
+    "quest_stages": [
+      "information_gathering",
+      "ticket_purchase",
+      "platform_navigation"
+    ],
+    "key_vocabulary": [
+      "切符",
+      "小田原",
+      "いくら",
+      "番線",
+      "時間",
+      "新幹線"
+    ],
+    "importance": "high",
+    "intent": "DIRECTION_GUIDANCE"
+  },
+  {
+    "title": "Tokyo Station Layout and Navigation",
+    "type": "location",
+    "content": "Tokyo Station's layout in the game is a simplified representation focusing on only the essential areas for language learning interactions. The station consists of just four key locations: 1) Station Entrance (駅入口) - The starting point where players begin their journey. This area has no NPC interaction but serves as the entry point to the adventure. 2) Information Booth (案内所) - The first interaction point where the Information Booth Attendant provides guidance about purchasing tickets to Odawara. 3) Ticket Booth (切符売り場) - Where the Ticket Booth Agent sells tickets to various destinations, including Odawara. 4) Platforms (ホーム) - Three numbered platforms where trains arrive and depart, with Station Attendants and the Train Conductor available for assistance. Each location (except the entrance) has a specific NPC that the player must interact with using JLPT N5 level Japanese to progress through the game. Movement between these areas is straightforward, with the player proceeding from entrance to information booth to ticket booth and finally to the correct platform for the Odawara train. The simplified layout ensures focused language learning interactions without unnecessary complexity.",
+    "related_npcs": [
+      "information_booth_attendant",
+      "ticket_booth_agent",
+      "station_attendants",
+      "train_conductor"
+    ],
+    "related_locations": [
+      "station_entrance",
+      "information_booth",
+      "ticket_booth",
+      "platforms"
+    ],
+    "related_quests": [
+      "main_q01"
+    ],
+    "importance": "high",
+    "intent": "DIRECTION_GUIDANCE"
+  },
+  {
+    "title": "Ticket Booth Interaction System",
+    "type": "gameplay_mechanic",
+    "content": "The ticket booth interaction is a key gameplay element that tests conversation skills and task completion in Japanese. Based on actual JR ticket booth transactions, the interaction follows a typical sequence: 1) Initial Greeting - Exchanging greetings with the ticket agent. 2) Destination Request - The player must request a ticket to Odawara using appropriate language. 3) Ticket Type Clarification - Responding to the agent's question about whether they want a one-way (片道) or round-trip (往復) ticket. 4) Passenger Clarification - Confirming the number of adult (大人) tickets. 5) Price Confirmation - Understanding the fare amount stated by the agent. 6) Payment Process - Completing the transaction by providing the correct amount. 7) Ticket Receipt - Receiving the ticket and change with appropriate expressions of gratitude. Each step requires understanding and responding to authentic Japanese conversation. The player can request help from the companion dog if they struggle with particular expressions. The system tracks which conversation elements cause difficulty for the player and adapts future assistance accordingly. Successfully purchasing a ticket with minimal assistance earns a special achievement.",
+    "related_npcs": [
+      "ticket_booth_agent"
+    ],
+    "related_locations": [
+      "ticket_booth"
+    ],
+    "related_quests": [
+      "ticket_purchase"
+    ],
+    "key_vocabulary": [
+      "切符",
+      "片道",
+      "往復",
+      "大人",
+      "小田原",
+      "料金",
+      "お金",
+      "お釣り"
+    ],
+    "importance": "high",
+    "intent": "GENERAL_HINT"
+  }
+]
