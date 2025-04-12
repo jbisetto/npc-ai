@@ -32,8 +32,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Import routes
-from .routes import chat, npcs, health
+# Import routes - use absolute imports instead of relative imports
+from api.routes import chat, npcs, health
 
 # Create FastAPI application
 app = FastAPI(

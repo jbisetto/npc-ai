@@ -4,7 +4,7 @@ NPC profiles endpoint
 
 import logging
 from fastapi import APIRouter
-from ..models.requests import NPCProfile, NPCListResponse
+from api.models.requests import NPCProfile, NPCListResponse
 
 # Set up logging
 logger = logging.getLogger(__name__)
