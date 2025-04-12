@@ -28,16 +28,47 @@ A flexible AI-powered NPC system that provides natural language interactions in 
 ## Architecture
 
 ```
-src/
-├── ai/
-│   └── npc/
-│       ├── core/           # Core components and interfaces
-│       ├── local/         # Local processing using Ollama
-│       ├── hosted/        # Cloud processing using Bedrock
-│       └── utils/         # Shared utilities
-├── config/                # Configuration files
-├── data/                  # Game data and resources
-└── tests/                # Test suite
+project/
+├── src/
+│   ├── ai/
+│   │   └── npc/
+│   │       ├── core/                 # Core components and interfaces
+│   │       │   ├── profile/          # NPC profile implementations
+│   │       │   ├── prompt/           # Prompt templates and generation
+│   │       │   ├── storage/          # Storage interfaces
+│   │       │   ├── vector/           # Vector store implementations
+│   │       │   ├── adapters.py       # Format conversion adapters
+│   │       │   ├── context_manager.py # Request context management
+│   │       │   ├── knowledge_adapter.py # Knowledge format standardization
+│   │       │   ├── history_adapter.py  # Conversation history adapters
+│   │       │   ├── models.py         # Data models and request types
+│   │       │   ├── prompt_manager.py # Prompt creation and optimization
+│   │       │   └── processor_framework.py # Processing tier management
+│   │       ├── local/                # Local processing using Ollama
+│   │       │   ├── local_processor.py # Ollama integration
+│   │       │   └── ollama_client.py  # Ollama API client
+│   │       ├── hosted/               # Cloud processing using Bedrock
+│   │       │   ├── hosted_processor.py # Bedrock integration
+│   │       │   ├── bedrock_client.py # AWS Bedrock client
+│   │       │   └── usage_tracker.py  # API usage monitoring
+│   │       └── utils/                # Shared utilities
+│   ├── config/                       # Configuration files
+│   │   └── npc-config.yaml          # Main configuration file
+│   ├── data/                         # Game data and resources
+│   └── tests/                        # Test suite
+├── api/                              # REST API implementation
+│   ├── routes/                       # API endpoint definitions
+│   ├── models/                       # API data models
+│   ├── main.py                       # FastAPI application
+│   ├── test_api.sh                   # API test script
+│   ├── test_valid_ids.sh             # Valid NPC IDs test
+│   └── test_invalid_npc.sh           # Invalid NPC ID test
+├── demo/                             # Demo application
+│   └── app.py                        # Gradio demo interface
+├── docs/                             # Documentation
+│   └── crazy-response.json           # Example of problematic responses
+└── tools/                            # Development tools
+    └── prompt_inspector.py           # Prompt visualization tool
 ```
 
 ## Getting Started
@@ -107,9 +138,50 @@ See the [API documentation](api/README.md) for more details on available endpoin
 
 ## Known Issues and Future Enhancements
 
-### ChromaDB Persistence
+### ⚠️ MAJOR ISSUE: DeepSeek Model with Ollama - English-Only Responses
 
-Currently, there is an issue with ChromaDB's persistence mechanism when storing vector embeddings. The system properly loads data into memory during initialization but has trouble maintaining persistence between application restarts. This affects the semantic search capabilities in some scenarios.
+**IMPORTANT:** When using the DeepSeek model through Ollama, we are currently experiencing an issue where NPCs only respond in English, ignoring the Japanese language instructions in the prompts. This behavior is unexpected and inconsistent with other models.
+
+- This affects all NPCs when the local processing mode with DeepSeek is enabled
+- The issue appears to be with how DeepSeek interprets bilingual instructions
+- The problem does not occur with hosted models (Amazon Bedrock)
+
+Investigation is ongoing to determine:
+- Whether this is a limitation of the DeepSeek model itself
+- If there are prompt engineering approaches that could resolve this
+- Whether specific Ollama configuration changes might help
+
+**Workaround:** If bilingual responses are crucial for your use case, consider:
+- Using a different local model
+- Switching to hosted processing (Amazon Bedrock)
+- Adding explicit Japanese text/translations in your inputs
+
+This issue is a high priority for resolution in future updates.
+
+### ⚠️ Knowledge Context (RAG) Disabled Due to Hallucinations
+
+**IMPORTANT:** We have intentionally disabled the knowledge context inclusion in prompts (RAG implementation) due to issues with hallucinations and off-character responses. 
+
+The system has a fully implemented Retrieval Augmented Generation (RAG) capability using vector store embeddings, but we found that adding knowledge context to prompts caused some models to:
+- Ignore their character role instructions
+- Break the fourth wall by mentioning they are AI systems
+- Provide meta-commentary rather than in-character responses
+
+For example, see `docs/crazy-response.json` where Hachiko (dog companion) responds:
+```
+Hello! I'm not Hachiko, but I'm here to assist you as an AI system built by a team of inventors at Amazon.
+```
+
+This issue is particularly problematic for roleplaying characters and degrades the experience. The knowledge context option is set to `false` in `src/config/npc-config.yaml` as a precaution.
+
+**Future Work:** We plan to explore alternative approaches to knowledge integration that don't cause character breaks, such as:
+- Different prompt formatting for knowledge context
+- Model-specific prompt engineering techniques
+- Fine-tuning models to better respect character constraints
+
+### ⚠️ ChromaDB Persistence Workaround
+
+**IMPORTANT:** Currently, there is an issue with ChromaDB's persistence mechanism when storing vector embeddings. The system properly loads data into memory during initialization but has trouble maintaining persistence between application restarts. This affects the semantic search capabilities in some scenarios.
 
 Workarounds implemented:
 - The system includes robust fallback mechanisms to ensure knowledge retrieval works even when vector search fails
@@ -134,6 +206,8 @@ The main configuration files are:
   - Hosted model settings (Bedrock)
   - System prompts and optimization settings
   - Usage tracking and limits
+
+***NOTE:*** current configuration has local tier disabled and hosted tier (ASW) enabled
 
 ## Environment Configuration
 
