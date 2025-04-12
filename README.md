@@ -140,7 +140,7 @@ See the [API documentation](api/README.md) for more details on available endpoin
 
 ### ⚠️ CRITICAL: AWS Bedrock Response Caching and Hallucination Issue
 
-**IMPORTANT:** We have discovered a critical behavior with AWS Bedrock (specifically the Nova-micro model) that significantly impacts NPC character consistency:
+**IMPORTANT:** We have discovered a strange behaviour within our AWS Bedrock code (specifically the Nova-micro model) that significantly impacts NPC character consistency:
 
 1. **Response Caching**: When identical requests are sent (same NPC ID, player ID, and message), the model returns identical responses, even after conversation history is cleared.
 
