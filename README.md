@@ -138,6 +138,30 @@ See the [API documentation](api/README.md) for more details on available endpoin
 
 ## Known Issues and Future Enhancements
 
+### ⚠️ CRITICAL: AWS Bedrock Response Caching and Hallucination Issue
+
+**IMPORTANT:** We have discovered a critical behavior with AWS Bedrock (specifically the Nova-micro model) that significantly impacts NPC character consistency:
+
+1. **Response Caching**: When identical requests are sent (same NPC ID, player ID, and message), the model returns identical responses, even after conversation history is cleared.
+
+2. **Player ID-Based Hallucination**: When only the player ID changes between otherwise identical requests, the model sometimes produces completely different responses that:
+   - Incorrectly identify the AI as "made by Amazon" rather than maintaining character
+   - Ignore the NPC profile/persona entirely
+   - Break character immersion in unacceptable ways
+
+For example, when player1 asks "hello, who are you?" to the companion_dog, they get an in-character response as Hachiko. When player2 asks the exact same question, they might get a response like:
+
+```
+Hello! I'm an AI system built by a team at Amazon. I'm here to help you learn Japanese...
+```
+
+This behavior occurs despite using the same NPC ID and prompt structure, suggesting AWS Bedrock may have:
+- Input-based response caching that doesn't include player ID in the cache key
+- Deterministic response generation for identical inputs
+- Context handling that's affected by player ID changes
+
+See our detailed analysis in [docs/aws_bedrock_behavior.md](docs/aws_bedrock_behavior.md) for more information and workarounds.
+
 ### ⚠️ MAJOR ISSUE: DeepSeek Model with Ollama - English-Only Responses
 
 **IMPORTANT:** When using the DeepSeek model through Ollama, we are currently experiencing an issue where NPCs only respond in English, ignoring the Japanese language instructions in the prompts. This behavior is unexpected and inconsistent with other models.

@@ -395,6 +395,11 @@ class BedrockClient:
         try:
             # Convert request body to JSON
             body = json.dumps(request_body)
+            
+            # Add detailed debug logging for entire request
+            self.logger.info(f"BEDROCK DEBUG - Sending request to model {model} with body: {body}")
+            self.logger.info(f"BEDROCK DEBUG - Request timestamp: {datetime.now().isoformat()}")
+            self.logger.info(f"BEDROCK DEBUG - Request hash: {hash(body)}")
 
             # Invoke model
             response = self.client.invoke_model(
@@ -406,6 +411,11 @@ class BedrockClient:
 
             # Parse response
             response_body = json.loads(response['body'].read())
+            
+            # Log complete response for debugging
+            self.logger.info(f"BEDROCK DEBUG - Complete response: {json.dumps(response_body)}")
+            self.logger.info(f"BEDROCK DEBUG - Response timestamp: {datetime.now().isoformat()}")
+            
             return response_body
 
         except self.client.exceptions.ValidationException as e:
