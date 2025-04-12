@@ -3,8 +3,9 @@ Health check endpoint
 """
 
 import logging
+import os
 from fastapi import APIRouter
-from ..models.requests import HealthResponse
+from api.models.requests import HealthResponse
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -31,6 +32,13 @@ async def health_check() -> HealthResponse:
     local_model = None
     try:
         from src.ai.npc.local.ollama_client import OllamaClient
+        
+        # Docker environment detection - if running in Docker, use host.docker.internal
+        # Otherwise use localhost
+        if os.path.exists('/.dockerenv'):
+            logger.info("Running in Docker, using host.docker.internal for Ollama")
+            # Override the Ollama base URL via environment variable
+            os.environ["OLLAMA_BASE_URL"] = "http://host.docker.internal:11434"
         
         # Try to initialize client (this won't make an actual API call)
         client = OllamaClient()

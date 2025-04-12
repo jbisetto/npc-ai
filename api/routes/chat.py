@@ -4,8 +4,9 @@ Chat endpoints for NPC interactions
 
 import logging
 import uuid
+import os
 from fastapi import APIRouter, HTTPException
-from ..models.requests import ChatRequest, ChatResponse
+from api.models.requests import ChatRequest, ChatResponse
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -28,6 +29,11 @@ async def chat_with_npc(request: ChatRequest) -> ChatResponse:
     Chat with an NPC
     """
     try:
+        # Check if we're running in Docker and set Ollama URL if needed
+        if os.path.exists('/.dockerenv'):
+            logger.info("Running in Docker, setting host.docker.internal for Ollama")
+            os.environ["OLLAMA_BASE_URL"] = "http://host.docker.internal:11434"
+        
         # Import here to avoid circular imports
         from src.ai.npc import process_request
         from src.ai.npc.core.models import NPCRequest, GameContext, NPCProfileType
@@ -107,7 +113,15 @@ async def chat_with_npc(request: ChatRequest) -> ChatResponse:
     
     except Exception as e:
         logger.error(f"Error processing chat request: {e}")
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+        
+        # Return a graceful error response
+        return ChatResponse(
+            response_text=f"I'm sorry, I'm having technical difficulties right now. The error was: {str(e)}",
+            processing_tier="error",
+            suggested_actions=["Try again later", "Check if Ollama is running on your host machine"],
+            emotion="concerned",
+            confidence=0.0
+        )
 
 
 @router.delete("/conversations/{player_id}")

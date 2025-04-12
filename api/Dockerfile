@@ -16,14 +16,18 @@ COPY api/ /app/api/
 COPY data/ /app/data/
 COPY .env /app/.env
 
-# Change to the API directory
-WORKDIR /app/api
+# Create empty __init__.py file in app directory to make it a package
+RUN touch /app/__init__.py
 
 # Set environment variables
 ENV PYTHONPATH=/app
+ENV OLLAMA_BASE_URL=http://host.docker.internal:11434
+
+# Change to the app directory
+WORKDIR /app
 
 # Expose the port
 EXPOSE 8000
 
 # Start the server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"] 
