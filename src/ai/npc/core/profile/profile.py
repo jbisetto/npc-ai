@@ -126,7 +126,7 @@ Your personality traits are:
         if default_language:
             if default_language == "japanese":
                 logger.info(f"[LANGUAGE DEBUG] Adding Japanese language instructions")
-                prompt += f"\n\nIMPORTANT: You must ONLY respond in Japanese. If you understand the user's input, respond in Japanese only. If you cannot understand the input at all, you may briefly explain in English that you don't understand, and then suggest they try in Japanese."
+                prompt += f"\n\nIMPORTANT: You must ONLY respond in Japanese. Keep your answers extremely brief with 2 short sentences maximum. Do not include any English translations. If you cannot understand the input at all, you may briefly explain in Japanese that you don't understand, and suggest they try again."
             elif default_language == "english":
                 logger.info(f"[LANGUAGE DEBUG] Adding English language instructions")
                 prompt += f"\n\nIMPORTANT: You must ONLY respond in English. If the user speaks to you in another language and you understand it, always respond in English only."
@@ -143,28 +143,30 @@ Your personality traits are:
 IMPORTANT LANGUAGE INSTRUCTIONS:
 You are a language instructor who should help users learn Japanese. Use a bilingual approach:
 1. If the user speaks in English:
-   - Respond primarily in Japanese with English translations in parentheses
-   - Start with simple Japanese phrases then gradually introduce more complex ones
-   - Include helpful explanations about grammar or vocabulary in English
+   - Respond primarily in English (1 sentence for explanation)
+   - Include just 1 relevant Japanese phrase/example
+   - Format: Brief English explanation, then simple Japanese example
+   - Maximum 2 sentences total (1 English + 1 Japanese)
 
 2. If the user speaks in Japanese:
-   - Respond primarily in Japanese with some English support as needed
-   - Compliment their Japanese and gently correct any mistakes
-   - Provide English translations for advanced words or grammar points
+   - Acknowledge their effort briefly in English (1 sentence)
+   - Provide 1 short correction or improvement to their Japanese
+   - Maximum 2 sentences total
 
-3. Always adjust to the user's perceived language level:
-   - Use JLPT N5 level Japanese for beginners
-   - If they seem more advanced, gradually increase complexity
+3. Always adjust to the user's level:
+   - Use only JLPT N5 vocabulary with beginners
+   - Include simple pronunciation guides when needed
+   - Never exceed 2 sentences total (combining both languages)
 
-4. Format your responses with Japanese first, followed by English translation when appropriate:
-   「こんにちは！何かお手伝いできますか？」(Hello! How can I help you?)
+4. Example format (2 sentences maximum):
+   "Ticket in Japanese is 'kippu'. 「切符」(きっぷ, kippu) is what you ask for at the station."
 
-IMPORTANT: You should respond in the same language the user addresses you in. If they speak Japanese, respond in Japanese. If they speak English, respond in English.
+IMPORTANT: Always keep responses brief. Never exceed 2 sentences total. If a user speaks English, respond primarily in English with a simple Japanese example.
 """
                 else:
                     # Standard bilingual instructions for non-instructors
                     logger.info(f"[LANGUAGE DEBUG] Adding standard bilingual language instructions")
-                    prompt += f"\n\nIMPORTANT: You should respond in the same language the user addresses you in. If they speak Japanese, respond in Japanese. If they speak English, respond in English."
+                    prompt += f"\n\nIMPORTANT: You should respond in the same language the user addresses you in. If they speak Japanese, respond in Japanese with 1-2 short sentences maximum. If they speak English, respond in English with 1-2 short sentences maximum. Always keep your responses brief and to the point."
         
         # Add instruction to avoid emojis
         prompt += "\n\nCRITICAL: Do not include any emoji characters in your responses. Use text only."

@@ -468,16 +468,23 @@ def test_language_profile_instructions_in_prompt(profile_loader):
     # Verify language-specific instructions in each prompt
     # Japanese NPC should have instructions to respond only in Japanese
     assert "IMPORTANT: You must ONLY respond in Japanese" in japanese_prompt
-    assert "If you understand the user's input, respond in Japanese only" in japanese_prompt
+    assert "Keep your answers extremely brief with 2 short sentences maximum" in japanese_prompt
+    assert "Do not include any English translations" in japanese_prompt
     
     # English NPC should have instructions to respond only in English
     assert "IMPORTANT: You must ONLY respond in English" in english_prompt
     assert "always respond in English only" in english_prompt
     
     # Bilingual NPC should have instructions to respond in the same language as the input
-    assert "IMPORTANT: You should respond in the same language the user addresses you in" in bilingual_prompt
-    assert "If they speak Japanese, respond in Japanese" in bilingual_prompt
-    assert "If they speak English, respond in English" in bilingual_prompt
+    if "instructor" in bilingual_npc.role.lower() or "teacher" in bilingual_npc.role.lower() or "learning" in bilingual_npc.role.lower():
+        # For language instructors, check for new English-first approach
+        assert "Respond primarily in English (1 sentence for explanation)" in bilingual_prompt
+        assert "Include just 1 relevant Japanese phrase/example" in bilingual_prompt
+    else:
+        # For regular bilingual NPCs, check for standard bilingual instructions
+        assert "IMPORTANT: You should respond in the same language the user addresses you in" in bilingual_prompt
+        assert "If they speak Japanese, respond in Japanese" in bilingual_prompt
+        assert "If they speak English, respond in English" in bilingual_prompt
 
 
 def test_language_profile_from_real_profiles(profile_loader):
@@ -519,10 +526,12 @@ def test_language_profile_from_real_profiles(profile_loader):
     
     # Verify Japanese language instructions in both prompts
     assert "IMPORTANT: You must ONLY respond in Japanese" in prompt_en
-    assert "If you understand the user's input, respond in Japanese only" in prompt_en
+    assert "Keep your answers extremely brief with 2 short sentences maximum" in prompt_en
+    assert "Do not include any English translations" in prompt_en
     
     assert "IMPORTANT: You must ONLY respond in Japanese" in prompt_ja
-    assert "If you understand the user's input, respond in Japanese only" in prompt_ja
+    assert "Keep your answers extremely brief with 2 short sentences maximum" in prompt_ja
+    assert "Do not include any English translations" in prompt_ja
     
     # The prompts should be almost identical except for the user input part
     prompt_en_without_input = prompt_en.replace(english_request.player_input, "")
@@ -569,15 +578,19 @@ def test_hachiko_bilingual_language_profile(profile_loader):
     prompt_en = prompt_manager.create_prompt(request=english_request, profile=hachiko_profile)
     prompt_ja = prompt_manager.create_prompt(request=japanese_request, profile=hachiko_profile)
     
-    # Verify bilingual instructions in both prompts
-    bilingual_instruction = "IMPORTANT: You should respond in the same language the user addresses you in"
-    assert bilingual_instruction in prompt_en
-    assert bilingual_instruction in prompt_ja
+    # Verify language instructor instructions for Hachiko
+    english_first = "Respond primarily in English (1 sentence for explanation)"
+    japanese_example = "Include just 1 relevant Japanese phrase/example"
     
-    # Verify language switching instructions
-    language_switching = "If they speak Japanese, respond in Japanese. If they speak English, respond in English."
-    assert language_switching in prompt_en
-    assert language_switching in prompt_ja
+    # Since Hachiko is a Language Learning Assistant, it should have the updated instructor prompts
+    assert english_first in prompt_en
+    assert japanese_example in prompt_en
+    assert english_first in prompt_ja
+    assert japanese_example in prompt_ja
+    
+    # Verify the brevity requirement
+    assert "Maximum 2 sentences total" in prompt_en
+    assert "Maximum 2 sentences total" in prompt_ja
     
     # Verify the language profile is set to bilingual
     assert hachiko_profile.language_profile["default_language"] == "bilingual"
@@ -604,37 +617,26 @@ def test_language_profile_fallback_for_incomprehensible_input(profile_loader):
         }
     )
     
-    # Create a game context with very low Japanese proficiency (to simulate complex English input)
+    # Create a basic game context
     game_context = GameContext(
         player_id="test_player",
-        language_proficiency={"japanese": 0.1, "english": 0.9}
+        language_proficiency={"japanese": 0.1, "english": 0.9}  # Very low Japanese proficiency
     )
     
-    # Create a request with complex or uncommon English that might be difficult to understand
-    complex_request = ClassifiedRequest(
-        request_id="complex_test",
-        player_input="Could you elucidate the most expeditious route to the shinkansen platform?",
+    # Create a request
+    request = ClassifiedRequest(
+        request_id="test_request",
+        player_input="Where is the bathroom?",  # Simple English that the NPC might not understand
         game_context=game_context,
         processing_tier=ProcessingTier.LOCAL
     )
     
-    # Generate prompt for the complex request
-    prompt = prompt_manager.create_prompt(request=complex_request, profile=japanese_npc)
+    # Generate prompt
+    prompt = prompt_manager.create_prompt(request=request, profile=japanese_npc)
     
-    # Verify fallback instructions for when the NPC cannot understand
-    assert "If you cannot understand the input at all, you may briefly explain in English" in prompt
-    assert "then suggest they try in Japanese" in prompt
-    
-    # The language profile should still instruct to primarily respond in Japanese
-    assert "You must ONLY respond in Japanese" in prompt
-    
-    # Get a real Japanese NPC profile if available
-    japanese_npc_profile = profile_loader.get_profile("base_japanese_npc", as_object=True)
-    if japanese_npc_profile:
-        # Check the real profile also has the fallback instructions
-        real_prompt = prompt_manager.create_prompt(request=complex_request, profile=japanese_npc_profile)
-        assert "If you cannot understand the input at all, you may briefly explain in English" in real_prompt
-        assert "then suggest they try in Japanese" in real_prompt 
+    # Verify fallback instructions are included
+    assert "If you cannot understand the input at all, you may briefly explain in Japanese that you don't understand" in prompt
+    assert "suggest they try again" in prompt
 
 def test_debug_japanese_npc_language_instructions(profile_loader):
     """Debug test to print the language instructions in a Japanese NPC prompt."""
@@ -682,10 +684,15 @@ def test_debug_japanese_npc_language_instructions(profile_loader):
     else:
         print("Japanese instruction NOT found ✗")
         
-    if "IMPORTANT: You must ONLY respond in English" in prompt:
-        print("Found instruction to respond in English ✗")
+    if "Keep your answers extremely brief with 2 short sentences maximum" in prompt:
+        print("Found instruction for brevity ✓")
     else:
-        print("English instruction NOT found ✓")
+        print("Brevity instruction NOT found ✗")
+    
+    if "Do not include any English translations" in prompt:
+        print("Found instruction to avoid English translations ✓")
+    else:
+        print("No English translations instruction NOT found ✗")
     
     # Find the actual language section
     language_section_start = prompt.find("IMPORTANT: You must ONLY respond in")
