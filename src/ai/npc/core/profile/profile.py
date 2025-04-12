@@ -166,6 +166,9 @@ IMPORTANT: You should respond in the same language the user addresses you in. If
                     logger.info(f"[LANGUAGE DEBUG] Adding standard bilingual language instructions")
                     prompt += f"\n\nIMPORTANT: You should respond in the same language the user addresses you in. If they speak Japanese, respond in Japanese. If they speak English, respond in English."
         
+        # Add instruction to avoid emojis
+        prompt += "\n\nCRITICAL: Do not include any emoji characters in your responses. Use text only."
+        
         return prompt
     
     def format_response(self, response: str, request: Optional[Dict[str, Any]] = None) -> str:

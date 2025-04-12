@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  npc-ai-api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    ports:
+      - "8002:8000"  # Map container port 8000 to host port 8002
+    volumes:
+      - ./data:/app/data
+      - chroma_cache:/root/.cache/chroma
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID}
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - NPC_CONFIG_LOCAL_ENABLED=false
+      - NPC_CONFIG_HOSTED_ENABLED=true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped 
+
+volumes:
+  chroma_cache: 

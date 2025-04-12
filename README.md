@@ -47,6 +47,7 @@ src/
 - Python 3.9+
 - Ollama (for local processing)
 - AWS credentials (for hosted processing)
+- Docker and Docker Compose (for REST API)
 
 ### Installation
 
@@ -88,6 +89,21 @@ This step is required before starting the demo to ensure the knowledge store is 
 python demo/app.py
 ```
 <img src="demo/docs/images/ai-demo.png" alt="AI Demo Screenshot" width="600"/>
+
+### Running the REST API
+
+The project includes a FastAPI-based REST API that provides access to the NPC AI functionality through HTTP endpoints.
+
+1. Using Docker Compose (recommended):
+```bash
+docker-compose up -d
+```
+
+2. Accessing the API:
+   - The API will be available at http://localhost:8002
+   - Swagger documentation: http://localhost:8002/docs
+
+See the [API documentation](api/README.md) for more details on available endpoints.
 
 ## Known Issues and Future Enhancements
 

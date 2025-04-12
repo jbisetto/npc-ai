@@ -8,6 +8,7 @@ import logging
 import json
 import asyncio
 import aiohttp
+import os
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
@@ -75,7 +76,10 @@ class OllamaClient:
 
         # Get configuration
         config = get_config('local', {})
-        self.base_url = base_url or config.get('base_url', 'http://localhost:11434')
+        
+        # Check environment variable first, then parameter, then config
+        self.base_url = os.environ.get('OLLAMA_BASE_URL') or base_url or config.get('base_url', 'http://localhost:11434')
+        
         self.default_model = default_model or config.get('default_model', 'deepseek-r1:latest')
         self.cache_enabled = cache_enabled
         self.cache_dir = cache_dir or config.get('cache_dir', '/tmp/cache')

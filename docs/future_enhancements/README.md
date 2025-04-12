@@ -10,6 +10,7 @@ This directory contains design documents for planned improvements and enhancemen
 | [NPC_DIALOGUE_ENHANCEMENTS.md](NPC_DIALOGUE_ENHANCEMENTS.md) | Improvements to NPC dialogue boundaries for language learning games, including better knowledge constraints and contextual relevance | High |
 | [NPC_PROFILE_TYPE_ENUM.md](NPC_PROFILE_TYPE_ENUM.md) | Implementation of an enumeration type for NPC profiles to improve type safety and developer experience | Low |
 | [NPC_CHROMADB_EMBEDDING_FUNCTION_ENHANCEMENTS.md](NPC_CHROMADB_EMBEDDING_FUNCTION_ENHANCEMENTS.md) | Fixes for issues with ChromaDB embedding functions to improve vector search quality | Medium |
+| [EMOJI_HANDLING_ISSUE.md](EMOJI_HANDLING_ISSUE.md) | Solutions for preventing emoji characters in NPC responses through improved prompting and post-processing | Medium |
 
 ## Enhancement Process
 
