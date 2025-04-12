@@ -82,7 +82,6 @@ def get_full_config() -> Dict[str, Any]:
         },
         'hosted': {
             'enabled': True,
-            'debug_mode': True,  # Default to debug mode for testing without AWS credentials
             'bedrock': {
                 'default_model': CLOUD_API_CONFIG.get('model_id'),
                 'max_tokens': CLOUD_API_CONFIG.get('max_tokens'),

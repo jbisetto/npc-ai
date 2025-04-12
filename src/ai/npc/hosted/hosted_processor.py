@@ -106,12 +106,8 @@ class HostedProcessor(Processor):
         hosted_config = get_config('hosted', {})
         bedrock_config = hosted_config.get('bedrock', {})
         
-        # Get debug mode from config
-        debug_mode = hosted_config.get('debug_mode')
-        
         # Log the configuration for debugging
         self.logger.info(f"Creating Bedrock client with config: {bedrock_config}")
-        self.logger.info(f"Debug mode: {debug_mode}")
         
         return BedrockClient(
             usage_tracker=usage_tracker or default_tracker,
@@ -120,8 +116,7 @@ class HostedProcessor(Processor):
             temperature=bedrock_config.get('temperature'),
             top_p=bedrock_config.get('top_p'),
             top_k=bedrock_config.get('top_k'),
-            stop_sequences=bedrock_config.get('stop_sequences', []),
-            debug_mode=debug_mode
+            stop_sequences=bedrock_config.get('stop_sequences', [])
         )
     
     async def process(self, request: NPCRequest) -> Dict[str, Any]:

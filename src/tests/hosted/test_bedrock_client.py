@@ -53,7 +53,7 @@ def mock_client():
 def bedrock_client(mock_client):
     """Create a BedrockClient with a mock boto3 client."""
     with patch("boto3.client", return_value=mock_client):
-        client = BedrockClient(debug_mode=False)
+        client = BedrockClient()
         client.client = mock_client
         return client
 
@@ -150,18 +150,4 @@ class TestBedrockClient:
         response = await bedrock_client.generate(SAMPLE_PROMPT, model_id=model_id)
         
         # Verify the response parsing
-        assert response == "This is a test response from Titan"
-    
-    @pytest.mark.asyncio
-    async def test_debug_mode(self):
-        """Test that debug mode returns simulated responses."""
-        # Create client in debug mode
-        client = BedrockClient(debug_mode=True)
-        
-        # Call generate
-        response = await client.generate(SAMPLE_PROMPT)
-        
-        # Verify that the response contains the expected debug text
-        assert "<thinking>" in response
-        assert "English:" in response
-        assert "Japanese:" in response 
+        assert response == "This is a test response from Titan" 
