@@ -50,7 +50,7 @@ Once the API is running, you can access the Swagger documentation at:
   ```json
   {
     "message": "Hello, can you help me?",
-    "npc_id": "yamada",
+    "npc_id": "station_attendant_osaka",
     "player_id": "player_1"
   }
   ```
@@ -68,6 +68,20 @@ Once the API is running, you can access the Swagger documentation at:
     "emotion": "friendly",
     "confidence": 0.95
   }
+  ```
+
+#### Get Valid NPC IDs
+- **GET** `/api/v1/valid-npc-ids`
+- Response:
+  ```json
+  [
+    "station_attendant_osaka",
+    "station_attendant_kyoto",
+    "station_attendant_odawara", 
+    "information_booth_attendant",
+    "ticket_booth_attendant",
+    "companion_dog"
+  ]
   ```
 
 #### Get NPC Profiles

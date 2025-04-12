@@ -5,6 +5,7 @@ NPC profiles endpoint
 import logging
 from fastapi import APIRouter
 from api.models.requests import NPCProfile, NPCListResponse
+from typing import List
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -84,4 +85,20 @@ async def get_npc_profile(npc_id: str) -> NPCProfile:
     if npc_id not in NPC_PROFILES:
         raise ValueError(f"NPC profile not found: {npc_id}")
     
-    return NPCProfile(**NPC_PROFILES[npc_id]) 
+    return NPCProfile(**NPC_PROFILES[npc_id])
+
+
+@router.get("/valid-npc-ids", response_model=List[str])
+async def get_valid_npc_ids() -> List[str]:
+    """
+    Get a list of all valid NPC IDs for use with the chat endpoint
+    """
+    logger.info("Getting valid NPC IDs")
+    
+    # Import the NPCProfileType to get the valid IDs
+    from src.ai.npc.core.models import NPCProfileType
+    
+    # Extract all valid IDs from the enum
+    valid_npc_ids = [member.value for member in NPCProfileType]
+    
+    return valid_npc_ids 

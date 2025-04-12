@@ -43,14 +43,20 @@ curl -s -X GET $BASE_URL/api/v1/npcs/yamada | format_json
 echo
 sleep 1
 
-echo "5. Chat with Yamada"
+echo "4.1. Get Valid NPC IDs"
+echo "---------------------------"
+curl -s -X GET $BASE_URL/api/v1/valid-npc-ids | format_json
+echo
+sleep 1
+
+echo "5. Chat with Yamada (Station Attendant Osaka)"
 echo "------------------"
 curl -s -X POST \
   $BASE_URL/api/v1/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Hello, can you help me find the Yamanote Line?",
-    "npc_id": "yamada",
+    "npc_id": "station_attendant_osaka",
     "player_id": "test_player_1"
   }' | format_json
 echo
@@ -63,7 +69,7 @@ curl -s -X POST \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Thank you. Where can I buy tickets?",
-    "npc_id": "yamada",
+    "npc_id": "station_attendant_osaka",
     "player_id": "test_player_1"
   }' | format_json
 echo
@@ -76,7 +82,7 @@ curl -s -X POST \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Hello Hachiko! Could you teach me some basic Japanese phrases for traveling?",
-    "npc_id": "hachiko",
+    "npc_id": "companion_dog",
     "player_id": "test_player_2"
   }' | format_json
 echo
@@ -89,20 +95,20 @@ curl -s -X POST \
   -H "Content-Type: application/json" \
   -d '{
     "message": "ありがとう、ハチ公！東京タワーはどこですか？",
-    "npc_id": "hachiko",
+    "npc_id": "companion_dog",
     "player_id": "test_player_2"
   }' | format_json
 echo
 sleep 2
 
-echo "9. Chat with Different NPC (Suzuki)"
+echo "9. Chat with Different NPC (Suzuki - Information Booth Attendant)"
 echo "--------------------------------"
 curl -s -X POST \
   $BASE_URL/api/v1/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Hello, I am looking for information about Tokyo attractions.",
-    "npc_id": "suzuki",
+    "npc_id": "information_booth_attendant",
     "player_id": "test_player_1"
   }' | format_json
 echo
@@ -121,7 +127,7 @@ curl -s -X POST \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Can you remind me about our previous conversation?",
-    "npc_id": "yamada",
+    "npc_id": "station_attendant_osaka",
     "player_id": "test_player_1"
   }' | format_json
 echo

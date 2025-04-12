@@ -53,14 +53,22 @@ async def chat_with_npc(request: ChatRequest) -> ChatResponse:
         # Create a unique request ID 
         request_id = str(uuid.uuid4())
         
-        # Map NPC ID string to enum (customize based on your implementation)
-        try:
-            # This assumes that the NPC ID in the request corresponds to a value in NPCProfileType
-            npc_profile_type = NPCProfileType(request.npc_id)
-        except ValueError:
-            # Fallback to a default if the mapping fails
-            logger.warning(f"Invalid NPC ID: {request.npc_id}, using default")
-            npc_profile_type = NPCProfileType.YAMADA  # Default profile
+        # Define valid NPC IDs as per NPCProfileType enum
+        valid_npc_ids = [member.value for member in NPCProfileType]
+        
+        # Check if the requested NPC ID is valid
+        if request.npc_id not in valid_npc_ids:
+            # Return a response indicating invalid NPC ID
+            logger.warning(f"Invalid NPC ID: {request.npc_id}")
+            return ChatResponse(
+                response_text=f"No NPC profile found for ID: {request.npc_id}. Valid IDs are: {', '.join(valid_npc_ids)}",
+                processing_tier="error",
+                emotion="neutral",
+                confidence=0.0
+            )
+        
+        # Map NPC ID string to enum (now we know it's valid)
+        npc_profile_type = NPCProfileType(request.npc_id)
         
         # Create game context with NPC ID
         game_context = GameContext(

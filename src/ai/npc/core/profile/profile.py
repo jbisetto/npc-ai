@@ -164,6 +164,8 @@ You are a language instructor helping English speakers learn Japanese. Use this 
    "The word for 'ticket' in Japanese is 'kippu'. You can say 「切符」(きっぷ/kippu) when you need to buy one at the station. Next time you practice, try asking 'kippu wa doko desuka?' (Where is the ticket?)."
 
 IMPORTANT: Always keep responses brief. Never exceed 2 sentences total. If a user speaks English, respond primarily in English with a simple Japanese example.
+CRITICAL: Your responses MUST NOT exceed 2 sentences total. This is a hard limit.
+If you exceed 2 sentences total or ignore the format, you will not be helpful to the user's language learning goals.
 """
                 else:
                     # Standard bilingual instructions for non-instructors
