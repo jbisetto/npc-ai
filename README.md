@@ -231,7 +231,7 @@ The main configuration files are:
   - System prompts and optimization settings
   - Usage tracking and limits
 
-***NOTE:*** current configuration has local tier disabled and hosted tier (ASW) enabled
+***NOTE:*** current configuration has local tier disabled and hosted tier (AWS) enabled. We've encountered a persistent issue with AWS Bedrock connectivity that we've been unable to resolve. If you experience "AccessDeniedException" errors despite valid credentials, please enable debug mode in the .env file.
 
 ## Environment Configuration
 
